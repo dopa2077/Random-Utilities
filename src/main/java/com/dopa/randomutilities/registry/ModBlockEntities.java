@@ -16,10 +16,11 @@ public final class ModBlockEntities {
     public static final Supplier<BlockEntityType<BasicStoneGeneratorBlockEntity>> BASIC_STONE_GENERATOR =
             BLOCK_ENTITIES.register(
                     "basic_stone_generator",
-                    () -> BlockEntityType.Builder.of(
+                    () -> new BlockEntityType<>(
                             BasicStoneGeneratorBlockEntity::new,
+                            false,
                             ModBlocks.BASIC_STONE_GENERATOR.get()
-                    ).build(null)
+                    )
             );
 
     private ModBlockEntities() {}

@@ -2,6 +2,7 @@ package com.dopa.randomutilities.block;
 
 import com.dopa.randomutilities.blockentity.BasicStoneGeneratorBlockEntity;
 import com.dopa.randomutilities.registry.ModBlockEntities;
+import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -14,8 +15,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class BasicStoneGeneratorBlock extends BaseEntityBlock {
+    public static final MapCodec<BasicStoneGeneratorBlock> CODEC = simpleCodec(BasicStoneGeneratorBlock::new);
+
     public BasicStoneGeneratorBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    protected MapCodec<? extends BasicStoneGeneratorBlock> codec() {
+        return CODEC;
     }
 
     @Override
