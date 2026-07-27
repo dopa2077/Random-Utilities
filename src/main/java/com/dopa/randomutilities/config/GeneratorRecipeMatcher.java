@@ -7,26 +7,33 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Optional;
 
 public final class GeneratorRecipeMatcher {
-    public record FluidNeighbor(BlockPos pos, Fluid fluid) {}
+    public record Neighbor(BlockPos pos, @Nullable Fluid fluid, Block block) {}
 
-    public record Match(GeneratorRecipe recipe, BlockPos fluid1Pos, BlockPos fluid2Pos) {}
+    public record Match(GeneratorRecipe recipe, BlockPos[] resourcePositions) {
+        public Match {
+            resourcePositions = Arrays.copyOf(resourcePositions, GeneratorRecipe.SIDE_COUNT);
+        }
+    }
 
     private GeneratorRecipeMatcher() {}
 
-    public static List<FluidNeighbor> scanHorizontalFluids(Level level, BlockPos center) {
-        List<FluidNeighbor> neighbors = new ArrayList<>(4);
+    public static List<Neighbor> scanHorizontalNeighbors(Level level, BlockPos center) {
+        List<Neighbor> neighbors = new ArrayList<>(4);
         for (Direction direction : Direction.Plane.HORIZONTAL) {
             BlockPos neighborPos = center.relative(direction);
+            BlockState state = level.getBlockState(neighborPos);
             FluidState fluidState = level.getFluidState(neighborPos);
-            if (countsAsFluidSource(fluidState)) {
-                neighbors.add(new FluidNeighbor(neighborPos, fluidState.getType()));
-            }
+            Fluid fluid = countsAsFluidSource(fluidState) ? fluidState.getType() : null;
+            neighbors.add(new Neighbor(neighborPos, fluid, state.getBlock()));
         }
         return neighbors;
     }
@@ -38,61 +45,82 @@ public final class GeneratorRecipeMatcher {
         return fluidState.isSource() || fluidState.getAmount() >= 8;
     }
 
+    /**
+     * Picks the most specific recipe whose requirements are fully satisfied.
+     * Side resources can match any of the four horizontal neighbors (order-independent).
+     */
     public static Optional<Match> findBestMatch(Level level, BlockPos generatorPos, List<GeneratorRecipe> recipes) {
         if (recipes.isEmpty()) {
             return Optional.empty();
         }
 
-        List<FluidNeighbor> fluidNeighbors = scanHorizontalFluids(level, generatorPos);
-        if (fluidNeighbors.size() < 2) {
-            return Optional.empty();
-        }
-
-        BlockState underState = level.getBlockState(generatorPos.below());
-        Block underBlock = underState.getBlock();
+        List<Neighbor> neighbors = scanHorizontalNeighbors(level, generatorPos);
+        Block underBlock = level.getBlockState(generatorPos.below()).getBlock();
 
         for (GeneratorRecipe recipe : recipes) {
-            Optional<GeneratorRecipe.FluidAssignment> assignment = findFluidAssignment(recipe, fluidNeighbors);
-            if (assignment.isEmpty()) {
-                continue;
+            Optional<Match> match = tryMatch(recipe, neighbors, underBlock);
+            if (match.isPresent()) {
+                return match;
             }
-
-            if (recipe.matchesUnderBlock(underBlock)) {
-                GeneratorRecipe.FluidAssignment fluids = assignment.get();
-                return Optional.of(new Match(recipe, fluids.fluid1Pos(), fluids.fluid2Pos()));
-            }
-        }
-
-        GeneratorRecipe defaultRecipe = GeneratorRecipeConfig.getDefaultRecipe();
-        if (defaultRecipe != null) {
-            return findFluidAssignment(defaultRecipe, fluidNeighbors)
-                    .map(fluids -> new Match(defaultRecipe, fluids.fluid1Pos(), fluids.fluid2Pos()));
         }
 
         return Optional.empty();
     }
 
-    private static Optional<GeneratorRecipe.FluidAssignment> findFluidAssignment(
+    private static Optional<Match> tryMatch(
             GeneratorRecipe recipe,
-            List<FluidNeighbor> fluidNeighbors
+            List<Neighbor> neighbors,
+            Block underBlock
     ) {
-        for (int firstIndex = 0; firstIndex < fluidNeighbors.size(); firstIndex++) {
-            for (int secondIndex = 0; secondIndex < fluidNeighbors.size(); secondIndex++) {
-                if (firstIndex == secondIndex) {
-                    continue;
-                }
+        if (!recipe.matchesUnderBlock(underBlock)) {
+            return Optional.empty();
+        }
 
-                FluidNeighbor first = fluidNeighbors.get(firstIndex);
-                FluidNeighbor second = fluidNeighbors.get(secondIndex);
+        BlockPos[] matched = new BlockPos[GeneratorRecipe.SIDE_COUNT];
+        BitSet usedNeighbors = new BitSet(neighbors.size());
 
-                if (recipe.fluid1().isSame(first.fluid()) && recipe.fluid2().isSame(second.fluid())) {
-                    return Optional.of(new GeneratorRecipe.FluidAssignment(first.pos(), second.pos()));
-                }
-                if (recipe.fluid1().isSame(second.fluid()) && recipe.fluid2().isSame(first.fluid())) {
-                    return Optional.of(new GeneratorRecipe.FluidAssignment(second.pos(), first.pos()));
-                }
+        for (int i = 0; i < GeneratorRecipe.SIDE_COUNT; i++) {
+            GeneratorResource required = recipe.resources().get(i);
+            if (required == null) {
+                continue;
+            }
+
+            Optional<Integer> neighborIndex = findUnusedNeighbor(neighbors, usedNeighbors, required);
+            if (neighborIndex.isEmpty()) {
+                return Optional.empty();
+            }
+
+            int index = neighborIndex.get();
+            usedNeighbors.set(index);
+            matched[i] = neighbors.get(index).pos();
+        }
+
+        return Optional.of(new Match(recipe, matched));
+    }
+
+    private static Optional<Integer> findUnusedNeighbor(
+            List<Neighbor> neighbors,
+            BitSet usedNeighbors,
+            GeneratorResource required
+    ) {
+        for (int i = 0; i < neighbors.size(); i++) {
+            if (usedNeighbors.get(i)) {
+                continue;
+            }
+            if (matches(neighbors.get(i), required)) {
+                return Optional.of(i);
             }
         }
         return Optional.empty();
+    }
+
+    private static boolean matches(Neighbor neighbor, GeneratorResource required) {
+        if (required.isFluid()) {
+            return neighbor.fluid() != null && required.fluid().isSame(neighbor.fluid());
+        }
+        if (required.isBlock()) {
+            return required.block() == neighbor.block();
+        }
+        return false;
     }
 }
