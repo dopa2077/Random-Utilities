@@ -1,0 +1,13 @@
+{
+  "itemGroup.dopasrandomutilities": "Example Mod Tab",
+  "block.dopasrandomutilities.example_block": "Example Block",
+  "item.dopasrandomutilities.example_item": "Example Item",
+
+  "dopasrandomutilities.configuration.title": "dOPa's Random Utilities Configs",
+  "dopasrandomutilities.configuration.section.dopasrandomutilities.common.toml": "dOPa's Random Utilities Configs",
+  "dopasrandomutilities.configuration.section.dopasrandomutilities.common.toml.title": "dOPa's Random Utilities Configs",
+  "dopasrandomutilities.configuration.items": "Item List",
+  "dopasrandomutilities.configuration.logDirtBlock": "Log Dirt Block",
+  "dopasrandomutilities.configuration.magicNumberIntroduction": "Magic Number Text",
+  "dopasrandomutilities.configuration.magicNumber": "Magic Number"
+}
