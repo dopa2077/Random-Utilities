@@ -1,7 +1,7 @@
 {
   "itemGroup.dopasrandomutilities": "Example Mod Tab",
-  "block.dopasrandomutilities.example_block": "Example Block",
-  "item.dopasrandomutilities.example_item": "Example Item",
+  "block.dopasrandomutilities.basic_stone_generator": "Basic Stone Generator",
+  "item.dopasrandomutilities.basic_stone_generator": "Basic Stone Generator",
 
   "dopasrandomutilities.configuration.title": "dOPa's Random Utilities Configs",
   "dopasrandomutilities.configuration.section.dopasrandomutilities.common.toml": "dOPa's Random Utilities Configs",
