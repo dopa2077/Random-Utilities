@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "minecraft:cobblestone",
+    "G": "minecraft:glass",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "CCC",
+    "LGW",
+    "CCC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:basic_stone_generator"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "recipes": [
+    {
+      "id": "netherrack",
+      "result": "minecraft:netherrack",
+      "amount": 1,
+      "ticks": 30,
+      "below": "minecraft:netherrack",
+      "sides": [
+        { "id": "minecraft:lava" }
+      ]
+    },
+    {
+      "id": "obsidian",
+      "result": "minecraft:obsidian",
+      "amount": 1,
+      "ticks": 100,
+      "sides": [
+        { "id": "minecraft:lava", "consume": true }
+      ]
+    },
+    {
+      "id": "stone",
+      "result": "minecraft:stone",
+      "amount": 1,
+      "ticks": 40,
+      "sides": [
+        { "id": "minecraft:water", "consume": true }
+      ]
+    },
+    {
+      "id": "cobblestone",
+      "result": "minecraft:cobblestone",
+      "amount": 1,
+      "ticks": 60
+    }
+  ]
+}

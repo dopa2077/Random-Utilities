@@ -1,10 +1,11 @@
 package com.dopa.randomutilities.config;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
@@ -16,21 +17,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 public final class GeneratorRecipeConfig {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Type RECIPE_LIST_TYPE = new TypeToken<List<RecipeDefinition>>() {}.getType();
-    private static final String CONFIG_DIR = "basicstonegenerator";
-    private static final String CONFIG_FILE = "recipes.json";
-    private static final String DEFAULT_RESOURCE = "/default/basicstonegenerator/recipes.json";
+    private static final String CONFIG_PATH =
+            "dopas_random_utilities/blocks/resource_generator/basic_stone_generator.json";
+    private static final String DEFAULT_RESOURCE =
+            "/default/dopas_random_utilities/blocks/resource_generator/basic_stone_generator.json";
 
     private static List<GeneratorRecipe> recipes = List.of();
     private static GeneratorRecipe defaultRecipe = null;
@@ -38,8 +39,8 @@ public final class GeneratorRecipeConfig {
     private GeneratorRecipeConfig() {}
 
     public static void load() {
-        Path configDir = FMLPaths.CONFIGDIR.get().resolve(CONFIG_DIR);
-        Path configFile = configDir.resolve(CONFIG_FILE);
+        Path configFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_PATH);
+        Path configDir = configFile.getParent();
 
         try {
             Files.createDirectories(configDir);
@@ -77,8 +78,8 @@ public final class GeneratorRecipeConfig {
             if (input == null) {
                 throw new IOException("Missing bundled default recipes at " + DEFAULT_RESOURCE);
             }
-            Files.copy(input, configFile);
-            dOPasRandomUtilities.LOGGER.info("Created default generator recipes at {}", configFile);
+            Files.copy(input, configFile, StandardCopyOption.REPLACE_EXISTING);
+            dOPasRandomUtilities.LOGGER.info("Wrote generator recipes config at {}", configFile);
         }
     }
 
@@ -98,16 +99,28 @@ public final class GeneratorRecipeConfig {
     }
 
     private static void parseAndApply(Reader reader) {
-        List<RecipeDefinition> definitions;
+        JsonArray recipeArray;
         try {
-            definitions = GSON.fromJson(reader, RECIPE_LIST_TYPE);
-        } catch (JsonSyntaxException exception) {
+            JsonElement root = JsonParser.parseReader(reader);
+            if (root.isJsonArray()) {
+                recipeArray = root.getAsJsonArray();
+            } else if (root.isJsonObject()) {
+                JsonElement recipesElement = root.getAsJsonObject().get("recipes");
+                if (recipesElement == null || !recipesElement.isJsonArray()) {
+                    throw new JsonSyntaxException("Expected a 'recipes' array");
+                }
+                recipeArray = recipesElement.getAsJsonArray();
+            } else {
+                throw new JsonSyntaxException("Expected recipe object or array");
+            }
+        } catch (JsonSyntaxException | IllegalStateException exception) {
             dOPasRandomUtilities.LOGGER.error("Invalid generator recipe JSON syntax", exception);
-            loadDefaultFromJar();
+            recipes = List.of(createFallbackCobblestoneRecipe());
+            defaultRecipe = recipes.getFirst();
             return;
         }
 
-        if (definitions == null || definitions.isEmpty()) {
+        if (recipeArray.isEmpty()) {
             dOPasRandomUtilities.LOGGER.warn("Generator recipe list was empty; using built-in cobblestone fallback");
             recipes = List.of(createFallbackCobblestoneRecipe());
             defaultRecipe = recipes.getFirst();
@@ -115,10 +128,16 @@ public final class GeneratorRecipeConfig {
         }
 
         List<GeneratorRecipe> parsed = new ArrayList<>();
-        for (RecipeDefinition definition : definitions) {
-            parseDefinition(definition).ifPresentOrElse(
+        for (JsonElement element : recipeArray) {
+            if (!element.isJsonObject()) {
+                dOPasRandomUtilities.LOGGER.warn("Skipping non-object generator recipe entry");
+                continue;
+            }
+            JsonObject object = element.getAsJsonObject();
+            String id = object.has("id") ? object.get("id").getAsString() : "<unknown>";
+            parseDefinition(object).ifPresentOrElse(
                     parsed::add,
-                    () -> dOPasRandomUtilities.LOGGER.warn("Skipping invalid generator recipe entry: {}", definition.id)
+                    () -> dOPasRandomUtilities.LOGGER.warn("Skipping invalid generator recipe entry: {}", id)
             );
         }
 
@@ -129,7 +148,7 @@ public final class GeneratorRecipeConfig {
             return;
         }
 
-        parsed.sort(Comparator.comparingInt(GeneratorRecipe::priority).reversed());
+        parsed.sort(Comparator.comparingInt(GeneratorRecipe::specificity).reversed());
         recipes = List.copyOf(parsed);
         defaultRecipe = recipes.stream()
                 .filter(recipe -> "cobblestone".equals(recipe.id()))
@@ -138,89 +157,147 @@ public final class GeneratorRecipeConfig {
         dOPasRandomUtilities.LOGGER.info("Loaded {} basic stone generator recipes", recipes.size());
     }
 
-    private static Optional<GeneratorRecipe> parseDefinition(RecipeDefinition definition) {
-        if (definition.id == null || definition.id.isBlank()) {
-            return Optional.empty();
-        }
-        if (definition.result == null || definition.fluid1 == null || definition.fluid2 == null) {
+    private static Optional<GeneratorRecipe> parseDefinition(JsonObject definition) {
+        if (!definition.has("id") || !definition.has("result")) {
             return Optional.empty();
         }
 
-        Identifier resultId = Identifier.parse(definition.result);
-        Identifier fluid1Id = Identifier.parse(definition.fluid1);
-        Identifier fluid2Id = Identifier.parse(definition.fluid2);
+        String recipeId = definition.get("id").getAsString();
+        if (recipeId.isBlank()) {
+            return Optional.empty();
+        }
 
-        if (!BuiltInRegistries.BLOCK.containsKey(resultId)
-                || !BuiltInRegistries.FLUID.containsKey(fluid1Id)
-                || !BuiltInRegistries.FLUID.containsKey(fluid2Id)) {
+        Identifier resultId = Identifier.parse(definition.get("result").getAsString());
+        if (!BuiltInRegistries.BLOCK.containsKey(resultId)) {
+            dOPasRandomUtilities.LOGGER.warn("Unknown result block '{}' in recipe '{}'", resultId, recipeId);
+            return Optional.empty();
+        }
+        Block resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
+
+        List<GeneratorResource> resources = new ArrayList<>(GeneratorRecipe.SIDE_COUNT);
+        boolean[] consume = new boolean[GeneratorRecipe.SIDE_COUNT];
+        Arrays.fill(consume, false);
+
+        JsonArray sides = definition.has("sides") && definition.get("sides").isJsonArray()
+                ? definition.getAsJsonArray("sides")
+                : new JsonArray();
+
+        if (sides.size() > GeneratorRecipe.SIDE_COUNT) {
             dOPasRandomUtilities.LOGGER.warn(
-                    "Unknown registry entry in recipe '{}': result={}, fluid1={}, fluid2={}",
-                    definition.id,
-                    definition.result,
-                    definition.fluid1,
-                    definition.fluid2
+                    "Recipe '{}' has {} side requirements but only {} horizontal sides are supported",
+                    recipeId,
+                    sides.size(),
+                    GeneratorRecipe.SIDE_COUNT
             );
             return Optional.empty();
         }
 
-        Block resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
-        Fluid fluid1 = BuiltInRegistries.FLUID.getValue(fluid1Id);
-        Fluid fluid2 = BuiltInRegistries.FLUID.getValue(fluid2Id);
-
-        Block requiredUnder = null;
-        if (definition.required_under != null && !definition.required_under.isBlank()) {
-            Identifier underId = Identifier.parse(definition.required_under);
-            if (!BuiltInRegistries.BLOCK.containsKey(underId)) {
-                dOPasRandomUtilities.LOGGER.warn(
-                        "Unknown required_under block '{}' in recipe '{}'",
-                        definition.required_under,
-                        definition.id
-                );
+        for (int i = 0; i < sides.size(); i++) {
+            Optional<SideRequirement> side = parseSide(sides.get(i), recipeId, i);
+            if (side.isEmpty()) {
                 return Optional.empty();
             }
-            requiredUnder = BuiltInRegistries.BLOCK.getValue(underId);
+            resources.add(side.get().resource());
+            consume[i] = side.get().consume();
+        }
+        while (resources.size() < GeneratorRecipe.SIDE_COUNT) {
+            resources.add(null);
         }
 
-        int ticks = definition.ticks > 0 ? definition.ticks : 20;
-        int priority = definition.priority;
+        Block requiredUnder = null;
+        if (definition.has("below") && !definition.get("below").isJsonNull()) {
+            String belowId = definition.get("below").getAsString();
+            if (!belowId.isBlank()) {
+                Identifier underId = Identifier.parse(belowId);
+                if (!BuiltInRegistries.BLOCK.containsKey(underId)) {
+                    dOPasRandomUtilities.LOGGER.warn("Unknown below block '{}' in recipe '{}'", belowId, recipeId);
+                    return Optional.empty();
+                }
+                requiredUnder = BuiltInRegistries.BLOCK.getValue(underId);
+            }
+        }
+
+        int ticks = definition.has("ticks") ? definition.get("ticks").getAsInt() : 20;
+        int amount = definition.has("amount") ? definition.get("amount").getAsInt() : 1;
+        if (ticks <= 0) {
+            ticks = 20;
+        }
+        if (amount <= 0) {
+            amount = 1;
+        }
 
         return Optional.of(new GeneratorRecipe(
-                definition.id,
+                recipeId,
                 resultBlock,
-                fluid1,
-                fluid2,
-                definition.consume1,
-                definition.consume2,
+                resources,
+                consume,
                 requiredUnder,
                 ticks,
-                priority
+                amount
         ));
+    }
+
+    private static Optional<SideRequirement> parseSide(JsonElement element, String recipeId, int index) {
+        String fieldName = "sides[" + index + "]";
+        final String resourceId;
+        final boolean consume;
+
+        if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+            resourceId = element.getAsString();
+            consume = false;
+        } else if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            if (!object.has("id")) {
+                dOPasRandomUtilities.LOGGER.warn("Missing id in {} of recipe '{}'", fieldName, recipeId);
+                return Optional.empty();
+            }
+            resourceId = object.get("id").getAsString();
+            consume = object.has("consume") && object.get("consume").getAsBoolean();
+        } else {
+            dOPasRandomUtilities.LOGGER.warn("Invalid {} in recipe '{}'", fieldName, recipeId);
+            return Optional.empty();
+        }
+
+        Optional<GeneratorResource> resource = resolveResource(resourceId, recipeId, fieldName);
+        return resource.map(value -> new SideRequirement(value, consume));
+    }
+
+    private static Optional<GeneratorResource> resolveResource(
+            @Nullable String resourceId,
+            String recipeId,
+            String fieldName
+    ) {
+        if (resourceId == null || resourceId.isBlank()) {
+            dOPasRandomUtilities.LOGGER.warn("Empty {} in recipe '{}'", fieldName, recipeId);
+            return Optional.empty();
+        }
+
+        Identifier id = Identifier.parse(resourceId);
+        // Prefer fluids when an id exists in both registries (e.g. water / lava).
+        if (BuiltInRegistries.FLUID.containsKey(id)) {
+            Fluid fluid = BuiltInRegistries.FLUID.getValue(id);
+            return Optional.of(GeneratorResource.ofFluid(fluid));
+        }
+        if (BuiltInRegistries.BLOCK.containsKey(id)) {
+            Block block = BuiltInRegistries.BLOCK.getValue(id);
+            return Optional.of(GeneratorResource.ofBlock(block));
+        }
+
+        dOPasRandomUtilities.LOGGER.warn("Unknown {} '{}' in recipe '{}'", fieldName, resourceId, recipeId);
+        return Optional.empty();
     }
 
     private static GeneratorRecipe createFallbackCobblestoneRecipe() {
         return new GeneratorRecipe(
                 "cobblestone",
                 BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:cobblestone")),
-                BuiltInRegistries.FLUID.getValue(Identifier.parse("minecraft:lava")),
-                BuiltInRegistries.FLUID.getValue(Identifier.parse("minecraft:water")),
-                false,
-                false,
+                Arrays.asList(null, null, null, null),
+                new boolean[] {false, false, false, false},
                 null,
                 20,
-                0
+                1
         );
     }
 
-    @SuppressWarnings("unused")
-    private static final class RecipeDefinition {
-        String id;
-        String result;
-        String fluid1;
-        String fluid2;
-        boolean consume1;
-        boolean consume2;
-        @Nullable String required_under;
-        int ticks = 20;
-        int priority = 0;
-    }
+    private record SideRequirement(GeneratorResource resource, boolean consume) {}
 }
