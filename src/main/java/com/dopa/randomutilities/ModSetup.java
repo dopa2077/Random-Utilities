@@ -44,7 +44,7 @@ public final class ModSetup {
         public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
             event.addListener(
                     GENERATOR_RECIPES_LISTENER,
-                    (ResourceManagerReloadListener) resourceManager -> GeneratorRecipeConfig.reload()
+                    (ResourceManagerReloadListener) (resourceManager -> GeneratorRecipeConfig.reload())
             );
         }
     }
