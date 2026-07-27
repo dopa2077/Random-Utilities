@@ -5,17 +5,19 @@ import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModItems;
 
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
-import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
 public final class ModSetup {
+    private static final Identifier GENERATOR_RECIPES_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":generator_recipes");
+
     private ModSetup() {}
 
     public static void register(IEventBus modEventBus) {
@@ -39,18 +41,11 @@ public final class ModSetup {
         }
 
         @SubscribeEvent
-        public static void onAddReloadListeners(AddReloadListenerEvent event) {
-            event.addListener(new SimplePreparableReloadListener<Void>() {
-                @Override
-                protected Void prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-                    return null;
-                }
-
-                @Override
-                protected void apply(Void object, ResourceManager resourceManager, ProfilerFiller profiler) {
-                    GeneratorRecipeConfig.reload();
-                }
-            });
+        public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
+            event.addListener(
+                    GENERATOR_RECIPES_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> GeneratorRecipeConfig.reload()
+            );
         }
     }
 }
