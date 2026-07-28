@@ -73,13 +73,12 @@ public final class GeneratedBlockLists {
     private static Set<Block> createVanillaStorageBlocks() {
         Set<Block> blocks = new HashSet<>();
         addAll(blocks,
-                Blocks.IRON_BLOCK, Blocks.GOLD_BLOCK, Blocks.NETHERITE_BLOCK,
+                Blocks.IRON_BLOCK, Blocks.GOLD_BLOCK, Blocks.COPPER_BLOCK, Blocks.NETHERITE_BLOCK,
                 Blocks.COAL_BLOCK, Blocks.LAPIS_BLOCK, Blocks.REDSTONE_BLOCK,
                 Blocks.DIAMOND_BLOCK, Blocks.EMERALD_BLOCK, Blocks.QUARTZ_BLOCK,
                 Blocks.AMETHYST_BLOCK, Blocks.RAW_IRON_BLOCK, Blocks.RAW_GOLD_BLOCK,
                 Blocks.RAW_COPPER_BLOCK
         );
-        addIfPresent(blocks, "minecraft:copper_block");
         return Set.copyOf(blocks);
     }
 
