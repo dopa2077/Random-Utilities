@@ -78,6 +78,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
 
         if (match == null || !canStartOutput(level, type, match.recipe())) {
             resetProgress();
+            setChanged();
             return;
         }
 
