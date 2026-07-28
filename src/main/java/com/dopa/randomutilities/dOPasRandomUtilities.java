@@ -25,6 +25,11 @@ public class dOPasRandomUtilities {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        LOGGER.info("Basic Stone Generator recipes loaded: {} entries", com.dopa.randomutilities.config.GeneratorRecipeConfig.getRecipes().size());
+        LOGGER.info(
+                "Resource generator recipes loaded (basic stone): {} entries",
+                com.dopa.randomutilities.config.GeneratorRecipeConfig.getRecipes(
+                        com.dopa.randomutilities.config.GeneratorType.BASIC_STONE
+                ).size()
+        );
     }
 }

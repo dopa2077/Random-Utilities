@@ -1,0 +1,6 @@
+﻿{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "dopasrandomutilities:block/elite_stone_generator"
+  }
+}

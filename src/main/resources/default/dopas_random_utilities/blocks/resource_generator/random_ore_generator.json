@@ -1,0 +1,11 @@
+{
+  "output": "drop",
+  "recipes": [
+    {
+      "id": "random_ore",
+      "result": "random",
+      "amount": 1,
+      "ticks": 40
+    }
+  ]
+}

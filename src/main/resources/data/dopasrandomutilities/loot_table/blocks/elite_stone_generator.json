@@ -11,11 +11,11 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "dopasrandomutilities:basic_stone_generator"
+          "name": "dopasrandomutilities:elite_stone_generator"
         }
       ],
       "rolls": 1.0
     }
   ],
-  "random_sequence": "dopasrandomutilities:blocks/basic_stone_generator"
+  "random_sequence": "dopasrandomutilities:blocks/elite_stone_generator"
 }

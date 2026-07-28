@@ -1,0 +1,6 @@
+﻿{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "dopasrandomutilities:block/creative_random_ore_generator"
+  }
+}

@@ -9,12 +9,13 @@ import java.util.List;
 
 public record GeneratorRecipe(
         String id,
-        Block result,
+        @Nullable Block result,
         List<@Nullable GeneratorResource> resources,
         boolean[] consume,
         @Nullable Block requiredUnder,
         int ticks,
-        int amount
+        int amount,
+        GeneratorOutputMode outputMode
 ) {
     public static final int SIDE_COUNT = 4;
 
@@ -30,6 +31,14 @@ public record GeneratorRecipe(
         consume = consume.clone();
         amount = Math.max(1, amount);
         ticks = Math.max(1, ticks);
+        if (outputMode == null) {
+            outputMode = GeneratorOutputMode.INSERT;
+        }
+    }
+
+    /** When true, the generator picks a random block from its type pool instead of a fixed result. */
+    public boolean isRandomResult() {
+        return result == null;
     }
 
     public boolean matchesUnderBlock(Block block) {

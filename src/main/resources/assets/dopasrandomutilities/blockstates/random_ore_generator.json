@@ -1,0 +1,7 @@
+﻿{
+  "variants": {
+    "": {
+      "model": "dopasrandomutilities:block/random_ore_generator"
+    }
+  }
+}

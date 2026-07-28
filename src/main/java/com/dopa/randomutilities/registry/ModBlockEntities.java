@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.blockentity.BasicStoneGeneratorBlockEntity;
+import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -13,13 +13,22 @@ public final class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, dOPasRandomUtilities.MOD_ID);
 
-    public static final Supplier<BlockEntityType<BasicStoneGeneratorBlockEntity>> BASIC_STONE_GENERATOR =
+    public static final Supplier<BlockEntityType<ResourceGeneratorBlockEntity>> RESOURCE_GENERATOR =
             BLOCK_ENTITIES.register(
-                    "basic_stone_generator",
+                    "resource_generator",
                     () -> new BlockEntityType<>(
-                            BasicStoneGeneratorBlockEntity::new,
+                            ResourceGeneratorBlockEntity::new,
                             false,
-                            ModBlocks.BASIC_STONE_GENERATOR.get()
+                            ModBlocks.BASIC_STONE_GENERATOR.get(),
+                            ModBlocks.INTERMEDIATE_STONE_GENERATOR.get(),
+                            ModBlocks.ADVANCED_STONE_GENERATOR.get(),
+                            ModBlocks.ELITE_STONE_GENERATOR.get(),
+                            ModBlocks.ULTIMATE_STONE_GENERATOR.get(),
+                            ModBlocks.CREATIVE_STONE_GENERATOR.get(),
+                            ModBlocks.RANDOM_ORE_GENERATOR.get(),
+                            ModBlocks.METAL_BLOCK_GENERATOR.get(),
+                            ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR.get(),
+                            ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR.get()
                     )
             );
 

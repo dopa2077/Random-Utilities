@@ -5,7 +5,7 @@
       "id": "netherrack",
       "result": "minecraft:netherrack",
       "amount": 1,
-      "ticks": 30,
+      "ticks": 24,
       "below": "minecraft:netherrack",
       "sides": [
         { "id": "minecraft:lava" }
@@ -15,7 +15,7 @@
       "id": "obsidian",
       "result": "minecraft:obsidian",
       "amount": 1,
-      "ticks": 100,
+      "ticks": 80,
       "sides": [
         { "id": "minecraft:lava", "consume": true }
       ]
@@ -23,8 +23,8 @@
     {
       "id": "stone",
       "result": "minecraft:stone",
-      "amount": 1,
-      "ticks": 40,
+      "amount": 2,
+      "ticks": 32,
       "sides": [
         { "id": "minecraft:water", "consume": true }
       ]
@@ -32,8 +32,8 @@
     {
       "id": "cobblestone",
       "result": "minecraft:cobblestone",
-      "amount": 1,
-      "ticks": 60
+      "amount": 2,
+      "ticks": 45
     }
   ]
 }

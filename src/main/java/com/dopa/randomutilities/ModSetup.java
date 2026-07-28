@@ -1,5 +1,6 @@
 package com.dopa.randomutilities;
 
+import com.dopa.randomutilities.config.GeneratedBlockLists;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
@@ -12,6 +13,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
 public final class ModSetup {
     private static final Identifier GENERATOR_RECIPES_LISTENER =
@@ -37,8 +39,16 @@ public final class ModSetup {
         public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
             event.addListener(
                     GENERATOR_RECIPES_LISTENER,
-                    (ResourceManagerReloadListener) (resourceManager -> GeneratorRecipeConfig.reload())
+                    (ResourceManagerReloadListener) (resourceManager -> {
+                        GeneratorRecipeConfig.reload();
+                        GeneratedBlockLists.rebuild();
+                    })
             );
+        }
+
+        @SubscribeEvent
+        public static void onServerStarting(ServerStartingEvent event) {
+            GeneratedBlockLists.rebuild();
         }
     }
 }
