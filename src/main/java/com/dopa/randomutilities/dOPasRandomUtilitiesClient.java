@@ -13,7 +13,7 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 // This class will not load on dedicated servers. Accessing client side code from here is safe.
 @Mod(value = dOPasRandomUtilities.MOD_ID, dist = Dist.CLIENT)
 // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
-@EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class dOPasRandomUtilitiesClient {
     public dOPasRandomUtilitiesClient(ModContainer container) {
         // Allows NeoForge to create a config screen for this mod's configs.
