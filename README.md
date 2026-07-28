@@ -10,7 +10,7 @@ Inspired by classic mods like **Random Things** and **Extra Utilities**.
 
 | Feature                  | Description                                      |
 |--------------------------|--------------------------------------------------|
-| **Basic Stone Generator** | A simple cobblestone generator block. Craft it with cobblestone, glass, a lava bucket and a water bucket. |
+| **Resource Generators ** | A simple block that generates resources as any other "Cobblestone Generator" mod.|
 
 More random utilities will be added over time!
 
