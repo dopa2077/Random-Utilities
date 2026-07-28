@@ -24,36 +24,38 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class GeneratorRecipeConfig {
-    private static final String CONFIG_PATH =
-            "dopas_random_utilities/blocks/resource_generator/basic_stone_generator.json";
-    private static final String DEFAULT_RESOURCE =
-            "/default/dopas_random_utilities/blocks/resource_generator/basic_stone_generator.json";
-
-    private static List<GeneratorRecipe> recipes = List.of();
-    private static GeneratorRecipe defaultRecipe = null;
+    private static final Map<GeneratorType, List<GeneratorRecipe>> RECIPE_MAP = new EnumMap<>(GeneratorType.class);
 
     private GeneratorRecipeConfig() {}
 
     public static void load() {
-        Path configFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_PATH);
-        Path configDir = configFile.getParent();
+        RECIPE_MAP.clear();
 
-        try {
-            Files.createDirectories(configDir);
-            if (Files.notExists(configFile)) {
-                copyDefaultConfig(configFile);
-            }
+        for (GeneratorType type : GeneratorType.values()) {
+            Path configFile = FMLPaths.CONFIGDIR.get().resolve(type.configRelativePath());
+            try {
+                Files.createDirectories(configFile.getParent());
+                if (Files.notExists(configFile)) {
+                    copyDefaultConfig(type, configFile);
+                }
 
-            try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
-                parseAndApply(reader);
+                try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
+                    parseAndApply(type, reader);
+                }
+            } catch (IOException exception) {
+                dOPasRandomUtilities.LOGGER.error(
+                        "Failed to load generator config from {}",
+                        configFile,
+                        exception
+                );
+                loadDefaultFromJar(type);
             }
-        } catch (IOException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load generator recipes from {}", configFile, exception);
-            loadDefaultFromJar();
         }
     }
 
@@ -61,51 +63,133 @@ public final class GeneratorRecipeConfig {
         load();
     }
 
+    public static List<GeneratorRecipe> getRecipes(GeneratorType type) {
+        return RECIPE_MAP.getOrDefault(type, List.of());
+    }
+
+    /** @deprecated Use {@link #getRecipes(GeneratorType)} */
+    @Deprecated
     public static List<GeneratorRecipe> getRecipes() {
-        return recipes;
+        return getRecipes(GeneratorType.BASIC_STONE);
     }
 
-    public static GeneratorRecipe getDefaultRecipe() {
-        return defaultRecipe;
+    public static Optional<GeneratorRecipe> getRecipeById(GeneratorType type, String id) {
+        return getRecipes(type).stream().filter(recipe -> recipe.id().equals(id)).findFirst();
     }
 
-    public static Optional<GeneratorRecipe> getRecipeById(String id) {
-        return recipes.stream().filter(recipe -> recipe.id().equals(id)).findFirst();
-    }
-
-    private static void copyDefaultConfig(Path configFile) throws IOException {
-        try (InputStream input = GeneratorRecipeConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
+    private static void copyDefaultConfig(GeneratorType type, Path configFile) throws IOException {
+        try (InputStream input = GeneratorRecipeConfig.class.getResourceAsStream(type.defaultResourcePath())) {
             if (input == null) {
-                throw new IOException("Missing bundled default recipes at " + DEFAULT_RESOURCE);
+                throw new IOException("Missing bundled default config at " + type.defaultResourcePath());
             }
             Files.copy(input, configFile, StandardCopyOption.REPLACE_EXISTING);
-            dOPasRandomUtilities.LOGGER.info("Wrote generator recipes config at {}", configFile);
+            dOPasRandomUtilities.LOGGER.info("Wrote generator config at {}", configFile);
         }
     }
 
-    private static void loadDefaultFromJar() {
-        try (InputStream input = GeneratorRecipeConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
+    private static void loadDefaultFromJar(GeneratorType type) {
+        try (InputStream input = GeneratorRecipeConfig.class.getResourceAsStream(type.defaultResourcePath())) {
             if (input == null) {
-                recipes = List.of(createFallbackCobblestoneRecipe());
-                defaultRecipe = recipes.getFirst();
+                applyFallback(type);
                 return;
             }
-            parseAndApply(new InputStreamReader(input, StandardCharsets.UTF_8));
+            parseAndApply(type, new InputStreamReader(input, StandardCharsets.UTF_8));
         } catch (IOException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load bundled default generator recipes", exception);
-            recipes = List.of(createFallbackCobblestoneRecipe());
-            defaultRecipe = recipes.getFirst();
+            dOPasRandomUtilities.LOGGER.error(
+                    "Failed to load bundled default config for {}",
+                    type.id(),
+                    exception
+            );
+            applyFallback(type);
         }
     }
 
-    private static void parseAndApply(Reader reader) {
-        JsonArray recipeArray;
+    private static void applyFallback(GeneratorType type) {
+        switch (type.mode()) {
+            case RECIPE -> RECIPE_MAP.put(type, List.of(createFallbackCobblestoneRecipe()));
+            case RANDOM_ORE, METAL_BLOCK -> RECIPE_MAP.put(type, List.of(createFallbackRandomRecipe(type)));
+        }
+    }
+
+    private static void parseAndApply(GeneratorType type, Reader reader) {
+        JsonElement root;
         try {
-            JsonElement root = JsonParser.parseReader(reader);
+            root = JsonParser.parseReader(reader);
+        } catch (JsonSyntaxException | IllegalStateException exception) {
+            dOPasRandomUtilities.LOGGER.error("Invalid generator JSON syntax for {}", type.id(), exception);
+            applyFallback(type);
+            return;
+        }
+
+        switch (type.mode()) {
+            case RECIPE -> parseRecipeFile(type, root, false);
+            case RANDOM_ORE, METAL_BLOCK -> {
+                // Prefer the shared recipes[] format; keep a tiny legacy fallback for old configs.
+                if (root.isJsonObject() && root.getAsJsonObject().has("recipes")) {
+                    parseRecipeFile(type, root, true);
+                } else {
+                    parseLegacyRandomFile(type, root);
+                }
+            }
+        }
+    }
+
+    private static void parseLegacyRandomFile(GeneratorType type, JsonElement root) {
+        if (!root.isJsonObject()) {
+            dOPasRandomUtilities.LOGGER.error("Expected object/recipes config for {}", type.id());
+            applyFallback(type);
+            return;
+        }
+
+        JsonObject object = root.getAsJsonObject();
+        int ticks = object.has("ticks") ? object.get("ticks").getAsInt() : 40;
+        int amount = object.has("amount") ? object.get("amount").getAsInt() : 1;
+        GeneratorOutputMode outputMode = object.has("output")
+                ? GeneratorOutputMode.parse(object.get("output").getAsString())
+                : GeneratorOutputMode.DROP;
+
+        if (ticks <= 0) {
+            ticks = 40;
+        }
+        if (amount <= 0) {
+            amount = 1;
+        }
+
+        GeneratorRecipe recipe = new GeneratorRecipe(
+                "default",
+                null,
+                Arrays.asList(null, null, null, null),
+                new boolean[] {false, false, false, false},
+                null,
+                ticks,
+                amount,
+                outputMode
+        );
+        RECIPE_MAP.put(type, List.of(recipe));
+        dOPasRandomUtilities.LOGGER.info(
+                "Loaded legacy {} settings as a single recipe: ticks={}, amount={}, output={}",
+                type.id(),
+                recipe.ticks(),
+                recipe.amount(),
+                recipe.outputMode().id()
+        );
+    }
+
+    private static void parseRecipeFile(GeneratorType type, JsonElement root, boolean allowRandomResult) {
+        JsonArray recipeArray;
+        GeneratorOutputMode fileDefaultOutput = allowRandomResult
+                ? GeneratorOutputMode.DROP
+                : GeneratorOutputMode.INSERT;
+
+        try {
             if (root.isJsonArray()) {
                 recipeArray = root.getAsJsonArray();
             } else if (root.isJsonObject()) {
-                JsonElement recipesElement = root.getAsJsonObject().get("recipes");
+                JsonObject object = root.getAsJsonObject();
+                if (object.has("output")) {
+                    fileDefaultOutput = GeneratorOutputMode.parse(object.get("output").getAsString());
+                }
+                JsonElement recipesElement = object.get("recipes");
                 if (recipesElement == null || !recipesElement.isJsonArray()) {
                     throw new JsonSyntaxException("Expected a 'recipes' array");
                 }
@@ -114,50 +198,51 @@ public final class GeneratorRecipeConfig {
                 throw new JsonSyntaxException("Expected recipe object or array");
             }
         } catch (JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Invalid generator recipe JSON syntax", exception);
-            recipes = List.of(createFallbackCobblestoneRecipe());
-            defaultRecipe = recipes.getFirst();
+            dOPasRandomUtilities.LOGGER.error("Invalid generator recipe JSON for {}", type.id(), exception);
+            applyFallback(type);
             return;
         }
 
         if (recipeArray.isEmpty()) {
-            dOPasRandomUtilities.LOGGER.warn("Generator recipe list was empty; using built-in cobblestone fallback");
-            recipes = List.of(createFallbackCobblestoneRecipe());
-            defaultRecipe = recipes.getFirst();
+            dOPasRandomUtilities.LOGGER.warn("{} recipe list was empty; using fallback", type.id());
+            applyFallback(type);
             return;
         }
 
         List<GeneratorRecipe> parsed = new ArrayList<>();
         for (JsonElement element : recipeArray) {
             if (!element.isJsonObject()) {
-                dOPasRandomUtilities.LOGGER.warn("Skipping non-object generator recipe entry");
+                dOPasRandomUtilities.LOGGER.warn("Skipping non-object recipe entry in {}", type.id());
                 continue;
             }
             JsonObject object = element.getAsJsonObject();
             String id = object.has("id") ? object.get("id").getAsString() : "<unknown>";
-            parseDefinition(object).ifPresentOrElse(
+            parseDefinition(object, fileDefaultOutput, allowRandomResult).ifPresentOrElse(
                     parsed::add,
-                    () -> dOPasRandomUtilities.LOGGER.warn("Skipping invalid generator recipe entry: {}", id)
+                    () -> dOPasRandomUtilities.LOGGER.warn(
+                            "Skipping invalid recipe '{}' in {}",
+                            id,
+                            type.id()
+                    )
             );
         }
 
         if (parsed.isEmpty()) {
-            dOPasRandomUtilities.LOGGER.warn("No valid generator recipes found; using built-in cobblestone fallback");
-            recipes = List.of(createFallbackCobblestoneRecipe());
-            defaultRecipe = recipes.getFirst();
+            dOPasRandomUtilities.LOGGER.warn("No valid recipes in {}; using fallback", type.id());
+            applyFallback(type);
             return;
         }
 
         parsed.sort(Comparator.comparingInt(GeneratorRecipe::specificity).reversed());
-        recipes = List.copyOf(parsed);
-        defaultRecipe = recipes.stream()
-                .filter(recipe -> "cobblestone".equals(recipe.id()))
-                .findFirst()
-                .orElse(recipes.getLast());
-        dOPasRandomUtilities.LOGGER.info("Loaded {} basic stone generator recipes", recipes.size());
+        RECIPE_MAP.put(type, List.copyOf(parsed));
+        dOPasRandomUtilities.LOGGER.info("Loaded {} recipes for {}", parsed.size(), type.id());
     }
 
-    private static Optional<GeneratorRecipe> parseDefinition(JsonObject definition) {
+    private static Optional<GeneratorRecipe> parseDefinition(
+            JsonObject definition,
+            GeneratorOutputMode fileDefaultOutput,
+            boolean allowRandomResult
+    ) {
         if (!definition.has("id") || !definition.has("result")) {
             return Optional.empty();
         }
@@ -167,12 +252,24 @@ public final class GeneratorRecipeConfig {
             return Optional.empty();
         }
 
-        Identifier resultId = Identifier.parse(definition.get("result").getAsString());
-        if (!BuiltInRegistries.BLOCK.containsKey(resultId)) {
-            dOPasRandomUtilities.LOGGER.warn("Unknown result block '{}' in recipe '{}'", resultId, recipeId);
-            return Optional.empty();
+        String resultRaw = definition.get("result").getAsString().trim();
+        Block resultBlock = null;
+        if (isRandomResultToken(resultRaw)) {
+            if (!allowRandomResult) {
+                dOPasRandomUtilities.LOGGER.warn(
+                        "Recipe '{}' uses random result but this generator requires a fixed block id",
+                        recipeId
+                );
+                return Optional.empty();
+            }
+        } else {
+            Identifier resultId = Identifier.parse(resultRaw);
+            if (!BuiltInRegistries.BLOCK.containsKey(resultId)) {
+                dOPasRandomUtilities.LOGGER.warn("Unknown result block '{}' in recipe '{}'", resultId, recipeId);
+                return Optional.empty();
+            }
+            resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
         }
-        Block resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
 
         List<GeneratorResource> resources = new ArrayList<>(GeneratorRecipe.SIDE_COUNT);
         boolean[] consume = new boolean[GeneratorRecipe.SIDE_COUNT];
@@ -226,6 +323,10 @@ public final class GeneratorRecipeConfig {
             amount = 1;
         }
 
+        GeneratorOutputMode outputMode = definition.has("output")
+                ? GeneratorOutputMode.parse(definition.get("output").getAsString())
+                : fileDefaultOutput;
+
         return Optional.of(new GeneratorRecipe(
                 recipeId,
                 resultBlock,
@@ -233,8 +334,18 @@ public final class GeneratorRecipeConfig {
                 consume,
                 requiredUnder,
                 ticks,
-                amount
+                amount,
+                outputMode
         ));
+    }
+
+    private static boolean isRandomResultToken(String value) {
+        String normalized = value.toLowerCase(java.util.Locale.ROOT);
+        return normalized.equals("random")
+                || normalized.equals("random_ore")
+                || normalized.equals("random_metal")
+                || normalized.equals("random_storage")
+                || normalized.equals("*");
     }
 
     private static Optional<SideRequirement> parseSide(JsonElement element, String recipeId, int index) {
@@ -295,7 +406,21 @@ public final class GeneratorRecipeConfig {
                 new boolean[] {false, false, false, false},
                 null,
                 20,
-                1
+                1,
+                GeneratorOutputMode.INSERT
+        );
+    }
+
+    private static GeneratorRecipe createFallbackRandomRecipe(GeneratorType type) {
+        return new GeneratorRecipe(
+                type.mode() == GeneratorType.Mode.METAL_BLOCK ? "random_storage" : "random_ore",
+                null,
+                Arrays.asList(null, null, null, null),
+                new boolean[] {false, false, false, false},
+                null,
+                40,
+                1,
+                GeneratorOutputMode.DROP
         );
     }
 
