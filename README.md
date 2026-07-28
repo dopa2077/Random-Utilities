@@ -10,7 +10,7 @@ Inspired by classic mods like **Random Things** and **Extra Utilities**.
 
 | Feature                  | Description                                      |
 |--------------------------|--------------------------------------------------|
-| **Resource Generators ** | A simple block that generates resources as any other "Cobblestone Generator" mod.|
+| Resource Generators | A simple block that generates resources as any other "Cobblestone Generator" mod. Fully configurable in the config file!|
 
 More random utilities will be added over time!
 
