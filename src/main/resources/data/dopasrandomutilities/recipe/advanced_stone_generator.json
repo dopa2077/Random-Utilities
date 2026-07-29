@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:gold_block",
+    "I": "dopasrandomutilities:intermediate_stone_generator",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "GGG",
+    "LIW",
+    "GGG"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:advanced_stone_generator"
+  }
+}

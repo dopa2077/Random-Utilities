@@ -1,6 +1,14 @@
-﻿{
-  "parent": "minecraft:block/cube_all",
+{
+  "parent": "dopasrandomutilities:block/resource_generator_multi",
   "textures": {
-    "all": "dopasrandomutilities:block/creative_metal_block_generator"
+    "side_w": "minecraft:block/gold_block",
+    "side_e": "minecraft:block/gold_block",
+    "side_n": "minecraft:block/copper_block",
+    "side_down": "minecraft:block/netherite_block",
+    "side_up": "minecraft:block/netherite_block",
+    "glass": "minecraft:block/glass",
+    "lava": "minecraft:block/lava_still",
+    "water": "minecraft:block/water_still",
+    "hole": "dopasrandomutilities:block/output_hole"
   }
 }

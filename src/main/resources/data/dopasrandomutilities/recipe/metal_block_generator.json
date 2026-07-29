@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "M": "minecraft:iron_block",
+    "I": "dopasrandomutilities:intermediate_stone_generator",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "MMM",
+    "LIW",
+    "MMM"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:metal_block_generator"
+  }
+}

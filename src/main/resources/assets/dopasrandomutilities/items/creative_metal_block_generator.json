@@ -1,6 +1,12 @@
 ﻿{
   "model": {
     "type": "minecraft:model",
-    "model": "dopasrandomutilities:block/creative_metal_block_generator"
+    "model": "dopasrandomutilities:block/creative_metal_block_generator",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": -4153089
+      }
+    ]
   }
 }

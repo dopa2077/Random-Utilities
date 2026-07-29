@@ -67,16 +67,6 @@ public final class GeneratorRecipeConfig {
         return RECIPE_MAP.getOrDefault(type, List.of());
     }
 
-    /** @deprecated Use {@link #getRecipes(GeneratorType)} */
-    @Deprecated
-    public static List<GeneratorRecipe> getRecipes() {
-        return getRecipes(GeneratorType.BASIC_STONE);
-    }
-
-    public static Optional<GeneratorRecipe> getRecipeById(GeneratorType type, String id) {
-        return getRecipes(type).stream().filter(recipe -> recipe.id().equals(id)).findFirst();
-    }
-
     private static void copyDefaultConfig(GeneratorType type, Path configFile) throws IOException {
         try (InputStream input = GeneratorRecipeConfig.class.getResourceAsStream(type.defaultResourcePath())) {
             if (input == null) {

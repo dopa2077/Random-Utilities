@@ -1,31 +1,45 @@
 package com.dopa.randomutilities;
 
-import net.minecraft.client.Minecraft;
+import java.util.List;
+
+import com.dopa.randomutilities.client.ResourceGeneratorRenderer;
+import com.dopa.randomutilities.registry.ModBlockEntities;
+import com.dopa.randomutilities.registry.ModBlocks;
+
+import net.minecraft.client.color.block.BlockTintSources;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 
-// This class will not load on dedicated servers. Accessing client side code from here is safe.
 @Mod(value = dOPasRandomUtilities.MOD_ID, dist = Dist.CLIENT)
-// You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
 @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID, value = Dist.CLIENT)
 public class dOPasRandomUtilitiesClient {
+    /** Multiply tint for creative generators (ARGB). */
+    public static final int CREATIVE_PURPLE_TINT = 0xFFC070FF;
+
     public dOPasRandomUtilitiesClient(ModContainer container) {
-        // Allows NeoForge to create a config screen for this mod's configs.
-        // The config screen is accessed by going to the Mods screen > clicking on your mod > clicking on config.
-        // Do not forget to add translations for your config options to the en_us.json file.
-        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        // No common ModConfigSpec — generator behaviour lives in config JSON files.
     }
 
     @SubscribeEvent
-    static void onClientSetup(FMLClientSetupEvent event) {
-        // Some client setup code
-        dOPasRandomUtilities.LOGGER.info("HELLO FROM CLIENT SETUP");
-        dOPasRandomUtilities.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+    static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(
+                ModBlockEntities.RESOURCE_GENERATOR.get(),
+                ResourceGeneratorRenderer::new
+        );
+    }
+
+    @SubscribeEvent
+    static void registerBlockTintSources(RegisterColorHandlersEvent.BlockTintSources event) {
+        event.register(
+                List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT)),
+                ModBlocks.CREATIVE_STONE_GENERATOR.get(),
+                ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR.get(),
+                ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR.get()
+        );
     }
 }

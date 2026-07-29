@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:iron_block",
+    "minecraft:gold_block",
+    "minecraft:copper_block",
+    "minecraft:netherite_block",
+    "minecraft:coal_block",
+    "minecraft:lapis_block",
+    "minecraft:redstone_block",
+    "minecraft:diamond_block",
+    "minecraft:emerald_block",
+    "minecraft:quartz_block",
+    "minecraft:amethyst_block",
+    "minecraft:raw_iron_block",
+    "minecraft:raw_gold_block",
+    "minecraft:raw_copper_block"
+  ]
+}
