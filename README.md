@@ -46,5 +46,6 @@ MIT License
 
 ### Credits
 
-- Inspired by [Random Things](https://www.curseforge.com/minecraft/mc-mods/random-things) by Lumien and [Extra Utilities](https://www.curseforge.com/minecraft/mc-mods/extra-utilities) by RWTema
-- Built with the [NeoForged MDK](https://docs.neoforged.net/)
+* Inspired by [Random Things](https://www.curseforge.com/minecraft/mc-mods/random-things) by Lumien and [Extra Utilities](https://www.curseforge.com/minecraft/mc-mods/extra-utilities) by RWTema
+* Built with the [NeoForged MDK](https://docs.neoforged.net/)
+* Developed with AI assistance (Cursor + Grok 4.5)
