@@ -2,15 +2,7 @@
 
 **A collection of random, useful items and blocks for Minecraft** — no theme, no fluff, just quality-of-life stuff that makes your world a little better.
 
-Inspired by classic mods like **Random Things** and **Extra Utilities**.
-
----
-
-### Current Features
-
-| Feature                  | Description                                      |
-|--------------------------|--------------------------------------------------|
-| Resource Generators | A simple block that generates resources as any other "Cobblestone Generator" mod. Fully configurable in the config file!|
+Inspired by classic mods like **Random Things** and **Extra Utilities**. (Inspiration, not copied 1 to 1!)
 
 More random utilities will be added over time!
 
@@ -19,15 +11,14 @@ More random utilities will be added over time!
 ### Requirements
 
 - **Minecraft**: 26.2
-- **Mod Loader**: [NeoForge](https://neoforged.net/) `26.2.0.35-beta` (or compatible)
-- **Optional**: [JEI](https://www.curseforge.com/minecraft/mc-mods/jei) (for recipe viewing)
+- **Mod Loader**: [NeoForge](https://neoforged.net/) `26.2` (or compatible)
 
 ---
 
 ### Installation
 
 1. Install NeoForge for Minecraft 26.2
-2. Download the latest release of this mod (not available yet!)
+2. Download the latest release
 3. Place the `.jar` file into your `mods` folder
 4. Launch the game
 
@@ -35,7 +26,7 @@ More random utilities will be added over time!
 
 ### Configuration
 
-The mod includes a config file (`dopas_random_utilities` in the config file) where you can tweak various settings.
+Settings and generator recipes live under `config/dopas_random_utilities/`. Defaults are created on first launch — edit them to tweak behaviour.
 
 ---
 
