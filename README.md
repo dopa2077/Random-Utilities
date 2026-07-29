@@ -1,6 +1,6 @@
 # dOPa's Random Utilities
 
-**A collection of random, useful items and blocks for Minecraft** — no theme, no fluff, just quality-of-life stuff that makes your world a little better.
+**A collection of random, useful items and blocks for Minecraft**. No theme, no fluff, just quality-of-life stuff that makes your world a little better.
 
 Inspired by classic mods like **Random Things** and **Extra Utilities**. (Inspiration, not copied 1 to 1!)
 
@@ -26,7 +26,7 @@ More random utilities will be added over time!
 
 ### Configuration
 
-Settings and generator recipes live under `config/dopas_random_utilities/`. Defaults are created on first launch — edit them to tweak behaviour.
+Settings and generator recipes live under `config/dopas_random_utilities/`. Defaults are created on first launch, edit them to tweak behaviour.
 
 ---
 
