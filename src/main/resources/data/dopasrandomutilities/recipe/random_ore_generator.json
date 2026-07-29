@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "O": "minecraft:diamond_ore",
+    "B": "dopasrandomutilities:basic_stone_generator",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "OOO",
+    "LBW",
+    "OOO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:random_ore_generator"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "N": "minecraft:netherite_block",
+    "E": "dopasrandomutilities:elite_stone_generator",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "NNN",
+    "LEW",
+    "NNN"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:ultimate_stone_generator"
+  }
+}

@@ -19,13 +19,5 @@
   "item.dopasrandomutilities.random_ore_generator": "Random Ore Generator",
   "item.dopasrandomutilities.metal_block_generator": "Metal Block Generator",
   "item.dopasrandomutilities.creative_random_ore_generator": "Creative Random Ore Generator",
-  "item.dopasrandomutilities.creative_metal_block_generator": "Creative Metal Block Generator",
-
-  "dopasrandomutilities.configuration.title": "dOPa's Random Utilities Configs",
-  "dopasrandomutilities.configuration.section.dopasrandomutilities.common.toml": "dOPa's Random Utilities Configs",
-  "dopasrandomutilities.configuration.section.dopasrandomutilities.common.toml.title": "dOPa's Random Utilities Configs",
-  "dopasrandomutilities.configuration.items": "Item List",
-  "dopasrandomutilities.configuration.logDirtBlock": "Log Dirt Block",
-  "dopasrandomutilities.configuration.magicNumberIntroduction": "Magic Number Text",
-  "dopasrandomutilities.configuration.magicNumber": "Magic Number"
+  "item.dopasrandomutilities.creative_metal_block_generator": "Creative Metal Block Generator"
 }

@@ -1,6 +1,12 @@
 ﻿{
   "model": {
     "type": "minecraft:model",
-    "model": "dopasrandomutilities:block/creative_random_ore_generator"
+    "model": "dopasrandomutilities:block/creative_random_ore_generator",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": -4153089
+      }
+    ]
   }
 }

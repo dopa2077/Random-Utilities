@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "minecraft:diamond_block",
+    "A": "dopasrandomutilities:advanced_stone_generator",
+    "L": "minecraft:lava_bucket",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "DDD",
+    "LAW",
+    "DDD"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:elite_stone_generator"
+  }
+}

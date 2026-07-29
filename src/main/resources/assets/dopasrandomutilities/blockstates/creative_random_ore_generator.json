@@ -1,7 +1,8 @@
 ﻿{
   "variants": {
-    "": {
-      "model": "dopasrandomutilities:block/creative_random_ore_generator"
-    }
+    "facing=north": { "model": "dopasrandomutilities:block/creative_random_ore_generator", "y": 180 },
+    "facing=east":  { "model": "dopasrandomutilities:block/creative_random_ore_generator", "y": 270 },
+    "facing=south": { "model": "dopasrandomutilities:block/creative_random_ore_generator" },
+    "facing=west":  { "model": "dopasrandomutilities:block/creative_random_ore_generator", "y": 90 }
   }
 }

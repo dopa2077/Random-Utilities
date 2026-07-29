@@ -1,6 +1,6 @@
-﻿{
-  "parent": "minecraft:block/cube_all",
+{
+  "parent": "dopasrandomutilities:block/resource_generator",
   "textures": {
-    "all": "dopasrandomutilities:block/creative_stone_generator"
+    "casing": "minecraft:block/cobblestone"
   }
 }

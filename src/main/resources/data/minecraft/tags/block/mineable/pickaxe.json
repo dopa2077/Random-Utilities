@@ -1,0 +1,15 @@
+{
+  "replace": false,
+  "values": [
+    "dopasrandomutilities:basic_stone_generator",
+    "dopasrandomutilities:intermediate_stone_generator",
+    "dopasrandomutilities:advanced_stone_generator",
+    "dopasrandomutilities:elite_stone_generator",
+    "dopasrandomutilities:ultimate_stone_generator",
+    "dopasrandomutilities:creative_stone_generator",
+    "dopasrandomutilities:random_ore_generator",
+    "dopasrandomutilities:metal_block_generator",
+    "dopasrandomutilities:creative_random_ore_generator",
+    "dopasrandomutilities:creative_metal_block_generator"
+  ]
+}
