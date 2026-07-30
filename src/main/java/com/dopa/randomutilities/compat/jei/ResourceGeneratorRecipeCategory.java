@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.compat.jei;
 
 import com.dopa.randomutilities.config.GeneratorRecipe;
+import com.dopa.randomutilities.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.registry.ModBlocks;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -18,6 +18,7 @@ import mezz.jei.api.recipe.types.IRecipeType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
@@ -29,18 +30,30 @@ import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Mini world-schematic JEI category for resource generators:
+ * Mini world-schematic JEI category for one generator tier:
  * inventory above result, adjacent sides beside the generator, optional below block.
  */
 public class ResourceGeneratorRecipeCategory extends AbstractRecipeCategory<GeneratorJeiRecipe> {
-    public static final IRecipeType<GeneratorJeiRecipe> RECIPE_TYPE = IRecipeType.create(
-            dOPasRandomUtilities.MOD_ID,
-            "resource_generator",
-            GeneratorJeiRecipe.class
-    );
+    private static final Map<GeneratorType, IRecipeType<GeneratorJeiRecipe>> RECIPE_TYPES =
+            new EnumMap<>(GeneratorType.class);
+
+    static {
+        for (GeneratorType type : GeneratorType.values()) {
+            RECIPE_TYPES.put(
+                    type,
+                    IRecipeType.create(dOPasRandomUtilities.MOD_ID, type.id(), GeneratorJeiRecipe.class)
+            );
+        }
+    }
+
+    public static IRecipeType<GeneratorJeiRecipe> recipeType(GeneratorType type) {
+        return RECIPE_TYPES.get(type);
+    }
 
     public static final int WIDTH = 152;
     public static final int HEIGHT = 112;
@@ -75,22 +88,37 @@ public class ResourceGeneratorRecipeCategory extends AbstractRecipeCategory<Gene
             new ItemStack(Items.SHULKER_BOX)
     );
 
+    /** Vanilla stand-ins; tooltip clarifies any modded fluid tank works. */
+    private static final List<ItemStack> OUTPUT_TANKS = List.of(
+            new ItemStack(Items.CAULDRON),
+            new ItemStack(Items.BUCKET),
+            new ItemStack(Items.WATER_BUCKET),
+            new ItemStack(Items.LAVA_BUCKET)
+    );
+
     private final IDrawable consumeMarker;
     private final IDrawableStatic recipeArrow;
 
-    public ResourceGeneratorRecipeCategory(IGuiHelper guiHelper) {
+    public ResourceGeneratorRecipeCategory(IGuiHelper guiHelper, GeneratorType type) {
         super(
-                RECIPE_TYPE,
-                Component.translatable("jei.dopasrandomutilities.resource_generator"),
-                guiHelper.createDrawableIngredient(
-                        VanillaTypes.ITEM_STACK,
-                        new ItemStack(ModBlocks.BASIC_STONE_GENERATOR.asItem())
-                ),
+                recipeType(type),
+                Component.translatable("block." + dOPasRandomUtilities.MOD_ID + "." + type.id()),
+                guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack(type)),
                 WIDTH,
                 HEIGHT
         );
         this.consumeMarker = createTinyBarrier(guiHelper);
         this.recipeArrow = guiHelper.getRecipeArrow();
+    }
+
+    private static ItemStack iconStack(GeneratorType type) {
+        Block block = BuiltInRegistries.BLOCK.getValue(
+                Identifier.fromNamespaceAndPath(dOPasRandomUtilities.MOD_ID, type.id())
+        );
+        if (block.asItem() == Items.AIR) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(block.asItem());
     }
 
     @Override
@@ -157,39 +185,52 @@ public class ResourceGeneratorRecipeCategory extends AbstractRecipeCategory<Gene
         }
 
         if (recipe.isInsertOutput()) {
+            boolean fluidResult = recipe.isFluidResult();
             builder.addSlot(RecipeIngredientRole.RENDER_ONLY, CONTAINER_X, CONTAINER_Y)
                     .setStandardSlotBackground()
-                    .addItemStacks(OUTPUT_CONTAINERS)
+                    .addItemStacks(fluidResult ? OUTPUT_TANKS : OUTPUT_CONTAINERS)
                     .setSlotName("container")
                     .addRichTooltipCallback((slotView, tooltip) ->
-                            tooltip.add(Component.translatable("jei.dopasrandomutilities.tooltip.container")));
+                            tooltip.add(Component.translatable(
+                                    fluidResult
+                                            ? "jei.dopasrandomutilities.tooltip.tank"
+                                            : "jei.dopasrandomutilities.tooltip.container"
+                            )));
         }
 
         GeneratorRecipe data = recipe.recipe();
         List<ItemStack> results = recipe.resultStacks();
-        // DROP: result sits where the inventory would be. INSERT: result under the inventory.
+        // DROP/PLACE: result sits where the inventory would be. INSERT: result under the inventory.
         int resultX = OUTPUT_X;
         int resultY = recipe.isInsertOutput() ? OUTPUT_Y : CONTAINER_Y;
         IRecipeSlotBuilder output = builder.addOutputSlot(resultX, resultY)
                 .setStandardSlotBackground()
                 .setSlotName("result");
-        if (!results.isEmpty()) {
-            output.addItemStacks(results);
-        }
-        if (recipe.isInsertOutput()) {
+
+        if (recipe.isFluidResult()) {
+            Fluid fluid = recipe.resultFluid();
+            int millibuckets = recipe.resultFluidMillibuckets();
+            output.setFluidRenderer(millibuckets, false, 16, 16);
+            if (fluid != null) {
+                output.add(fluid, millibuckets);
+            }
             output.addRichTooltipCallback((slotView, tooltip) -> {
-                tooltip.add(Component.translatable("jei.dopasrandomutilities.tooltip.output_insert"));
+                tooltip.add(Component.translatable("jei.dopasrandomutilities.tooltip.output_insert_fluid"));
                 tooltip.add(rateLine(data.amount(), data.ticks()));
             });
         } else {
+            if (!results.isEmpty()) {
+                output.addItemStacks(results);
+            }
+            String outputTooltipKey = recipe.isInsertOutput()
+                    ? "jei.dopasrandomutilities.tooltip.output_insert"
+                    : recipe.isPlaceOutput()
+                            ? "jei.dopasrandomutilities.tooltip.output_place"
+                            : "jei.dopasrandomutilities.tooltip.output_drop";
             output.addRichTooltipCallback((slotView, tooltip) -> {
-                tooltip.add(Component.translatable("jei.dopasrandomutilities.tooltip.output_drop"));
+                tooltip.add(Component.translatable(outputTooltipKey));
                 tooltip.add(rateLine(data.amount(), data.ticks()));
             });
-        }
-
-        if (sides.size() > 1) {
-            builder.setShapeless(WIDTH - 18, 0);
         }
     }
 

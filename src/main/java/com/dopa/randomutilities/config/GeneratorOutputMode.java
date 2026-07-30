@@ -3,13 +3,15 @@ package com.dopa.randomutilities.config;
 /**
  * How a generator delivers its result.
  * <ul>
- *   <li>{@link #INSERT} — insert items into a container above the generator</li>
- *   <li>{@link #DROP} — place the block above the generator (or drop items if amount &gt; 1)</li>
+ *   <li>{@link #INSERT} — insert items into an inventory above, or fluids into a tank above</li>
+ *   <li>{@link #DROP} — spawn item entities above the generator</li>
+ *   <li>{@link #PLACE} — place a single block in the world above the generator</li>
  * </ul>
  */
 public enum GeneratorOutputMode {
     INSERT,
-    DROP;
+    DROP,
+    PLACE;
 
     public static GeneratorOutputMode parse(String value) {
         if (value == null || value.isBlank()) {
@@ -17,6 +19,7 @@ public enum GeneratorOutputMode {
         }
         return switch (value.trim().toLowerCase()) {
             case "drop" -> DROP;
+            case "place" -> PLACE;
             case "insert" -> INSERT;
             default -> INSERT;
         };

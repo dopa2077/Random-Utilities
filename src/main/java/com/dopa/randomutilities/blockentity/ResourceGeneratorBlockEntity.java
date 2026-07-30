@@ -29,11 +29,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.jetbrains.annotations.Nullable;
@@ -116,7 +120,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
         if (!sameMatch(match)) {
             applyMatch(match);
             tickProgress = 0;
-            if (!match.recipe().isRandomResult()) {
+            if (match.recipe().isFluidResult()) {
+                setDisplayResult(displayBlockForFluid(match.recipe().resultFluid()));
+            } else if (!match.recipe().isRandomResult()) {
                 setDisplayResult(match.recipe().result());
             }
             setChanged();
@@ -136,13 +142,27 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
             return;
         }
 
-        Block result = resolveResult(level, type, match.recipe());
-        int produced = tryOutput(level, result, match.recipe().amount(), match.recipe().outputMode());
-        if (result == null || produced <= 0) {
-            outputBlocked = true;
-            resetProgress();
-            setChanged();
-            return;
+        int produced;
+        if (match.recipe().isFluidResult()) {
+            Fluid fluid = match.recipe().resultFluid();
+            produced = tryOutputFluid(level, fluid, match.recipe().amount());
+            if (fluid == null || produced <= 0) {
+                outputBlocked = true;
+                resetProgress();
+                setChanged();
+                return;
+            }
+            setDisplayResult(displayBlockForFluid(fluid));
+        } else {
+            Block result = resolveResult(level, type, match.recipe());
+            produced = tryOutput(level, result, match.recipe().amount(), match.recipe().outputMode());
+            if (result == null || produced <= 0) {
+                outputBlocked = true;
+                resetProgress();
+                setChanged();
+                return;
+            }
+            setDisplayResult(result);
         }
 
         // Only consume side resources when the full recipe amount was delivered.
@@ -151,7 +171,6 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
         }
 
         tickProgress = 0;
-        setDisplayResult(result);
         setChanged();
     }
 
@@ -230,13 +249,17 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
     }
 
     private boolean canStartOutput(ServerLevel level, GeneratorType type, GeneratorRecipe recipe) {
+        if (recipe.isFluidResult()) {
+            return canOutputFluid(level, recipe.resultFluid(), recipe.amount());
+        }
         if (recipe.isRandomResult()) {
             if (poolFor(type).isEmpty()) {
                 return false;
             }
             return switch (recipe.outputMode()) {
-                case INSERT -> getOutputHandler(level) != null;
-                case DROP -> canAcceptDrop(level, recipe.amount());
+                case INSERT -> getItemOutputHandler(level) != null;
+                case DROP -> canAcceptItemDrop(level);
+                case PLACE -> canAcceptPlace(level);
             };
         }
         return canOutput(level, recipe.result(), recipe.amount(), recipe.outputMode());
@@ -270,15 +293,29 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
     }
 
     @Nullable
-    private ResourceHandler<ItemResource> getOutputHandler(ServerLevel level) {
+    private ResourceHandler<ItemResource> getItemOutputHandler(ServerLevel level) {
         return level.getCapability(Capabilities.Item.BLOCK, worldPosition.above(), Direction.DOWN);
+    }
+
+    @Nullable
+    private ResourceHandler<FluidResource> getFluidOutputHandler(ServerLevel level) {
+        return level.getCapability(Capabilities.Fluid.BLOCK, worldPosition.above(), Direction.DOWN);
     }
 
     private boolean canOutput(ServerLevel level, Block result, int amount, GeneratorOutputMode mode) {
         return switch (mode) {
             case INSERT -> insertAmount(level, result, amount, true) > 0;
-            case DROP -> canAcceptDrop(level, amount);
+            case DROP -> canAcceptItemDrop(level);
+            case PLACE -> canAcceptPlace(level);
         };
+    }
+
+    private boolean canOutputFluid(ServerLevel level, @Nullable Fluid fluid, int amount) {
+        if (fluid == null || fluid.isSame(Fluids.EMPTY)) {
+            return false;
+        }
+        // Fluid recipes always insert into a tank above the generator.
+        return insertFluidAmount(level, fluid, amount, true) > 0;
     }
 
     /**
@@ -290,12 +327,24 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
         }
         return switch (mode) {
             case INSERT -> insertAmount(level, result, amount, false);
-            case DROP -> tryDropResult(level, result, amount) ? amount : 0;
+            case DROP -> tryDropItems(level, result, amount) ? amount : 0;
+            // Place always sets exactly one block above; recipes should use amount 1.
+            case PLACE -> tryPlaceBlock(level, result) ? 1 : 0;
         };
     }
 
+    /**
+     * @return number of buckets actually produced (0 = failed)
+     */
+    private int tryOutputFluid(ServerLevel level, @Nullable Fluid fluid, int amount) {
+        if (fluid == null || amount <= 0) {
+            return 0;
+        }
+        return insertFluidAmount(level, fluid, amount, false);
+    }
+
     private int insertAmount(ServerLevel level, Block result, int amount, boolean simulate) {
-        ResourceHandler<ItemResource> handler = getOutputHandler(level);
+        ResourceHandler<ItemResource> handler = getItemOutputHandler(level);
         if (handler == null || amount <= 0) {
             return 0;
         }
@@ -314,12 +363,55 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
         }
     }
 
-    private boolean canAcceptDrop(ServerLevel level, int amount) {
-        BlockPos above = worldPosition.above();
-        if (amount == 1) {
-            return level.getBlockState(above).canBeReplaced();
+    /**
+     * Inserts {@code amount} buckets into a fluid handler above the generator.
+     *
+     * @return number of whole buckets inserted
+     */
+    private int insertFluidAmount(ServerLevel level, Fluid fluid, int amount, boolean simulate) {
+        ResourceHandler<FluidResource> handler = getFluidOutputHandler(level);
+        if (handler == null || amount <= 0) {
+            return 0;
         }
-        // Item-entity dump: require clear air and a soft cap so we don't flood the world.
+
+        FluidResource resource = FluidResource.of(fluid);
+        if (resource.isEmpty()) {
+            return 0;
+        }
+
+        long millibuckets = (long) amount * FluidType.BUCKET_VOLUME;
+        if (millibuckets > Integer.MAX_VALUE) {
+            millibuckets = Integer.MAX_VALUE;
+        }
+
+        try (Transaction tx = Transaction.open(null)) {
+            int insertedMb = handler.insert(resource, (int) millibuckets, tx);
+            if (insertedMb > 0 && !simulate) {
+                tx.commit();
+            }
+            return Math.max(0, insertedMb / FluidType.BUCKET_VOLUME);
+        }
+    }
+
+    private static Block displayBlockForFluid(@Nullable Fluid fluid) {
+        if (fluid == null || fluid.isSame(Fluids.EMPTY)) {
+            return Blocks.GLASS;
+        }
+        if (fluid.isSame(Fluids.WATER)) {
+            return Blocks.ICE;
+        }
+        if (fluid.isSame(Fluids.LAVA)) {
+            return Blocks.MAGMA_BLOCK;
+        }
+        return Blocks.GLASS;
+    }
+
+    private boolean canAcceptPlace(ServerLevel level) {
+        return level.getBlockState(worldPosition.above()).canBeReplaced();
+    }
+
+    private boolean canAcceptItemDrop(ServerLevel level) {
+        BlockPos above = worldPosition.above();
         if (!level.getBlockState(above).canBeReplaced()) {
             return false;
         }
@@ -327,18 +419,16 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
         return level.getEntitiesOfClass(ItemEntity.class, area).size() < MAX_NEARBY_ITEM_ENTITIES;
     }
 
-    private boolean tryDropResult(ServerLevel level, Block result, int amount) {
+    private boolean tryPlaceBlock(ServerLevel level, Block result) {
         BlockPos above = worldPosition.above();
-
-        if (amount == 1) {
-            BlockState existing = level.getBlockState(above);
-            if (!existing.canBeReplaced()) {
-                return false;
-            }
-            return level.setBlock(above, result.defaultBlockState(), Block.UPDATE_ALL);
+        if (!level.getBlockState(above).canBeReplaced()) {
+            return false;
         }
+        return level.setBlock(above, result.defaultBlockState(), Block.UPDATE_ALL);
+    }
 
-        if (!canAcceptDrop(level, amount)) {
+    private boolean tryDropItems(ServerLevel level, Block result, int amount) {
+        if (!canAcceptItemDrop(level)) {
             return false;
         }
 
@@ -347,6 +437,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity {
             return false;
         }
 
+        BlockPos above = worldPosition.above();
         double x = above.getX() + 0.5;
         double y = above.getY() + 0.15;
         double z = above.getZ() + 0.5;

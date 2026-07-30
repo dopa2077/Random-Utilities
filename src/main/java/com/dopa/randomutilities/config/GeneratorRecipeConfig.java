@@ -136,7 +136,7 @@ public final class GeneratorRecipeConfig {
         int amount = object.has("amount") ? object.get("amount").getAsInt() : 1;
         GeneratorOutputMode outputMode = object.has("output")
                 ? GeneratorOutputMode.parse(object.get("output").getAsString())
-                : GeneratorOutputMode.DROP;
+                : GeneratorOutputMode.PLACE;
 
         if (ticks <= 0) {
             ticks = 40;
@@ -147,6 +147,7 @@ public final class GeneratorRecipeConfig {
 
         GeneratorRecipe recipe = new GeneratorRecipe(
                 "default",
+                null,
                 null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
@@ -168,7 +169,7 @@ public final class GeneratorRecipeConfig {
     private static void parseRecipeFile(GeneratorType type, JsonElement root, boolean allowRandomResult) {
         JsonArray recipeArray;
         GeneratorOutputMode fileDefaultOutput = allowRandomResult
-                ? GeneratorOutputMode.DROP
+                ? GeneratorOutputMode.PLACE
                 : GeneratorOutputMode.INSERT;
 
         try {
@@ -244,6 +245,7 @@ public final class GeneratorRecipeConfig {
 
         String resultRaw = definition.get("result").getAsString().trim();
         Block resultBlock = null;
+        Fluid resultFluid = null;
         if (isRandomResultToken(resultRaw)) {
             if (!allowRandomResult) {
                 dOPasRandomUtilities.LOGGER.warn(
@@ -254,11 +256,15 @@ public final class GeneratorRecipeConfig {
             }
         } else {
             Identifier resultId = Identifier.parse(resultRaw);
-            if (!BuiltInRegistries.BLOCK.containsKey(resultId)) {
-                dOPasRandomUtilities.LOGGER.warn("Unknown result block '{}' in recipe '{}'", resultId, recipeId);
+            // Prefer fluids when an id exists in both registries (e.g. water / lava).
+            if (BuiltInRegistries.FLUID.containsKey(resultId)) {
+                resultFluid = BuiltInRegistries.FLUID.getValue(resultId);
+            } else if (BuiltInRegistries.BLOCK.containsKey(resultId)) {
+                resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
+            } else {
+                dOPasRandomUtilities.LOGGER.warn("Unknown result '{}' in recipe '{}'", resultId, recipeId);
                 return Optional.empty();
             }
-            resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
         }
 
         List<GeneratorResource> resources = new ArrayList<>(GeneratorRecipe.SIDE_COUNT);
@@ -320,6 +326,7 @@ public final class GeneratorRecipeConfig {
         return Optional.of(new GeneratorRecipe(
                 recipeId,
                 resultBlock,
+                resultFluid,
                 resources,
                 consume,
                 requiredUnder,
@@ -392,6 +399,7 @@ public final class GeneratorRecipeConfig {
         return new GeneratorRecipe(
                 "cobblestone",
                 BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:cobblestone")),
+                null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
                 null,
@@ -405,12 +413,13 @@ public final class GeneratorRecipeConfig {
         return new GeneratorRecipe(
                 type.mode() == GeneratorType.Mode.METAL_BLOCK ? "random_storage" : "random_ore",
                 null,
+                null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
                 null,
                 40,
                 1,
-                GeneratorOutputMode.DROP
+                GeneratorOutputMode.PLACE
         );
     }
 
