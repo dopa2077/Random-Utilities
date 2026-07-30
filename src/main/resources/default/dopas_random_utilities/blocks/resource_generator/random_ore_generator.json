@@ -1,5 +1,5 @@
 {
-  "output": "drop",
+  "output": "place",
   "recipes": [
     {
       "id": "random_ore",

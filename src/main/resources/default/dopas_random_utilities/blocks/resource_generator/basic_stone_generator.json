@@ -2,38 +2,167 @@
   "output": "insert",
   "recipes": [
     {
-      "id": "netherrack",
-      "result": "minecraft:netherrack",
+      "id": "cobblestone",
+      "result": "minecraft:cobblestone",
       "amount": 1,
-      "ticks": 30,
-      "below": "minecraft:netherrack",
-      "sides": [
-        { "id": "minecraft:lava" }
-      ]
-    },
-    {
-      "id": "obsidian",
-      "result": "minecraft:obsidian",
-      "amount": 1,
-      "ticks": 100,
-      "sides": [
-        { "id": "minecraft:lava", "consume": true }
-      ]
+      "ticks": 20
     },
     {
       "id": "stone",
       "result": "minecraft:stone",
-      "amount": 1,
-      "ticks": 40,
       "sides": [
-        { "id": "minecraft:water", "consume": true }
-      ]
+        {
+          "id": "minecraft:water",
+          "consume": true
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
     },
     {
-      "id": "cobblestone",
-      "result": "minecraft:cobblestone",
+      "id": "granite",
+      "result": "minecraft:granite",
+      "below": "minecraft:diorite",
+      "sides": [
+        {
+          "id": "minecraft:quartz_block"
+        }
+      ],
       "amount": 1,
-      "ticks": 60
+      "ticks": 20
+    },
+    {
+      "id": "diorite",
+      "result": "minecraft:diorite",
+      "below": "minecraft:cobblestone",
+      "sides": [
+        {
+          "id": "minecraft:quartz_block"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "andesite",
+      "result": "minecraft:andesite",
+      "below": "minecraft:diorite",
+      "sides": [
+        {
+          "id": "minecraft:cobblestone"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "dirt",
+      "result": "minecraft:dirt",
+      "below": "minecraft:oak_leaves",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "mud",
+      "result": "minecraft:mud",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:water",
+          "consume": true
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "sand",
+      "result": "minecraft:sand",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "red_sand",
+      "result": "minecraft:red_sand",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "gravel",
+      "result": "minecraft:gravel",
+      "below": "minecraft:gravel",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "clay",
+      "result": "minecraft:clay",
+      "below": "minecraft:clay",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "moss_block",
+      "result": "minecraft:moss_block",
+      "below": "minecraft:moss_block",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "sandstone",
+      "result": "minecraft:sandstone",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:sand"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "red_sandstone",
+      "result": "minecraft:red_sandstone",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:red_sand"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
     }
   ]
 }

@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.config;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.List;
 public record GeneratorRecipe(
         String id,
         @Nullable Block result,
+        @Nullable Fluid resultFluid,
         List<@Nullable GeneratorResource> resources,
         boolean[] consume,
         @Nullable Block requiredUnder,
@@ -26,6 +28,9 @@ public record GeneratorRecipe(
         if (consume.length != SIDE_COUNT) {
             throw new IllegalArgumentException("Expected " + SIDE_COUNT + " consume flags");
         }
+        if (result != null && resultFluid != null) {
+            throw new IllegalArgumentException("Recipe cannot have both a block and fluid result");
+        }
         // Allow null slots (unused sides); List.copyOf does not.
         resources = Collections.unmodifiableList(new ArrayList<>(resources));
         consume = consume.clone();
@@ -38,7 +43,11 @@ public record GeneratorRecipe(
 
     /** When true, the generator picks a random block from its type pool instead of a fixed result. */
     public boolean isRandomResult() {
-        return result == null;
+        return result == null && resultFluid == null;
+    }
+
+    public boolean isFluidResult() {
+        return resultFluid != null;
     }
 
     public boolean matchesUnderBlock(Block block) {

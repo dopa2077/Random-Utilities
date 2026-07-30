@@ -2,38 +2,345 @@
   "output": "insert",
   "recipes": [
     {
-      "id": "netherrack",
-      "result": "minecraft:netherrack",
-      "amount": 2,
-      "ticks": 18,
-      "below": "minecraft:netherrack",
-      "sides": [
-        { "id": "minecraft:lava" }
-      ]
-    },
-    {
-      "id": "obsidian",
-      "result": "minecraft:obsidian",
-      "amount": 1,
-      "ticks": 60,
-      "sides": [
-        { "id": "minecraft:lava", "consume": true }
-      ]
+      "id": "cobblestone",
+      "result": "minecraft:cobblestone",
+      "amount": 4,
+      "ticks": 4
     },
     {
       "id": "stone",
       "result": "minecraft:stone",
-      "amount": 4,
-      "ticks": 24,
       "sides": [
-        { "id": "minecraft:water", "consume": true }
-      ]
+        {
+          "id": "minecraft:water",
+          "consume": true
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
     },
     {
-      "id": "cobblestone",
-      "result": "minecraft:cobblestone",
+      "id": "granite",
+      "result": "minecraft:granite",
+      "below": "minecraft:diorite",
+      "sides": [
+        {
+          "id": "minecraft:quartz_block"
+        }
+      ],
       "amount": 4,
-      "ticks": 30
+      "ticks": 4
+    },
+    {
+      "id": "diorite",
+      "result": "minecraft:diorite",
+      "below": "minecraft:cobblestone",
+      "sides": [
+        {
+          "id": "minecraft:quartz_block"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "andesite",
+      "result": "minecraft:andesite",
+      "below": "minecraft:diorite",
+      "sides": [
+        {
+          "id": "minecraft:cobblestone"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "dirt",
+      "result": "minecraft:dirt",
+      "below": "minecraft:oak_leaves",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "mud",
+      "result": "minecraft:mud",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:water",
+          "consume": true
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "sand",
+      "result": "minecraft:sand",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "red_sand",
+      "result": "minecraft:red_sand",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "gravel",
+      "result": "minecraft:gravel",
+      "below": "minecraft:gravel",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "clay",
+      "result": "minecraft:clay",
+      "below": "minecraft:clay",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "moss_block",
+      "result": "minecraft:moss_block",
+      "below": "minecraft:moss_block",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "sandstone",
+      "result": "minecraft:sandstone",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:sand"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "red_sandstone",
+      "result": "minecraft:red_sandstone",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:red_sand"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "cobbled_deepslate",
+      "result": "minecraft:cobbled_deepslate",
+      "below": "minecraft:cobbled_deepslate",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "deepslate",
+      "result": "minecraft:deepslate",
+      "below": "minecraft:cobbled_deepslate",
+      "sides": [
+        {
+          "id": "minecraft:water",
+          "consume": true
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "basalt",
+      "result": "minecraft:basalt",
+      "below": "minecraft:soul_soil",
+      "sides": [
+        {
+          "id": "minecraft:blue_ice"
+        },
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "soul_sand",
+      "result": "minecraft:soul_sand",
+      "below": "minecraft:soul_soil",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "terracotta",
+      "result": "minecraft:terracotta",
+      "below": "minecraft:clay",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "bricks",
+      "result": "minecraft:bricks",
+      "below": "minecraft:clay",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "packed_mud",
+      "result": "minecraft:packed_mud",
+      "below": "minecraft:mud",
+      "sides": [
+        {
+          "id": "minecraft:hay_block"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "smooth_stone",
+      "result": "minecraft:smooth_stone",
+      "below": "minecraft:stone",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "obsidian",
+      "result": "minecraft:obsidian",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        },
+        {
+          "id": "minecraft:lava",
+          "consume": true
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "netherrack",
+      "result": "minecraft:netherrack",
+      "below": "minecraft:magma_block",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "blackstone",
+      "result": "minecraft:blackstone",
+      "below": "minecraft:basalt",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "nether_bricks",
+      "result": "minecraft:nether_bricks",
+      "below": "minecraft:netherrack",
+      "sides": [
+        {
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "red_nether_bricks",
+      "result": "minecraft:red_nether_bricks",
+      "below": "minecraft:nether_bricks",
+      "sides": [
+        {
+          "id": "minecraft:nether_wart_block"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
+    },
+    {
+      "id": "resin_bricks",
+      "result": "minecraft:resin_bricks",
+      "below": "minecraft:creaking_heart",
+      "sides": [
+        {
+          "id": "minecraft:pale_oak_log"
+        }
+      ],
+      "amount": 4,
+      "ticks": 4
     }
   ]
 }

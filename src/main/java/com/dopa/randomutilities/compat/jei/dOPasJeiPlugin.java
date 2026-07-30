@@ -4,14 +4,17 @@ import com.dopa.randomutilities.config.GeneratorRecipe;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.registry.ModBlocks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,36 +31,41 @@ public class dOPasJeiPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-        registration.addRecipeCategories(
-                new ResourceGeneratorRecipeCategory(registration.getJeiHelpers().getGuiHelper())
-        );
+        IGuiHelper guiHelper = registration.getJeiHelpers().getGuiHelper();
+        for (GeneratorType type : GeneratorType.values()) {
+            registration.addRecipeCategories(new ResourceGeneratorRecipeCategory(guiHelper, type));
+        }
     }
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        List<GeneratorJeiRecipe> recipes = new ArrayList<>();
         for (GeneratorType type : GeneratorType.values()) {
+            List<GeneratorJeiRecipe> recipes = new ArrayList<>();
             for (GeneratorRecipe recipe : GeneratorRecipeConfig.getRecipes(type)) {
                 recipes.add(new GeneratorJeiRecipe(type, recipe));
             }
+            registration.addRecipes(ResourceGeneratorRecipeCategory.recipeType(type), recipes);
         }
-        registration.addRecipes(ResourceGeneratorRecipeCategory.RECIPE_TYPE, recipes);
     }
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
-        ItemLike[] generators = {
-                ModBlocks.BASIC_STONE_GENERATOR,
-                ModBlocks.INTERMEDIATE_STONE_GENERATOR,
-                ModBlocks.ADVANCED_STONE_GENERATOR,
-                ModBlocks.ELITE_STONE_GENERATOR,
-                ModBlocks.ULTIMATE_STONE_GENERATOR,
-                ModBlocks.CREATIVE_STONE_GENERATOR,
-                ModBlocks.RANDOM_ORE_GENERATOR,
-                ModBlocks.METAL_BLOCK_GENERATOR,
-                ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR,
-                ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR
-        };
-        registration.addCraftingStation(ResourceGeneratorRecipeCategory.RECIPE_TYPE, generators);
+        for (GeneratorType type : GeneratorType.values()) {
+            ItemStack stack = generatorStack(type);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            registration.addCraftingStation(ResourceGeneratorRecipeCategory.recipeType(type), stack);
+        }
+    }
+
+    private static ItemStack generatorStack(GeneratorType type) {
+        Block block = BuiltInRegistries.BLOCK.getValue(
+                Identifier.fromNamespaceAndPath(dOPasRandomUtilities.MOD_ID, type.id())
+        );
+        if (block.asItem() == Items.AIR) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(block.asItem());
     }
 }

@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -61,10 +62,38 @@ public record GeneratorJeiRecipe(GeneratorType type, GeneratorRecipe recipe) {
     }
 
     public boolean isInsertOutput() {
-        return recipe.outputMode() == GeneratorOutputMode.INSERT;
+        return recipe.outputMode() == GeneratorOutputMode.INSERT || recipe.isFluidResult();
+    }
+
+    public boolean isDropOutput() {
+        return !isInsertOutput() && recipe.outputMode() == GeneratorOutputMode.DROP;
+    }
+
+    public boolean isPlaceOutput() {
+        return !isInsertOutput() && recipe.outputMode() == GeneratorOutputMode.PLACE;
+    }
+
+    public boolean isFluidResult() {
+        return recipe.isFluidResult();
+    }
+
+    public @Nullable Fluid resultFluid() {
+        return recipe.resultFluid();
+    }
+
+    /** Millibuckets shown in JEI for fluid results ({@code amount} buckets). */
+    public int resultFluidMillibuckets() {
+        long millibuckets = (long) recipe.amount() * FluidType.BUCKET_VOLUME;
+        if (millibuckets > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) millibuckets;
     }
 
     public List<ItemStack> resultStacks() {
+        if (recipe.isFluidResult()) {
+            return List.of();
+        }
         if (!recipe.isRandomResult()) {
             Block result = recipe.result();
             if (result == null || result.asItem() == Items.AIR) {

@@ -29,7 +29,10 @@
   "jei.dopasrandomutilities.tooltip.side_consume_block": "the block will be consumed after each full output cycle.",
   "jei.dopasrandomutilities.tooltip.below": "Must be placed directly under the generator",
   "jei.dopasrandomutilities.tooltip.container": "Any inventory above the generator (chests, barrels, hoppers, and most modded inventories)",
+  "jei.dopasrandomutilities.tooltip.tank": "Any fluid tank above the generator (modded tanks, drums, and other fluid handlers)",
   "jei.dopasrandomutilities.tooltip.output_insert": "Inserted into the inventory above the generator",
-  "jei.dopasrandomutilities.tooltip.output_drop": "Placed or dropped above the generator",
+  "jei.dopasrandomutilities.tooltip.output_insert_fluid": "Inserted into the fluid tank above the generator",
+  "jei.dopasrandomutilities.tooltip.output_drop": "Dropped as items above the generator",
+  "jei.dopasrandomutilities.tooltip.output_place": "Placed as a block above the generator",
   "jei.dopasrandomutilities.tooltip.output_rate": "Produces %1$sx every %2$s ticks"
 }
