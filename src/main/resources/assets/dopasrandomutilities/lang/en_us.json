@@ -19,5 +19,17 @@
   "item.dopasrandomutilities.random_ore_generator": "Random Ore Generator",
   "item.dopasrandomutilities.metal_block_generator": "Metal Block Generator",
   "item.dopasrandomutilities.creative_random_ore_generator": "Creative Random Ore Generator",
-  "item.dopasrandomutilities.creative_metal_block_generator": "Creative Metal Block Generator"
+  "item.dopasrandomutilities.creative_metal_block_generator": "Creative Metal Block Generator",
+  "jei.dopasrandomutilities.resource_generator": "Resource Generator",
+  "jei.dopasrandomutilities.hover_hint": "Hover for details",
+  "jei.dopasrandomutilities.tooltip.generator": "Place this generator in the world",
+  "jei.dopasrandomutilities.tooltip.side_prefix": "Must be adjacent to the generator in any side,",
+  "jei.dopasrandomutilities.tooltip.side_keep": "will not be consumed.",
+  "jei.dopasrandomutilities.tooltip.side_consume_fluid": "the fluid will be consumed after each full output cycle.",
+  "jei.dopasrandomutilities.tooltip.side_consume_block": "the block will be consumed after each full output cycle.",
+  "jei.dopasrandomutilities.tooltip.below": "Must be placed directly under the generator",
+  "jei.dopasrandomutilities.tooltip.container": "Any inventory above the generator (chests, barrels, hoppers, and most modded inventories)",
+  "jei.dopasrandomutilities.tooltip.output_insert": "Inserted into the inventory above the generator",
+  "jei.dopasrandomutilities.tooltip.output_drop": "Placed or dropped above the generator",
+  "jei.dopasrandomutilities.tooltip.output_rate": "Produces %1$sx every %2$s ticks"
 }

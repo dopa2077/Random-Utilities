@@ -22,3 +22,10 @@ Utility generators and quality-of-life blocks.
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="jei"
+    type="optional"
+    versionRange="[30.0.0,)"
+    ordering="NONE"
+    side="CLIENT"
