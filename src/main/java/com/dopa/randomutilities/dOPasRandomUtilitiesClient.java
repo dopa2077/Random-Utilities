@@ -21,6 +21,9 @@ public class dOPasRandomUtilitiesClient {
     /** Multiply tint for creative generators (ARGB). */
     public static final int CREATIVE_PURPLE_TINT = 0xFFC070FF;
 
+    /** Default vanilla water multiply tint (ARGB). Water faces use tintindex 1. */
+    public static final int WATER_TINT = 0xFF3F76E4;
+
     public dOPasRandomUtilitiesClient(ModContainer container) {
         // No common ModConfigSpec — generator behaviour lives in config JSON files.
     }
@@ -35,10 +38,23 @@ public class dOPasRandomUtilitiesClient {
 
     @SubscribeEvent
     static void registerBlockTintSources(RegisterColorHandlersEvent.BlockTintSources event) {
-        // Ore/metal creative generators use baked creative textures in their models.
-        // Only the stone creative generator still relies on multiply tint.
+        // tintindex 0 = casing (creative purple or unused), tintindex 1 = water
         event.register(
-                List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT)),
+                List.of(BlockTintSources.constant(-1), BlockTintSources.constant(WATER_TINT)),
+                ModBlocks.BASIC_STONE_GENERATOR.get(),
+                ModBlocks.INTERMEDIATE_STONE_GENERATOR.get(),
+                ModBlocks.ADVANCED_STONE_GENERATOR.get(),
+                ModBlocks.ELITE_STONE_GENERATOR.get(),
+                ModBlocks.ULTIMATE_STONE_GENERATOR.get(),
+                ModBlocks.RANDOM_ORE_GENERATOR.get(),
+                ModBlocks.METAL_BLOCK_GENERATOR.get(),
+                ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR.get(),
+                ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR.get()
+        );
+        // Ore/metal creative generators use baked creative textures in their models.
+        // Stone creative still relies on multiply tint for casing.
+        event.register(
+                List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT), BlockTintSources.constant(WATER_TINT)),
                 ModBlocks.CREATIVE_STONE_GENERATOR.get()
         );
     }
