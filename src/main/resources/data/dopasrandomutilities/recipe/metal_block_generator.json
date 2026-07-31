@@ -2,15 +2,19 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "M": "minecraft:iron_block",
-    "I": "dopasrandomutilities:intermediate_stone_generator",
+    "D": "minecraft:diamond_block",
+    "N": "minecraft:netherite_block",
+    "S": "minecraft:sculk_catalyst",
+    "E": "dopasrandomutilities:elite_stone_generator",
     "L": "minecraft:lava_bucket",
-    "W": "minecraft:water_bucket"
+    "W": "minecraft:water_bucket",
+    "A": "minecraft:amethyst_block",
+    "M": "minecraft:emerald_block"
   },
   "pattern": [
-    "MMM",
-    "LIW",
-    "MMM"
+    "DNS",
+    "LEW",
+    "ANM"
   ],
   "result": {
     "count": 1,

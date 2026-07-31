@@ -35,11 +35,11 @@ public class dOPasRandomUtilitiesClient {
 
     @SubscribeEvent
     static void registerBlockTintSources(RegisterColorHandlersEvent.BlockTintSources event) {
+        // Ore/metal creative generators use baked creative textures in their models.
+        // Only the stone creative generator still relies on multiply tint.
         event.register(
                 List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT)),
-                ModBlocks.CREATIVE_STONE_GENERATOR.get(),
-                ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR.get(),
-                ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR.get()
+                ModBlocks.CREATIVE_STONE_GENERATOR.get()
         );
     }
 }
