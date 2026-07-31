@@ -2,15 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "O": "minecraft:diamond_ore",
-    "B": "dopasrandomutilities:basic_stone_generator",
+    "D": "minecraft:deepslate_diamond_ore",
+    "C": "minecraft:deepslate_copper_ore",
+    "E": "minecraft:deepslate_emerald_ore",
+    "I": "dopasrandomutilities:intermediate_stone_generator",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket"
   },
   "pattern": [
-    "OOO",
-    "LBW",
-    "OOO"
+    "DCE",
+    "LIW",
+    "ECD"
   ],
   "result": {
     "count": 1,
