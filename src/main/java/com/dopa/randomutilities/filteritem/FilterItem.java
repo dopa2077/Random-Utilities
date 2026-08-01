@@ -2,6 +2,7 @@ package com.dopa.randomutilities.filteritem;
 
 import java.util.function.Consumer;
 
+import com.dopa.randomutilities.filteritem.client.CompactCountFormat;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
@@ -25,8 +26,6 @@ import net.minecraft.world.phys.BlockHitResult;
 
 /** Filter/void item — behaviour driven entirely by {@link FilterProfile}. Register new variants via {@link FilterRegistry}. */
 public class FilterItem extends Item {
-    private static final String INFINITY = "\u221E";
-
     private final FilterProfile profile;
 
     public FilterItem(Properties properties, FilterProfile profile) {
@@ -192,17 +191,17 @@ public class FilterItem extends Item {
     ) {
         ItemStack preview = FilterStorage.getPreviewStack(stack);
         if (!preview.isEmpty()) {
-            tooltip.accept(Component.literal(preview.getCount() + " × ").append(preview.getHoverName()));
+            tooltip.accept(Component.literal(CompactCountFormat.format(preview.getCount()) + " × ")
+                    .append(preview.getHoverName()));
         } else {
             tooltip.accept(Component.translatable(profile.emptyTooltipKey()).withStyle(ChatFormatting.GRAY));
         }
         if (profile.slotsTooltipKey() != null) {
             FilterContents contents = FilterStorage.get(stack);
-            int max = contents.maxStackSize();
             tooltip.accept(Component.translatable(
                     profile.slotsTooltipKey(),
                     contents.slotCount(),
-                    max == Integer.MAX_VALUE ? INFINITY : Integer.toString(max)
+                    CompactCountFormat.format(contents.maxStackSize())
             ).withStyle(ChatFormatting.GRAY));
         }
     }

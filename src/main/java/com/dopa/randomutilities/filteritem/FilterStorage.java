@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.filteritem;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.FilterContents.Slot;
 import com.dopa.randomutilities.registry.ModDataComponents;
 
@@ -26,11 +27,10 @@ public final class FilterStorage {
                 ModDataComponents.FILTER_CONTENTS.get(),
                 profile.defaultContents()
         );
-        if (profile.isBasic()) {
-            return stored;
-        }
-        FilterContents contents = stored.ensureMinimum(profile.minSlots());
-        if (contents.slotCount() != stored.slotCount()) {
+        FilterContents contents = profile.isBasic()
+                ? clampBasic(stored, profile)
+                : clampAdvanced(stored.ensureMinimum(profile.minSlots()), profile);
+        if (!contents.equals(stored)) {
             stack.set(ModDataComponents.FILTER_CONTENTS.get(), contents);
         }
         return contents;
@@ -42,15 +42,45 @@ public final class FilterStorage {
             return;
         }
         if (profile.isBasic()) {
-            contents = new FilterContents(
+            contents = clampBasic(new FilterContents(
                     contents.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(contents.slot(0)),
                     profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : contents.maxStackSize(),
                     0, 0, contents.color()
-            );
+            ), profile);
         } else {
-            contents = contents.ensureMinimum(profile.minSlots());
+            contents = clampAdvanced(contents.ensureMinimum(profile.minSlots()), profile);
         }
         stack.set(ModDataComponents.FILTER_CONTENTS.get(), contents);
+    }
+
+    private static FilterContents clampBasic(FilterContents contents, FilterProfile profile) {
+        int maxStack = Math.max(1, DevNullConfig.basicMaxStackSize());
+        FilterContents clamped = contents.withMaxStackSize(Math.min(contents.maxStackSize(), maxStack));
+        Slot slot = clamped.slot(0);
+        if (!slot.isEmpty() && slot.count() > maxStack) {
+            clamped = clamped.withSlot(0, slot.resource(), maxStack);
+        }
+        return new FilterContents(
+                clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
+                maxStack,
+                0, 0, clamped.color()
+        );
+    }
+
+    private static FilterContents clampAdvanced(FilterContents contents, FilterProfile profile) {
+        int slots = DevNullConfig.clampAdvancedSlotCount(contents.slotCount());
+        if (slots != contents.slotCount()) {
+            contents = contents.withSlotCount(slots, DevNullConfig.advancedMinSlots(), DevNullConfig.advancedMaxSlots());
+        }
+        int maxStack = DevNullConfig.clampAdvancedMaxStack(contents.maxStackSize());
+        if (maxStack != contents.maxStackSize()) {
+            contents = contents.withMaxStackSize(maxStack);
+        }
+        int page = DevNullConfig.clampAdvancedPage(contents.page(), contents.slotCount());
+        if (page != contents.page()) {
+            contents = contents.withPage(page);
+        }
+        return contents;
     }
 
     public static ItemStack getSelectedStack(ItemStack host) {
@@ -100,13 +130,9 @@ public final class FilterStorage {
             if (!slot.isEmpty() && !slot.resource().equals(resource)) {
                 return remaining;
             }
-            int current = slot.isEmpty() ? 0 : slot.count();
-            int moved = Math.min(Math.max(0, max - current), remaining);
-            if (moved > 0) {
-                set(host, contents.withSlot(0, resource, current + moved));
-                remaining -= moved;
-            }
-            return remaining;
+            int displayCount = DevNullConfig.basicMaxStackSize();
+            set(host, contents.withSlot(0, resource, displayCount));
+            return 0;
         }
 
         boolean hadMatch = false;

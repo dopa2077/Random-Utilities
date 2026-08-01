@@ -20,6 +20,7 @@ public record FilterContents(
         int color
 ) {
     public static final int SLOTS_PER_PAGE = 54;
+    public static final int SLOTS_PER_ROW = 9;
     public static final int MIN_ADVANCED_SLOTS = 9;
     public static final int MAX_TOTAL_SLOTS = SLOTS_PER_PAGE * 64;
     public static final int DEFAULT_COLOR = 0xFFFFFF;
@@ -130,8 +131,8 @@ public record FilterContents(
         return new FilterContents(slots, maxStackSize, selectedSlot, page, rgb);
     }
 
-    public FilterContents withSlotCount(int count, int minSlots) {
-        int target = Math.max(minSlots, Math.min(MAX_TOTAL_SLOTS, count));
+    public FilterContents withSlotCount(int count, int minSlots, int maxSlots) {
+        int target = Math.max(minSlots, Math.min(maxSlots, count));
         List<Slot> next = new ArrayList<>(target);
         for (int i = 0; i < target; i++) {
             next.add(i < slots.size() ? slots.get(i) : Slot.EMPTY);
@@ -142,7 +143,7 @@ public record FilterContents(
     }
 
     public FilterContents ensureMinimum(int minSlots) {
-        return slotCount() < minSlots ? withSlotCount(minSlots, minSlots) : this;
+        return slotCount() < minSlots ? withSlotCount(minSlots, minSlots, MAX_TOTAL_SLOTS) : this;
     }
 
     public record Slot(ItemResource resource, int count) {

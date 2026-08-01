@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.filteritem.client;
 
-import com.dopa.randomutilities.filteritem.FilterContents;
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
 
@@ -14,17 +14,20 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements ColorPickerHost {
     private static final Identifier CHEST_BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
-    private static final String INFINITY = "\u221E";
 
     public static final int SETTINGS_WIDTH = 106;
     public static final int SETTINGS_HEIGHT = 145;
@@ -49,8 +52,8 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private static final int SETTINGS_TITLE_Y = 6;
     private static final int STACK_LABEL_Y = 20;
     private static final int STACK_BOX_Y = 30;
-    private static final int SLOTS_LABEL_Y = 48;
-    private static final int SLOT_BUTTONS_Y = 66;
+    private static final int SLOTS_LABEL_Y = 51;
+    private static final int SLOT_BUTTONS_Y = 60;
     private static final int PAGE_LABEL_Y = 86;
     private static final int PAGE_BUTTONS_Y = 96;
     private static final int CHANGE_COLOUR_BUTTON_Y = 118;
@@ -69,6 +72,9 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private Button addSlotButton;
     private Button prevPageButton;
     private Button nextPageButton;
+
+    private boolean removeConfirmPending;
+    private boolean removeConfirmBulk;
 
     public FilterScreen(FilterMenu menu, Inventory inventory, Component title) {
         super(
@@ -158,6 +164,70 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
     }
 
+    private boolean isShiftHeld() {
+        if (this.minecraft == null) {
+            return false;
+        }
+        if (this.minecraft.hasShiftDown()) {
+            return true;
+        }
+        long window = this.minecraft.getWindow().handle();
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+    }
+
+    private void sendSlotButton(int normalButtonId, int rowButtonId) {
+        sendMenuButton(isShiftHeld() ? rowButtonId : normalButtonId);
+    }
+
+    private static Component twoLineTooltip(String firstKey, String secondKey) {
+        return Component.translatable(firstKey)
+                .append("\n")
+                .append(Component.translatable(secondKey).withStyle(ChatFormatting.GRAY));
+    }
+
+    private Component removeSlotTooltip() {
+        boolean bulk = isShiftHeld();
+        if (this.menu.wouldRemoveVoidItems(bulk)) {
+            String warningKey = bulk
+                    ? "gui.dopasrandomutilities.remove_slot.tooltip_void_bulk"
+                    : "gui.dopasrandomutilities.remove_slot.tooltip_void";
+            MutableComponent tooltip = Component.translatable(warningKey).withStyle(ChatFormatting.RED);
+            if (this.removeConfirmPending && this.removeConfirmBulk == bulk) {
+                tooltip.append("\n\n")
+                        .append(Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip_void_confirm")
+                                .withStyle(ChatFormatting.DARK_RED));
+            }
+            return tooltip;
+        }
+        return twoLineTooltip(
+                "gui.dopasrandomutilities.remove_slot.tooltip",
+                "gui.dopasrandomutilities.remove_slot.tooltip_shift"
+        );
+    }
+
+    private void onRemoveSlotPressed() {
+        boolean bulk = isShiftHeld();
+        if (this.menu.wouldRemoveVoidItems(bulk)) {
+            if (this.removeConfirmPending && this.removeConfirmBulk == bulk) {
+                this.removeConfirmPending = false;
+                sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
+            } else {
+                this.removeConfirmPending = true;
+                this.removeConfirmBulk = bulk;
+                updateButtonStates();
+            }
+            return;
+        }
+        this.removeConfirmPending = false;
+        sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
+    }
+
+    private void onAddSlotPressed() {
+        this.removeConfirmPending = false;
+        sendSlotButton(FilterMenu.BTN_ADD_SLOT, FilterMenu.BTN_ADD_ROW);
+    }
+
     private Button settingsButton(int x, int y, Component label, Component tooltip, Runnable action) {
         return Button.builder(label, b -> action.run())
                 .bounds(x, y, BUTTON_SIZE, BUTTON_SIZE)
@@ -166,7 +236,7 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     }
 
     private static String formatMaxStackDisplay(int value) {
-        return value == Integer.MAX_VALUE ? INFINITY : Integer.toString(value);
+        return Integer.toString(value);
     }
 
     @Override
@@ -182,18 +252,20 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
         this.maxStackBox = new EditBox(this.font, sx + 8, sy + STACK_BOX_Y, innerWidth, 12,
                 Component.translatable("gui.dopasrandomutilities.max_stack"));
-        this.maxStackBox.setMaxLength(11);
+        this.maxStackBox.setMaxLength(10);
         this.maxStackBox.setValue(formatMaxStackDisplay(this.menu.getMaxStackSizeSetting()));
         this.maxStackBox.setResponder(this::onMaxStackChanged);
         this.maxStackBox.setCanLoseFocus(true);
+        this.maxStackBox.setTooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.stack_size.tooltip")));
         this.addRenderableWidget(this.maxStackBox);
 
         this.removeSlotButton = settingsButton(sx + 8, sy + SLOT_BUTTONS_Y, Component.literal("-"),
-                Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip"),
-                () -> sendMenuButton(FilterMenu.BTN_REMOVE_SLOT));
+                removeSlotTooltip(),
+                this::onRemoveSlotPressed);
         this.addSlotButton = settingsButton(sx + 8 + BUTTON_SIZE + 4, sy + SLOT_BUTTONS_Y, Component.literal("+"),
-                Component.translatable("gui.dopasrandomutilities.add_slot.tooltip"),
-                () -> sendMenuButton(FilterMenu.BTN_ADD_SLOT));
+                twoLineTooltip("gui.dopasrandomutilities.add_slot.tooltip",
+                        "gui.dopasrandomutilities.add_slot.tooltip_shift"),
+                this::onAddSlotPressed);
         this.addRenderableWidget(this.removeSlotButton);
         this.addRenderableWidget(this.addSlotButton);
 
@@ -209,8 +281,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         this.changeColourButton = Button.builder(
                 Component.translatable("gui.dopasrandomutilities.change_color"),
                 button -> this.colorPicker.open(this)
-        ).bounds(sx + 8, sy + CHANGE_COLOUR_BUTTON_Y, innerWidth, CHANGE_COLOUR_BUTTON_H).build();
+        ).bounds(sx + 8, sy + CHANGE_COLOUR_BUTTON_Y, innerWidth, CHANGE_COLOUR_BUTTON_H)
+                .tooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.change_color.tooltip")))
+                .build();
         this.addRenderableWidget(this.changeColourButton);
+
+        this.removeConfirmPending = false;
 
         updateButtonStates();
         restoreMousePositionIfPending();
@@ -222,12 +298,10 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         }
         if (this.removeSlotButton != null) {
             this.removeSlotButton.active = this.menu.canRemoveSlot();
-            this.removeSlotButton.setTooltip(Tooltip.create(this.menu.isLastSlotOccupied()
-                    ? Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip_void").withStyle(ChatFormatting.RED)
-                    : Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip")));
+            this.removeSlotButton.setTooltip(Tooltip.create(removeSlotTooltip()));
         }
         if (this.addSlotButton != null) {
-            this.addSlotButton.active = this.menu.getSlotCountSetting() < FilterContents.MAX_TOTAL_SLOTS;
+            this.addSlotButton.active = this.menu.getSlotCountSetting() < DevNullConfig.advancedMaxSlots();
         }
         if (this.prevPageButton != null) {
             this.prevPageButton.active = this.menu.getPage() > 0;
@@ -239,18 +313,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     private void onMaxStackChanged(String text) {
         String trimmed = text.trim();
-        if (trimmed.equals(INFINITY) || trimmed.equalsIgnoreCase("inf")) {
-            if (this.menu.getMaxStackSizeSetting() != Integer.MAX_VALUE) {
-                ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(Integer.MAX_VALUE));
-            }
-            return;
-        }
         try {
             long parsed = Long.parseLong(trimmed);
             if (parsed < 1) {
                 return;
             }
-            int value = (int) Math.min(Integer.MAX_VALUE, parsed);
+            int value = DevNullConfig.clampAdvancedMaxStack((int) Math.min(DevNullConfig.advancedMaxStackSize(), parsed));
             if (value != this.menu.getMaxStackSizeSetting()) {
                 ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(value));
             }
@@ -277,6 +345,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     public void containerTick() {
         super.containerTick();
         if (!this.menu.isBasic()) {
+            if (this.removeConfirmPending) {
+                if (!this.menu.wouldRemoveVoidItems(this.removeConfirmBulk)
+                        || isShiftHeld() != this.removeConfirmBulk) {
+                    this.removeConfirmPending = false;
+                }
+            }
             updateButtonStates();
             syncEditBoxesFromMenu();
         }
@@ -348,9 +422,26 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     @Override
     public void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractContents(graphics, mouseX, mouseY, partialTick);
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            this.colorPicker.renderOnTop(graphics, this, mouseX, mouseY, partialTick);
+        if (!this.menu.isBasic()) {
+            if (this.colorPicker.isOpen()) {
+                this.colorPicker.renderOnTop(graphics, this, mouseX, mouseY, partialTick);
+            }
         }
+    }
+
+    @Override
+    protected void renderSlotContents(GuiGraphicsExtractor graphics, ItemStack itemStack, Slot slot, @Nullable String itemCount) {
+        if (!itemStack.isEmpty() && isFilterSlot(slot) && itemStack.getCount() > 1) {
+            itemCount = CompactCountFormat.format(itemStack.getCount());
+        }
+        super.renderSlotContents(graphics, itemStack, slot, itemCount);
+    }
+
+    private boolean isFilterSlot(Slot slot) {
+        if (this.menu.isBasic()) {
+            return slot.index == 0;
+        }
+        return slot.index < this.menu.getPageSlotCount();
     }
 
     @Override

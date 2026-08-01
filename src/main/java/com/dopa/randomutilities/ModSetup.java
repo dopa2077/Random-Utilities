@@ -1,5 +1,6 @@
 package com.dopa.randomutilities;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.filteritem.FilterNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
@@ -20,6 +21,8 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 public final class ModSetup {
     private static final Identifier GENERATOR_RECIPES_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":generator_recipes");
+    private static final Identifier DEV_NULL_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":devnull_config");
 
     private ModSetup() {}
 
@@ -31,7 +34,10 @@ public final class ModSetup {
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
-                event.enqueueWork(GeneratorRecipeConfig::load));
+                event.enqueueWork(() -> {
+                    DevNullConfig.load();
+                    GeneratorRecipeConfig.load();
+                }));
         modEventBus.addListener(FilterNetwork::registerCapabilities);
         modEventBus.addListener(FilterNetwork::registerPayloads);
     }
@@ -48,6 +54,10 @@ public final class ModSetup {
                         GeneratorRecipeConfig.reload();
                         GeneratorRecipeConfig.rebuildBlockPools();
                     }
+            );
+            event.addListener(
+                    DEV_NULL_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> DevNullConfig.reload()
             );
         }
 
