@@ -1,0 +1,440 @@
+package com.dopa.randomutilities.filteritem.client;
+
+import com.dopa.randomutilities.filteritem.FilterContents;
+import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import org.lwjgl.glfw.GLFW;
+
+public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements ColorPickerHost {
+    private static final Identifier CHEST_BACKGROUND =
+            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
+    private static final String INFINITY = "\u221E";
+
+    public static final int SETTINGS_WIDTH = 106;
+    public static final int SETTINGS_HEIGHT = 145;
+    public static final int SETTINGS_GAP = 6;
+
+    private static final int PLAYER_INV_HEIGHT = 96;
+    private static final int TEXTURE_SIZE = 256;
+    private static final int INTERIOR_U = 7;
+    private static final int INTERIOR_W = 162;
+    private static final int DIVIDER_V = 126;
+    private static final int DIVIDER_STRIP_H = 7;
+
+    private static final int LABEL_COLOR = 0xFF404040;
+    private static final int MUTED_LABEL_COLOR = 0xFF606060;
+    private static final int SECTION_TITLE_COLOR = 0xFF3A3A3A;
+    private static final int BODY_COLOR = 0xFFC6C6C6;
+
+    private static final int BASIC_FOOTER_Y = 35;
+    private static final int BASIC_IMAGE_HEIGHT = 114 + 18;
+    private static final int LARGE_SLOT = 26;
+
+    private static final int SETTINGS_TITLE_Y = 6;
+    private static final int STACK_LABEL_Y = 20;
+    private static final int STACK_BOX_Y = 30;
+    private static final int SLOTS_LABEL_Y = 48;
+    private static final int SLOT_BUTTONS_Y = 66;
+    private static final int PAGE_LABEL_Y = 86;
+    private static final int PAGE_BUTTONS_Y = 96;
+    private static final int CHANGE_COLOUR_BUTTON_Y = 118;
+    private static final int CHANGE_COLOUR_BUTTON_H = 20;
+    private static final int BUTTON_SIZE = 18;
+
+    private static double pendingMouseX = Double.NaN;
+    private static double pendingMouseY = Double.NaN;
+
+    private final int containerRows;
+    private final FilterColorPicker colorPicker = new FilterColorPicker();
+
+    private EditBox maxStackBox;
+    private Button changeColourButton;
+    private Button removeSlotButton;
+    private Button addSlotButton;
+    private Button prevPageButton;
+    private Button nextPageButton;
+
+    public FilterScreen(FilterMenu menu, Inventory inventory, Component title) {
+        super(
+                menu,
+                inventory,
+                title,
+                176,
+                menu.isBasic() ? BASIC_IMAGE_HEIGHT : 114 + menu.getRows() * 18
+        );
+        this.containerRows = menu.isBasic() ? 1 : menu.getRows();
+        this.inventoryLabelY = this.imageHeight - 94;
+        this.titleLabelX = 8;
+        this.titleLabelY = 6;
+    }
+
+    public FilterMenu getMenu() {
+        return this.menu;
+    }
+
+    public <T extends net.minecraft.client.gui.components.events.GuiEventListener & net.minecraft.client.gui.components.Renderable & net.minecraft.client.gui.narration.NarratableEntry> T addOverlayWidget(T widget) {
+        return this.addRenderableWidget(widget);
+    }
+
+    public void removeOverlayWidget(net.minecraft.client.gui.components.events.GuiEventListener widget) {
+        this.removeWidget(widget);
+    }
+
+    @Override
+    public int getPickerColor() {
+        return this.menu.getColor();
+    }
+
+    @Override
+    public void onPickerColorCommitted(int rgb) {
+        ClientPacketDistributor.sendToServer(FilterSettingPayload.color(rgb));
+    }
+
+    @Override
+    public <T extends net.minecraft.client.gui.components.events.GuiEventListener & net.minecraft.client.gui.components.Renderable & net.minecraft.client.gui.narration.NarratableEntry> T addPickerWidget(T widget) {
+        return addOverlayWidget(widget);
+    }
+
+    @Override
+    public void removePickerWidget(net.minecraft.client.gui.components.events.GuiEventListener widget) {
+        removeOverlayWidget(widget);
+    }
+
+    @Override
+    public net.minecraft.client.gui.Font getFont() {
+        return this.font;
+    }
+
+    @Override
+    public int width() {
+        return this.width;
+    }
+
+    @Override
+    public int height() {
+        return this.height;
+    }
+
+    public static void preserveMousePosition(Minecraft minecraft) {
+        if (minecraft == null) {
+            return;
+        }
+        long window = minecraft.getWindow().handle();
+        double[] x = new double[1];
+        double[] y = new double[1];
+        GLFW.glfwGetCursorPos(window, x, y);
+        pendingMouseX = x[0];
+        pendingMouseY = y[0];
+    }
+
+    private void restoreMousePositionIfPending() {
+        if (this.minecraft == null || Double.isNaN(pendingMouseX)) {
+            return;
+        }
+        GLFW.glfwSetCursorPos(this.minecraft.getWindow().handle(), pendingMouseX, pendingMouseY);
+        this.minecraft.mouseHandler.setIgnoreFirstMove();
+        pendingMouseX = Double.NaN;
+        pendingMouseY = Double.NaN;
+    }
+
+    private void sendMenuButton(int buttonId) {
+        preserveMousePosition(this.minecraft);
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
+    }
+
+    private Button settingsButton(int x, int y, Component label, Component tooltip, Runnable action) {
+        return Button.builder(label, b -> action.run())
+                .bounds(x, y, BUTTON_SIZE, BUTTON_SIZE)
+                .tooltip(Tooltip.create(tooltip))
+                .build();
+    }
+
+    private static String formatMaxStackDisplay(int value) {
+        return value == Integer.MAX_VALUE ? INFINITY : Integer.toString(value);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        if (this.menu.isBasic()) {
+            return;
+        }
+
+        int sx = this.leftPos - SETTINGS_GAP - SETTINGS_WIDTH;
+        int sy = this.topPos;
+        int innerWidth = SETTINGS_WIDTH - 16;
+
+        this.maxStackBox = new EditBox(this.font, sx + 8, sy + STACK_BOX_Y, innerWidth, 12,
+                Component.translatable("gui.dopasrandomutilities.max_stack"));
+        this.maxStackBox.setMaxLength(11);
+        this.maxStackBox.setValue(formatMaxStackDisplay(this.menu.getMaxStackSizeSetting()));
+        this.maxStackBox.setResponder(this::onMaxStackChanged);
+        this.maxStackBox.setCanLoseFocus(true);
+        this.addRenderableWidget(this.maxStackBox);
+
+        this.removeSlotButton = settingsButton(sx + 8, sy + SLOT_BUTTONS_Y, Component.literal("-"),
+                Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip"),
+                () -> sendMenuButton(FilterMenu.BTN_REMOVE_SLOT));
+        this.addSlotButton = settingsButton(sx + 8 + BUTTON_SIZE + 4, sy + SLOT_BUTTONS_Y, Component.literal("+"),
+                Component.translatable("gui.dopasrandomutilities.add_slot.tooltip"),
+                () -> sendMenuButton(FilterMenu.BTN_ADD_SLOT));
+        this.addRenderableWidget(this.removeSlotButton);
+        this.addRenderableWidget(this.addSlotButton);
+
+        this.prevPageButton = settingsButton(sx + 8, sy + PAGE_BUTTONS_Y, Component.literal("<"),
+                Component.translatable("gui.dopasrandomutilities.prev_page.tooltip"),
+                () -> sendMenuButton(FilterMenu.BTN_PREV_PAGE));
+        this.nextPageButton = settingsButton(sx + 8 + BUTTON_SIZE + 4, sy + PAGE_BUTTONS_Y, Component.literal(">"),
+                Component.translatable("gui.dopasrandomutilities.next_page.tooltip"),
+                () -> sendMenuButton(FilterMenu.BTN_NEXT_PAGE));
+        this.addRenderableWidget(this.prevPageButton);
+        this.addRenderableWidget(this.nextPageButton);
+
+        this.changeColourButton = Button.builder(
+                Component.translatable("gui.dopasrandomutilities.change_color"),
+                button -> this.colorPicker.open(this)
+        ).bounds(sx + 8, sy + CHANGE_COLOUR_BUTTON_Y, innerWidth, CHANGE_COLOUR_BUTTON_H).build();
+        this.addRenderableWidget(this.changeColourButton);
+
+        updateButtonStates();
+        restoreMousePositionIfPending();
+    }
+
+    private void updateButtonStates() {
+        if (this.menu.isBasic()) {
+            return;
+        }
+        if (this.removeSlotButton != null) {
+            this.removeSlotButton.active = this.menu.canRemoveSlot();
+            this.removeSlotButton.setTooltip(Tooltip.create(this.menu.isLastSlotOccupied()
+                    ? Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip_void").withStyle(ChatFormatting.RED)
+                    : Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip")));
+        }
+        if (this.addSlotButton != null) {
+            this.addSlotButton.active = this.menu.getSlotCountSetting() < FilterContents.MAX_TOTAL_SLOTS;
+        }
+        if (this.prevPageButton != null) {
+            this.prevPageButton.active = this.menu.getPage() > 0;
+        }
+        if (this.nextPageButton != null) {
+            this.nextPageButton.active = this.menu.getPage() < this.menu.getPageCount() - 1;
+        }
+    }
+
+    private void onMaxStackChanged(String text) {
+        String trimmed = text.trim();
+        if (trimmed.equals(INFINITY) || trimmed.equalsIgnoreCase("inf")) {
+            if (this.menu.getMaxStackSizeSetting() != Integer.MAX_VALUE) {
+                ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(Integer.MAX_VALUE));
+            }
+            return;
+        }
+        try {
+            long parsed = Long.parseLong(trimmed);
+            if (parsed < 1) {
+                return;
+            }
+            int value = (int) Math.min(Integer.MAX_VALUE, parsed);
+            if (value != this.menu.getMaxStackSizeSetting()) {
+                ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(value));
+            }
+        } catch (NumberFormatException ignored) {
+        }
+    }
+
+    private void clearSettingsFieldFocusIfOutside(double mouseX, double mouseY) {
+        if (this.getFocused() instanceof EditBox focused && !focused.isMouseOver(mouseX, mouseY)) {
+            this.clearFocus();
+        }
+    }
+
+    private void syncEditBoxesFromMenu() {
+        if (this.maxStackBox != null && !this.maxStackBox.isFocused()) {
+            String expected = formatMaxStackDisplay(this.menu.getMaxStackSizeSetting());
+            if (!expected.equals(this.maxStackBox.getValue())) {
+                this.maxStackBox.setValue(expected);
+            }
+        }
+    }
+
+    @Override
+    public void containerTick() {
+        super.containerTick();
+        if (!this.menu.isBasic()) {
+            updateButtonStates();
+            syncEditBoxesFromMenu();
+        }
+    }
+
+    @Override
+    public void onClose() {
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            this.colorPicker.close(this);
+        }
+        super.onClose();
+    }
+
+    private void coverUnusedSlotsOnLastRow(GuiGraphicsExtractor graphics, int xo, int yo, int slotCount) {
+        int usedOnLastRow = slotCount % 9;
+        if (usedOnLastRow == 0) {
+            return;
+        }
+        int row = slotCount / 9;
+        int coverY = yo + 18 + row * 18;
+        for (int col = usedOnLastRow; col < 9; col++) {
+            VanillaContainerPanel.blitRegion(graphics, xo + 8 + col * 18, coverY, 18, 18,
+                    INTERIOR_U, DIVIDER_V, INTERIOR_W, DIVIDER_STRIP_H);
+        }
+    }
+
+    private void drawSlotsLine(GuiGraphicsExtractor graphics, int sx, int sy) {
+        Component prefix = Component.translatable("gui.dopasrandomutilities.slots_prefix");
+        int x = sx + 8;
+        int y = sy + SLOTS_LABEL_Y;
+        graphics.text(this.font, prefix, x, y, LABEL_COLOR, false);
+        graphics.text(this.font, Component.literal(Integer.toString(this.menu.getSlotCountSetting())),
+                x + this.font.width(prefix), y, MUTED_LABEL_COLOR, false);
+    }
+
+    private void renderBasicBackground(GuiGraphicsExtractor graphics) {
+        int xo = this.leftPos;
+        int yo = this.topPos;
+
+        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
+                this.imageWidth, BASIC_FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.fill(xo + 7, yo + 17, xo + this.imageWidth - 7, yo + BASIC_FOOTER_Y, BODY_COLOR);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + BASIC_FOOTER_Y,
+                0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
+
+        int frameX = xo + FilterMenu.BASIC_SLOT_X - (LARGE_SLOT - 18) / 2;
+        int frameY = yo + FilterMenu.BASIC_SLOT_Y - (LARGE_SLOT - 18) / 2;
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, frameX, frameY, LARGE_SLOT, LARGE_SLOT);
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        if (this.menu.isBasic()) {
+            renderBasicBackground(graphics);
+            return;
+        }
+
+        int xo = this.leftPos;
+        int yo = this.topPos;
+        VanillaContainerPanel.blit(graphics, xo - SETTINGS_GAP - SETTINGS_WIDTH, yo, SETTINGS_WIDTH, SETTINGS_HEIGHT);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
+                this.imageWidth, this.containerRows * 18 + 17, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + this.containerRows * 18 + 17,
+                0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
+        coverUnusedSlotsOnLastRow(graphics, xo, yo, this.menu.getPageSlotCount());
+    }
+
+    @Override
+    public void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractContents(graphics, mouseX, mouseY, partialTick);
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            this.colorPicker.renderOnTop(graphics, this, mouseX, mouseY, partialTick);
+        }
+    }
+
+    @Override
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(this.font, this.title, this.titleLabelX, this.titleLabelY, LABEL_COLOR, false);
+        graphics.text(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, LABEL_COLOR, false);
+        if (this.menu.isBasic()) {
+            return;
+        }
+
+        int sx = -SETTINGS_GAP - SETTINGS_WIDTH;
+        int sy = 0;
+        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.settings").withStyle(ChatFormatting.BOLD),
+                sx + 8, sy + SETTINGS_TITLE_Y, SECTION_TITLE_COLOR, false);
+        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.stack_size"),
+                sx + 8, sy + STACK_LABEL_Y, LABEL_COLOR, false);
+        drawSlotsLine(graphics, sx, sy);
+        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.page",
+                        this.menu.getPage() + 1, this.menu.getPageCount()),
+                sx + 8, sy + PAGE_LABEL_Y, LABEL_COLOR, false);
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            if (event.isEscape()) {
+                this.colorPicker.close(this);
+                return true;
+            }
+            if (this.minecraft != null && this.minecraft.options.keyInventory.matches(event)) {
+                this.colorPicker.close(this);
+                return true;
+            }
+            return true;
+        }
+        if (this.getFocused() instanceof EditBox editBox) {
+            if (event.isConfirmation()) {
+                this.clearFocus();
+                return true;
+            }
+            if (editBox.keyPressed(event)) {
+                return true;
+            }
+        }
+        return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            if (!this.colorPicker.contains(event.x(), event.y())) {
+                this.colorPicker.close(this);
+                return true;
+            }
+            super.mouseClicked(event, doubleClick);
+            return true;
+        }
+        boolean handled = super.mouseClicked(event, doubleClick);
+        if (!this.menu.isBasic()) {
+            clearSettingsFieldFocusIfOutside(event.x(), event.y());
+        }
+        return handled;
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            return this.getFocused() != null && this.isDragging() && event.button() == 0
+                    && this.getFocused().mouseDragged(event, dx, dy);
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            if (event.button() == 0 && this.isDragging()) {
+                this.setDragging(false);
+                if (this.getFocused() != null) {
+                    return this.getFocused().mouseReleased(event);
+                }
+            }
+            return super.mouseReleased(event);
+        }
+        return super.mouseReleased(event);
+    }
+}

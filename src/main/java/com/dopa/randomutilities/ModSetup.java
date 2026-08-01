@@ -1,11 +1,13 @@
 package com.dopa.randomutilities;
 
-import com.dopa.randomutilities.config.GeneratedBlockLists;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.filteritem.FilterNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
+import com.dopa.randomutilities.registry.ModDataComponents;
 import com.dopa.randomutilities.registry.ModItems;
+import com.dopa.randomutilities.registry.ModMenus;
 
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -22,33 +24,36 @@ public final class ModSetup {
     private ModSetup() {}
 
     public static void register(IEventBus modEventBus) {
+        ModDataComponents.DATA_COMPONENTS.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
+        ModMenus.MENUS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
-        modEventBus.addListener(ModSetup::onCommonSetup);
-    }
-
-    private static void onCommonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
-        event.enqueueWork(GeneratorRecipeConfig::load);
+        modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
+                event.enqueueWork(GeneratorRecipeConfig::load));
+        modEventBus.addListener(FilterNetwork::registerCapabilities);
+        modEventBus.addListener(FilterNetwork::registerPayloads);
     }
 
     @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
-    public static class Events {
+    public static final class Events {
+        private Events() {}
+
         @SubscribeEvent
         public static void onAddReloadListeners(AddServerReloadListenersEvent event) {
             event.addListener(
                     GENERATOR_RECIPES_LISTENER,
-                    (ResourceManagerReloadListener) (resourceManager -> {
+                    (ResourceManagerReloadListener) resourceManager -> {
                         GeneratorRecipeConfig.reload();
-                        GeneratedBlockLists.rebuild();
-                    })
+                        GeneratorRecipeConfig.rebuildBlockPools();
+                    }
             );
         }
 
         @SubscribeEvent
         public static void onServerStarting(ServerStartingEvent event) {
-            GeneratedBlockLists.rebuild();
+            GeneratorRecipeConfig.rebuildBlockPools();
         }
     }
 }
