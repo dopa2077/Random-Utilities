@@ -1,76 +1,153 @@
-package com.dopa.randomutilities.registry;
-
-import com.dopa.randomutilities.config.GeneratorType;
-import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterItem;
-import com.dopa.randomutilities.filteritem.FilterProfile;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
-import com.dopa.randomutilities.item.AdvancedDevNullItem;
-import com.dopa.randomutilities.item.DevNullItem;
-
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Rarity;
-import net.neoforged.neoforge.registries.DeferredItem;
-import net.neoforged.neoforge.registries.DeferredRegister;
-
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.function.Function;
-
-public final class ModItems {
-    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(dOPasRandomUtilities.MOD_ID);
-
-    public static final DeferredItem<DevNullItem> DEV_NULL = registerFilter("dev_null", DevNullItem::new, DevNullItem.PROFILE);
-    public static final DeferredItem<AdvancedDevNullItem> ADVANCED_DEV_NULL =
-            registerFilter("advanced_dev_null", AdvancedDevNullItem::new, AdvancedDevNullItem.PROFILE);
-
-    private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
-
-    static {
-        for (GeneratorType type : GeneratorType.values()) {
-            boolean creative = type == GeneratorType.CREATIVE_STONE
-                    || type == GeneratorType.CREATIVE_RANDOM_ORE
-                    || type == GeneratorType.CREATIVE_METAL_BLOCK;
-            GENERATORS.put(
-                    type,
-                    creative
-                            ? ITEMS.registerSimpleBlockItem(ModBlocks.forType(type), props -> props.rarity(Rarity.EPIC))
-                            : ITEMS.registerSimpleBlockItem(ModBlocks.forType(type))
-            );
-        }
-    }
-
-    private static <T extends FilterItem> DeferredItem<T> registerFilter(
-            String id,
-            Function<Item.Properties, T> factory,
-            FilterProfile profile
-    ) {
-        return ITEMS.registerItem(
-                id,
-                props -> {
-                    T item = factory.apply(props);
-                    FilterRegistry.register(item, profile);
-                    return item;
-                },
-                props -> props.stacksTo(1).component(ModDataComponents.FILTER_CONTENTS.get(), profile.defaultContents())
-        );
-    }
-
-    public static DeferredItem<BlockItem> forType(GeneratorType type) {
-        return GENERATORS.get(type);
-    }
-
-    public static final DeferredItem<BlockItem> BASIC_STONE_GENERATOR = forType(GeneratorType.BASIC_STONE);
-    public static final DeferredItem<BlockItem> INTERMEDIATE_STONE_GENERATOR = forType(GeneratorType.INTERMEDIATE_STONE);
-    public static final DeferredItem<BlockItem> ADVANCED_STONE_GENERATOR = forType(GeneratorType.ADVANCED_STONE);
-    public static final DeferredItem<BlockItem> ELITE_STONE_GENERATOR = forType(GeneratorType.ELITE_STONE);
-    public static final DeferredItem<BlockItem> ULTIMATE_STONE_GENERATOR = forType(GeneratorType.ULTIMATE_STONE);
-    public static final DeferredItem<BlockItem> CREATIVE_STONE_GENERATOR = forType(GeneratorType.CREATIVE_STONE);
-    public static final DeferredItem<BlockItem> RANDOM_ORE_GENERATOR = forType(GeneratorType.RANDOM_ORE);
-    public static final DeferredItem<BlockItem> METAL_BLOCK_GENERATOR = forType(GeneratorType.METAL_BLOCK);
-    public static final DeferredItem<BlockItem> CREATIVE_RANDOM_ORE_GENERATOR = forType(GeneratorType.CREATIVE_RANDOM_ORE);
-    public static final DeferredItem<BlockItem> CREATIVE_METAL_BLOCK_GENERATOR = forType(GeneratorType.CREATIVE_METAL_BLOCK);
-
-    private ModItems() {}
-}
+package com.dopa.randomutilities.registry;
+
+
+
+import com.dopa.randomutilities.config.DevNullConfig;
+import com.dopa.randomutilities.config.GeneratorType;
+
+import com.dopa.randomutilities.dOPasRandomUtilities;
+
+import com.dopa.randomutilities.filteritem.FilterItem;
+
+import com.dopa.randomutilities.filteritem.FilterProfile;
+
+import com.dopa.randomutilities.filteritem.FilterRegistry;
+
+import com.dopa.randomutilities.item.AdvancedDevNullItem;
+
+import com.dopa.randomutilities.item.DevNullItem;
+
+
+
+import net.minecraft.world.item.BlockItem;
+
+import net.minecraft.world.item.Item;
+
+import net.minecraft.world.item.Rarity;
+
+import net.neoforged.neoforge.registries.DeferredItem;
+
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+
+
+import java.util.EnumMap;
+
+import java.util.Map;
+
+import java.util.function.Function;
+
+
+
+public final class ModItems {
+
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(dOPasRandomUtilities.MOD_ID);
+
+
+
+    public static final DeferredItem<DevNullItem> DEV_NULL = registerFilter("dev_null", DevNullItem::new, DevNullConfig.basicProfile());
+
+    public static final DeferredItem<AdvancedDevNullItem> ADVANCED_DEV_NULL =
+
+            registerFilter("advanced_dev_null", AdvancedDevNullItem::new, DevNullConfig.advancedProfile());
+
+
+
+    private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
+
+
+
+    static {
+
+        for (GeneratorType type : GeneratorType.values()) {
+
+            boolean creative = type == GeneratorType.CREATIVE_STONE
+
+                    || type == GeneratorType.CREATIVE_RANDOM_ORE
+
+                    || type == GeneratorType.CREATIVE_METAL_BLOCK;
+
+            GENERATORS.put(
+
+                    type,
+
+                    creative
+
+                            ? ITEMS.registerSimpleBlockItem(ModBlocks.forType(type), props -> props.rarity(Rarity.EPIC))
+
+                            : ITEMS.registerSimpleBlockItem(ModBlocks.forType(type))
+
+            );
+
+        }
+
+    }
+
+
+
+    private static <T extends FilterItem> DeferredItem<T> registerFilter(
+
+            String id,
+
+            Function<Item.Properties, T> factory,
+
+            FilterProfile profile
+
+    ) {
+
+        return ITEMS.registerItem(
+
+                id,
+
+                props -> {
+
+                    T item = factory.apply(props);
+
+                    FilterRegistry.register(item, profile);
+
+                    return item;
+
+                },
+
+                props -> props.stacksTo(1).component(ModDataComponents.FILTER_CONTENTS.get(), profile.defaultContents())
+
+        );
+
+    }
+
+
+
+    public static DeferredItem<BlockItem> forType(GeneratorType type) {
+
+        return GENERATORS.get(type);
+
+    }
+
+
+
+    public static final DeferredItem<BlockItem> BASIC_STONE_GENERATOR = forType(GeneratorType.BASIC_STONE);
+
+    public static final DeferredItem<BlockItem> INTERMEDIATE_STONE_GENERATOR = forType(GeneratorType.INTERMEDIATE_STONE);
+
+    public static final DeferredItem<BlockItem> ADVANCED_STONE_GENERATOR = forType(GeneratorType.ADVANCED_STONE);
+
+    public static final DeferredItem<BlockItem> ELITE_STONE_GENERATOR = forType(GeneratorType.ELITE_STONE);
+
+    public static final DeferredItem<BlockItem> ULTIMATE_STONE_GENERATOR = forType(GeneratorType.ULTIMATE_STONE);
+
+    public static final DeferredItem<BlockItem> CREATIVE_STONE_GENERATOR = forType(GeneratorType.CREATIVE_STONE);
+
+    public static final DeferredItem<BlockItem> RANDOM_ORE_GENERATOR = forType(GeneratorType.RANDOM_ORE);
+
+    public static final DeferredItem<BlockItem> METAL_BLOCK_GENERATOR = forType(GeneratorType.METAL_BLOCK);
+
+    public static final DeferredItem<BlockItem> CREATIVE_RANDOM_ORE_GENERATOR = forType(GeneratorType.CREATIVE_RANDOM_ORE);
+
+    public static final DeferredItem<BlockItem> CREATIVE_METAL_BLOCK_GENERATOR = forType(GeneratorType.CREATIVE_METAL_BLOCK);
+
+
+
+    private ModItems() {}
+
+}
+

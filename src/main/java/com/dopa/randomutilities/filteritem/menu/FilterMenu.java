@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.filteritem.menu;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.FilterContents;
 import com.dopa.randomutilities.filteritem.FilterItem;
 import com.dopa.randomutilities.filteritem.FilterProfile;
@@ -14,17 +15,23 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.world.inventory.StackCopySlot;
+
+import java.util.Optional;
 
 public class FilterMenu extends AbstractContainerMenu {
     public static final int BTN_ADD_SLOT = 0;
     public static final int BTN_REMOVE_SLOT = 1;
     public static final int BTN_PREV_PAGE = 2;
     public static final int BTN_NEXT_PAGE = 3;
+    public static final int BTN_ADD_ROW = 4;
+    public static final int BTN_REMOVE_ROW = 5;
     public static final int DATA_SIZE = 9;
 
     public static final int BASIC_SLOT_X = 80;
@@ -79,7 +86,7 @@ public class FilterMenu extends AbstractContainerMenu {
             int maxStack = profile != null && profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : 64;
             this.handler = new FilterStacksHandler(stacks, () -> maxStack);
             this.handler.setOnChanged(this::saveBasic);
-            this.addSlot(new ResourceHandlerSlot(handler, handler::set, 0, BASIC_SLOT_X, BASIC_SLOT_Y));
+            this.addSlot(new FilterSlot(handler, 0, BASIC_SLOT_X, BASIC_SLOT_Y, true, maxStack));
             this.addStandardInventorySlots(playerInv, 8, BASIC_PLAYER_INV_Y);
             return;
         }
@@ -101,7 +108,7 @@ public class FilterMenu extends AbstractContainerMenu {
         for (int i = 0; i < pageSlotCount; i++) {
             int col = i % 9;
             int row = i / 9;
-            this.addSlot(new ResourceHandlerSlot(handler, handler::set, i, 8 + col * 18, 18 + row * 18));
+            this.addSlot(new FilterSlot(handler, i, 8 + col * 18, 18 + row * 18, false, 0));
         }
         this.addStandardInventorySlots(playerInv, 8, playerInvY());
         syncData();
@@ -166,11 +173,11 @@ public class FilterMenu extends AbstractContainerMenu {
         data.set(0, contents.maxStackSize());
         data.set(1, contents.slotCount());
         data.set(2, contents.clampedPage());
-        data.set(3, contents.pageCount());
+        data.set(3, DevNullConfig.effectivePageCount(contents.slotCount()));
         data.set(4, contents.color());
         data.set(5, contents.selectedSlot());
         data.set(6, pageSlotCount);
-        data.set(7, contents.slotCount() > profile.minSlots() ? 1 : 0);
+        data.set(7, contents.slotCount() > DevNullConfig.advancedMinSlots() ? 1 : 0);
         int lastIndex = contents.slotCount() - 1;
         data.set(8, lastIndex >= 0 && !contents.slot(lastIndex).isEmpty() ? 1 : 0);
     }
@@ -203,12 +210,34 @@ public class FilterMenu extends AbstractContainerMenu {
         return data != null && data.get(8) != 0;
     }
 
+    public boolean wouldSingleRemoveVoidItems() {
+        return isLastSlotOccupied();
+    }
+
+    public boolean wouldBulkRemoveVoidItems() {
+        if (profile == null || profile.isBasic()) {
+            return false;
+        }
+        FilterContents contents = FilterStorage.get(host());
+        int toRemove = slotsToRemoveForBulk(contents.slotCount());
+        for (int i = contents.slotCount() - toRemove; i < contents.slotCount(); i++) {
+            if (!contents.slot(i).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean wouldRemoveVoidItems(boolean bulk) {
+        return bulk ? wouldBulkRemoveVoidItems() : wouldSingleRemoveVoidItems();
+    }
+
     public void setMaxStackSizeSetting(int value) {
         if (profile == null || !profile.configurableMaxStack()) {
             return;
         }
         savePage();
-        FilterContents contents = FilterStorage.get(host()).withMaxStackSize(value);
+        FilterContents contents = FilterStorage.get(host()).withMaxStackSize(DevNullConfig.clampAdvancedMaxStack(value));
         FilterStorage.set(host(), contents);
         for (int i = 0; i < pageSlotCount; i++) {
             ItemStack stack = handler.getResource(i).toStack(handler.getAmountAsInt(i));
@@ -240,8 +269,12 @@ public class FilterMenu extends AbstractContainerMenu {
 
         switch (buttonId) {
             case BTN_ADD_SLOT -> {
-                if (contents.slotCount() < profile.maxSlots()) {
-                    contents = contents.withSlotCount(contents.slotCount() + 1, profile.minSlots());
+                if (contents.slotCount() < DevNullConfig.advancedMaxSlots()) {
+                    contents = contents.withSlotCount(
+                            contents.slotCount() + 1,
+                            DevNullConfig.advancedMinSlots(),
+                            DevNullConfig.advancedMaxSlots()
+                    );
                     if (contents.slotCount() > (contents.clampedPage() + 1) * FilterContents.SLOTS_PER_PAGE) {
                         contents = contents.withPage(contents.pageCount() - 1);
                     }
@@ -249,16 +282,31 @@ public class FilterMenu extends AbstractContainerMenu {
                 }
             }
             case BTN_REMOVE_SLOT -> {
-                if (contents.slotCount() > profile.minSlots()) {
-                    int lastIndex = contents.slotCount() - 1;
-                    int pageStart = displayPage * FilterContents.SLOTS_PER_PAGE;
-                    if (lastIndex >= pageStart && lastIndex < pageStart + pageSlotCount) {
-                        int local = lastIndex - pageStart;
-                        ItemStack stack = handler.getResource(local).toStack(handler.getAmountAsInt(local));
-                        contents = contents.withSlotStack(lastIndex, stack);
+                if (contents.slotCount() > DevNullConfig.advancedMinSlots()) {
+                    contents = removeLastSlot(contents);
+                    changed = true;
+                }
+            }
+            case BTN_ADD_ROW -> {
+                int toAdd = slotsToAddForBulk(contents.slotCount());
+                if (contents.slotCount() + toAdd <= DevNullConfig.advancedMaxSlots()) {
+                    contents = contents.withSlotCount(
+                            contents.slotCount() + toAdd,
+                            DevNullConfig.advancedMinSlots(),
+                            DevNullConfig.advancedMaxSlots()
+                    );
+                    if (contents.slotCount() > (contents.clampedPage() + 1) * FilterContents.SLOTS_PER_PAGE) {
+                        contents = contents.withPage(contents.pageCount() - 1);
                     }
-                    contents = contents.withSlotStack(lastIndex, ItemStack.EMPTY);
-                    contents = contents.withSlotCount(contents.slotCount() - 1, profile.minSlots());
+                    changed = true;
+                }
+            }
+            case BTN_REMOVE_ROW -> {
+                int toRemove = slotsToRemoveForBulk(contents.slotCount());
+                if (contents.slotCount() - toRemove >= DevNullConfig.advancedMinSlots()) {
+                    for (int i = 0; i < toRemove; i++) {
+                        contents = removeLastSlot(contents);
+                    }
                     changed = true;
                 }
             }
@@ -270,7 +318,8 @@ public class FilterMenu extends AbstractContainerMenu {
                 }
             }
             case BTN_NEXT_PAGE -> {
-                int next = Math.min(contents.pageCount() - 1, contents.clampedPage() + 1);
+                int maxPage = DevNullConfig.effectivePageCount(contents.slotCount()) - 1;
+                int next = Math.min(maxPage, contents.clampedPage() + 1);
                 if (next != contents.clampedPage()) {
                     contents = contents.withPage(next);
                     changed = true;
@@ -293,6 +342,77 @@ public class FilterMenu extends AbstractContainerMenu {
         return true;
     }
 
+    private FilterContents removeLastSlot(FilterContents contents) {
+        int lastIndex = contents.slotCount() - 1;
+        int pageStart = displayPage * FilterContents.SLOTS_PER_PAGE;
+        if (lastIndex >= pageStart && lastIndex < pageStart + pageSlotCount) {
+            int local = lastIndex - pageStart;
+            ItemStack stack = handler.getResource(local).toStack(handler.getAmountAsInt(local));
+            contents = contents.withSlotStack(lastIndex, stack);
+        }
+        contents = contents.withSlotStack(lastIndex, ItemStack.EMPTY);
+        return contents.withSlotCount(
+                contents.slotCount() - 1,
+                DevNullConfig.advancedMinSlots(),
+                DevNullConfig.advancedMaxSlots()
+        );
+    }
+
+    static int slotsToAddForBulk(int slotCount) {
+        int remainder = slotCount % FilterContents.SLOTS_PER_ROW;
+        return remainder == 0 ? FilterContents.SLOTS_PER_ROW : FilterContents.SLOTS_PER_ROW - remainder;
+    }
+
+    static int slotsToRemoveForBulk(int slotCount) {
+        int remainder = slotCount % FilterContents.SLOTS_PER_ROW;
+        return remainder == 0 ? FilterContents.SLOTS_PER_ROW : remainder;
+    }
+
+    @Override
+    public void clicked(int slotId, int button, ContainerInput containerInput, Player player) {
+        if (isBasic() && slotId == 0 && containerInput == ContainerInput.PICKUP && tryBasicTrashClick(button)) {
+            return;
+        }
+        super.clicked(slotId, button, containerInput, player);
+    }
+
+    private boolean tryBasicTrashClick(int button) {
+        if (button != 0 && button != 1) {
+            return false;
+        }
+        Slot slot = this.slots.getFirst();
+        ItemStack carried = this.getCarried();
+        ItemStack slotStack = slot.getItem();
+        if (carried.isEmpty()) {
+            return false;
+        }
+        if (!slotStack.isEmpty() && !ItemStack.isSameItemSameComponents(slotStack, carried)) {
+            return false;
+        }
+        if (!slot.mayPlace(carried)) {
+            return false;
+        }
+        int amount = button == 0 ? carried.getCount() : 1;
+        this.setCarried(slot.safeInsert(carried, amount));
+        slot.setChanged();
+        return true;
+    }
+
+    @Override
+    protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean reverseDirection) {
+        if (isBasic() && startIndex == 0 && endIndex == pageSlotCount && !stack.isEmpty()) {
+            Slot slot = this.slots.getFirst();
+            ItemStack slotStack = slot.getItem();
+            if (slotStack.isEmpty() || ItemStack.isSameItemSameComponents(slotStack, stack)) {
+                int before = stack.getCount();
+                slot.safeInsert(stack, before);
+                return stack.getCount() < before;
+            }
+            return false;
+        }
+        return super.moveItemStackTo(stack, startIndex, endIndex, reverseDirection);
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         ItemStack result = ItemStack.EMPTY;
@@ -301,9 +421,13 @@ public class FilterMenu extends AbstractContainerMenu {
             ItemStack raw = slot.getItem();
             result = raw.copy();
             if (index < pageSlotCount) {
-                if (!this.moveItemStackTo(raw, pageSlotCount, this.slots.size(), true)) {
+                int moveCount = Math.min(raw.getCount(), raw.getMaxStackSize());
+                ItemStack toMove = raw.copyWithCount(moveCount);
+                if (!this.moveItemStackTo(toMove, pageSlotCount, this.slots.size(), true)) {
                     return ItemStack.EMPTY;
                 }
+                raw.shrink(moveCount);
+                result = toMove;
             } else if (!this.moveItemStackTo(raw, 0, pageSlotCount, false)) {
                 return ItemStack.EMPTY;
             }
@@ -328,6 +452,120 @@ public class FilterMenu extends AbstractContainerMenu {
             saveBasic();
         } else {
             savePage();
+        }
+    }
+
+    private static final class FilterSlot extends StackCopySlot {
+        private final FilterStacksHandler handler;
+        private final int handlerIndex;
+        private final boolean trashMode;
+        private final int trashDisplayCount;
+
+        FilterSlot(
+                FilterStacksHandler handler,
+                int handlerIndex,
+                int xPosition,
+                int yPosition,
+                boolean trashMode,
+                int trashDisplayCount
+        ) {
+            super(handlerIndex, xPosition, yPosition);
+            this.handler = handler;
+            this.handlerIndex = handlerIndex;
+            this.trashMode = trashMode;
+            this.trashDisplayCount = trashDisplayCount;
+        }
+
+        private int storageCapacity(ItemResource resource) {
+            return handler.getCapacityAsInt(handlerIndex, resource);
+        }
+
+        @Override
+        protected ItemStack getStackCopy() {
+            return handler.getResource(handlerIndex).toStack(handler.getAmountAsInt(handlerIndex));
+        }
+
+        @Override
+        protected void setStackCopy(ItemStack stack) {
+            if (trashMode && !stack.isEmpty()) {
+                stack = stack.copyWithCount(Math.min(stack.getCount(), trashDisplayCount));
+            }
+            handler.set(handlerIndex, ItemResource.of(stack), stack.getCount());
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return !stack.isEmpty() && handler.isValid(handlerIndex, ItemResource.of(stack));
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return !getItem().isEmpty();
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            ItemStack stack = getItem();
+            if (!stack.isEmpty()) {
+                return storageCapacity(ItemResource.of(stack));
+            }
+            return storageCapacity(ItemResource.EMPTY);
+        }
+
+        @Override
+        public int getMaxStackSize(ItemStack stack) {
+            return stack.isEmpty()
+                    ? storageCapacity(ItemResource.EMPTY)
+                    : storageCapacity(ItemResource.of(stack));
+        }
+
+        @Override
+        public Optional<ItemStack> tryRemove(int amount, int maxAmount, Player player) {
+            ItemStack current = getItem();
+            if (current.isEmpty()) {
+                return Optional.empty();
+            }
+            int vanillaStack = current.getMaxStackSize();
+            int capped = capVanillaPickupAmount(amount, current.getCount(), vanillaStack);
+            return super.tryRemove(capped, maxAmount, player);
+        }
+
+        @Override
+        public ItemStack safeInsert(ItemStack inputStack, int inputAmount) {
+            if (!trashMode) {
+                return super.safeInsert(inputStack, inputAmount);
+            }
+            if (inputStack.isEmpty() || !mayPlace(inputStack)) {
+                return inputStack;
+            }
+            ItemStack slotStack = getStackCopy();
+            if (!slotStack.isEmpty() && !ItemStack.isSameItemSameComponents(slotStack, inputStack)) {
+                return inputStack;
+            }
+            int consume = Math.min(inputAmount, inputStack.getCount());
+            if (consume <= 0) {
+                return inputStack;
+            }
+            ItemStack filterItem = inputStack.copy();
+            inputStack.shrink(consume);
+            set(filterItem.copyWithCount(trashDisplayCount));
+            return inputStack;
+        }
+
+        private static int capVanillaPickupAmount(int requested, int slotCount, int vanillaStackSize) {
+            if (requested <= 0 || slotCount <= 0) {
+                return 0;
+            }
+            int halfOfSlot = (slotCount + 1) / 2;
+            if (requested == halfOfSlot) {
+                return slotCount > vanillaStackSize
+                        ? Math.min(halfOfSlot, (vanillaStackSize + 1) / 2)
+                        : requested;
+            }
+            if (requested >= slotCount || requested >= vanillaStackSize) {
+                return Math.min(slotCount, vanillaStackSize);
+            }
+            return Math.min(requested, vanillaStackSize);
         }
     }
 }
