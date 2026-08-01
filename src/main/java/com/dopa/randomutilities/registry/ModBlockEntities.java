@@ -19,16 +19,7 @@ public final class ModBlockEntities {
                     () -> new BlockEntityType<>(
                             ResourceGeneratorBlockEntity::new,
                             false,
-                            ModBlocks.BASIC_STONE_GENERATOR.get(),
-                            ModBlocks.INTERMEDIATE_STONE_GENERATOR.get(),
-                            ModBlocks.ADVANCED_STONE_GENERATOR.get(),
-                            ModBlocks.ELITE_STONE_GENERATOR.get(),
-                            ModBlocks.ULTIMATE_STONE_GENERATOR.get(),
-                            ModBlocks.CREATIVE_STONE_GENERATOR.get(),
-                            ModBlocks.RANDOM_ORE_GENERATOR.get(),
-                            ModBlocks.METAL_BLOCK_GENERATOR.get(),
-                            ModBlocks.CREATIVE_RANDOM_ORE_GENERATOR.get(),
-                            ModBlocks.CREATIVE_METAL_BLOCK_GENERATOR.get()
+                            ModBlocks.allGenerators()
                     )
             );
 

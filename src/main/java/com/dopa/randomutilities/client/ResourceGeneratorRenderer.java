@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.block.MovingBlockRenderState;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
@@ -19,12 +20,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Renders the dynamic "Inside Cube" (5/16–11/16 on X/Z, 2/16–8/16 on Y)
- * as the block currently being generated.
- */
 public class ResourceGeneratorRenderer
-        implements BlockEntityRenderer<ResourceGeneratorBlockEntity, ResourceGeneratorRenderState> {
+        implements BlockEntityRenderer<ResourceGeneratorBlockEntity, ResourceGeneratorRenderer.State> {
     private static final float INSIDE_MIN = 5.0F / 16.0F;
     private static final float INSIDE_Y = 2.0F / 16.0F;
     private static final float INSIDE_SCALE = 6.0F / 16.0F;
@@ -32,23 +29,20 @@ public class ResourceGeneratorRenderer
     public ResourceGeneratorRenderer(BlockEntityRendererProvider.Context context) {}
 
     @Override
-    public ResourceGeneratorRenderState createRenderState() {
-        return new ResourceGeneratorRenderState();
+    public State createRenderState() {
+        return new State();
     }
 
     @Override
     public void extractRenderState(
             ResourceGeneratorBlockEntity blockEntity,
-            ResourceGeneratorRenderState state,
+            State state,
             float partialTicks,
             Vec3 cameraPosition,
             ModelFeatureRenderer.@Nullable CrumblingOverlay breakProgress
     ) {
-        BlockEntityRenderer.super.extractRenderState(
-                blockEntity, state, partialTicks, cameraPosition, breakProgress
-        );
+        BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTicks, cameraPosition, breakProgress);
         state.insideBlock = null;
-
         if (!(blockEntity.getLevel() instanceof ClientLevel level)) {
             return;
         }
@@ -63,21 +57,14 @@ public class ResourceGeneratorRenderer
         }
 
         BlockPos pos = blockEntity.getBlockPos();
-        Holder<Biome> biome = level.getBiome(pos);
-        state.insideBlock = createMovingBlock(pos, blockState, biome, level);
+        state.insideBlock = createMovingBlock(pos, blockState, level.getBiome(pos), level);
     }
 
     @Override
-    public void submit(
-            ResourceGeneratorRenderState state,
-            PoseStack poseStack,
-            SubmitNodeCollector submitNodeCollector,
-            CameraRenderState camera
-    ) {
+    public void submit(State state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
         if (state.insideBlock == null) {
             return;
         }
-
         poseStack.pushPose();
         poseStack.translate(INSIDE_MIN, INSIDE_Y, INSIDE_MIN);
         poseStack.scale(INSIDE_SCALE, INSIDE_SCALE, INSIDE_SCALE);
@@ -99,5 +86,9 @@ public class ResourceGeneratorRenderer
         moving.cardinalLighting = level.cardinalLighting();
         moving.lightEngine = level.getLightEngine();
         return moving;
+    }
+
+    public static final class State extends BlockEntityRenderState {
+        public @Nullable MovingBlockRenderState insideBlock;
     }
 }
