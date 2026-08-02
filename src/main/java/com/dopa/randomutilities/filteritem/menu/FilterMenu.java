@@ -32,7 +32,8 @@ public class FilterMenu extends AbstractContainerMenu {
     public static final int BTN_NEXT_PAGE = 3;
     public static final int BTN_ADD_ROW = 4;
     public static final int BTN_REMOVE_ROW = 5;
-    public static final int DATA_SIZE = 9;
+    public static final int BTN_GATHER = 6;
+    public static final int DATA_SIZE = 10;
 
     public static final int BASIC_SLOT_X = 80;
     public static final int BASIC_SLOT_Y = 18;
@@ -180,6 +181,7 @@ public class FilterMenu extends AbstractContainerMenu {
         data.set(7, contents.slotCount() > DevNullConfig.advancedMinSlots() ? 1 : 0);
         int lastIndex = contents.slotCount() - 1;
         data.set(8, lastIndex >= 0 && !contents.slot(lastIndex).isEmpty() ? 1 : 0);
+        data.set(9, FilterStorage.wouldGatherChange(contents) ? 1 : 0);
     }
 
     public int getMaxStackSizeSetting() {
@@ -202,12 +204,20 @@ public class FilterMenu extends AbstractContainerMenu {
         return data != null ? data.get(4) : FilterContents.DEFAULT_COLOR;
     }
 
+    public int getSelectedSlot() {
+        return data != null ? data.get(5) : 0;
+    }
+
     public boolean canRemoveSlot() {
         return data != null && data.get(7) != 0;
     }
 
     public boolean isLastSlotOccupied() {
         return data != null && data.get(8) != 0;
+    }
+
+    public boolean wouldGatherChange() {
+        return data != null && data.get(9) != 0;
     }
 
     public boolean wouldSingleRemoveVoidItems() {
@@ -239,14 +249,16 @@ public class FilterMenu extends AbstractContainerMenu {
         savePage();
         FilterContents contents = FilterStorage.get(host()).withMaxStackSize(DevNullConfig.clampAdvancedMaxStack(value));
         FilterStorage.set(host(), contents);
-        for (int i = 0; i < pageSlotCount; i++) {
-            ItemStack stack = handler.getResource(i).toStack(handler.getAmountAsInt(i));
-            if (!stack.isEmpty() && stack.getCount() > contents.maxStackSize()) {
-                handler.set(i, handler.getResource(i), contents.maxStackSize());
-            }
-        }
         syncData();
         broadcastChanges();
+    }
+
+    public boolean isFilterSlotOverCap(int localIndex) {
+        if (isBasic() || localIndex < 0 || localIndex >= pageSlotCount || localIndex >= slots.size()) {
+            return false;
+        }
+        ItemStack stack = slots.get(localIndex).getItem();
+        return !stack.isEmpty() && stack.getCount() > getMaxStackSizeSetting();
     }
 
     public void setColorSetting(int rgb) {
@@ -325,6 +337,10 @@ public class FilterMenu extends AbstractContainerMenu {
                     changed = true;
                 }
             }
+            case BTN_GATHER -> {
+                contents = FilterStorage.gather(contents);
+                changed = true;
+            }
             default -> {
                 return false;
             }
@@ -335,11 +351,30 @@ public class FilterMenu extends AbstractContainerMenu {
         }
 
         FilterStorage.set(host(), contents);
+        if (buttonId == BTN_GATHER) {
+            reloadPageFromContents(contents);
+            syncData();
+            broadcastChanges();
+            return true;
+        }
         if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.closeContainer();
             FilterItem.openGui(serverPlayer, hand);
         }
         return true;
+    }
+
+    private void reloadPageFromContents(FilterContents contents) {
+        int start = displayPage * FilterContents.SLOTS_PER_PAGE;
+        int slotsToLoad = Math.min(pageSlotCount, Math.max(0, contents.slotCount() - start));
+        for (int i = 0; i < pageSlotCount; i++) {
+            if (i < slotsToLoad) {
+                ItemStack stack = contents.stackInSlot(start + i);
+                handler.set(i, ItemResource.of(stack), stack.getCount());
+            } else {
+                handler.set(i, ItemResource.EMPTY, 0);
+            }
+        }
     }
 
     private FilterContents removeLastSlot(FilterContents contents) {
@@ -400,17 +435,44 @@ public class FilterMenu extends AbstractContainerMenu {
 
     @Override
     protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean reverseDirection) {
-        if (isBasic() && startIndex == 0 && endIndex == pageSlotCount && !stack.isEmpty()) {
-            Slot slot = this.slots.getFirst();
-            ItemStack slotStack = slot.getItem();
-            if (slotStack.isEmpty() || ItemStack.isSameItemSameComponents(slotStack, stack)) {
-                int before = stack.getCount();
-                slot.safeInsert(stack, before);
-                return stack.getCount() < before;
-            }
-            return false;
+        if (startIndex == 0 && endIndex == pageSlotCount && !stack.isEmpty()) {
+            return moveIntoFilterSlots(stack, reverseDirection);
         }
         return super.moveItemStackTo(stack, startIndex, endIndex, reverseDirection);
+    }
+
+    private boolean moveIntoFilterSlots(ItemStack stack, boolean reverseDirection) {
+        boolean changed = false;
+        int startSlot = reverseDirection ? pageSlotCount - 1 : 0;
+        int endSlot = reverseDirection ? -1 : pageSlotCount;
+        int step = reverseDirection ? -1 : 1;
+
+        for (int i = startSlot; i != endSlot; i += step) {
+            Slot slot = this.slots.get(i);
+            if (!slot.getItem().isEmpty() && ItemStack.isSameItemSameComponents(stack, slot.getItem())) {
+                int before = stack.getCount();
+                slot.safeInsert(stack, before);
+                if (stack.getCount() < before) {
+                    changed = true;
+                }
+            }
+        }
+
+        if (!stack.isEmpty()) {
+            for (int i = startSlot; i != endSlot; i += step) {
+                Slot slot = this.slots.get(i);
+                if (slot.getItem().isEmpty() && slot.mayPlace(stack)) {
+                    int before = stack.getCount();
+                    slot.safeInsert(stack, before);
+                    if (stack.getCount() < before) {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return changed;
     }
 
     @Override
@@ -476,10 +538,6 @@ public class FilterMenu extends AbstractContainerMenu {
             this.trashDisplayCount = trashDisplayCount;
         }
 
-        private int storageCapacity(ItemResource resource) {
-            return handler.getCapacityAsInt(handlerIndex, resource);
-        }
-
         @Override
         protected ItemStack getStackCopy() {
             return handler.getResource(handlerIndex).toStack(handler.getAmountAsInt(handlerIndex));
@@ -503,20 +561,58 @@ public class FilterMenu extends AbstractContainerMenu {
             return !getItem().isEmpty();
         }
 
+        private int softCap() {
+            return handler.getCapacityAsInt(handlerIndex, ItemResource.EMPTY);
+        }
+
+        private boolean isAtOrOverSoftCap() {
+            return handler.getAmountAsInt(handlerIndex) >= softCap();
+        }
+
+        private int trashInsertCapacity() {
+            ItemStack current = getStackCopy();
+            if (current.isEmpty()) {
+                return trashDisplayCount;
+            }
+            return Math.max(0, trashDisplayCount - current.getCount());
+        }
+
+        private int trashItemMaxStackSize(ItemStack stack) {
+            if (!stack.isEmpty()) {
+                return stack.getMaxStackSize();
+            }
+            ItemStack current = getStackCopy();
+            return current.isEmpty() ? trashDisplayCount : current.getMaxStackSize();
+        }
+
+        private int trashReportedMaxStackSize(int itemMaxStack) {
+            int current = getStackCopy().getCount();
+            if (current < trashDisplayCount) {
+                return trashDisplayCount;
+            }
+            return current + itemMaxStack;
+        }
+
         @Override
         public int getMaxStackSize() {
-            ItemStack stack = getItem();
-            if (!stack.isEmpty()) {
-                return storageCapacity(ItemResource.of(stack));
+            if (trashMode) {
+                return trashReportedMaxStackSize(trashItemMaxStackSize(ItemStack.EMPTY));
             }
-            return storageCapacity(ItemResource.EMPTY);
+            if (isAtOrOverSoftCap()) {
+                return 0;
+            }
+            return softCap();
         }
 
         @Override
         public int getMaxStackSize(ItemStack stack) {
-            return stack.isEmpty()
-                    ? storageCapacity(ItemResource.EMPTY)
-                    : storageCapacity(ItemResource.of(stack));
+            if (trashMode) {
+                return trashReportedMaxStackSize(trashItemMaxStackSize(stack));
+            }
+            if (isAtOrOverSoftCap()) {
+                return 0;
+            }
+            return softCap();
         }
 
         @Override
@@ -533,6 +629,9 @@ public class FilterMenu extends AbstractContainerMenu {
         @Override
         public ItemStack safeInsert(ItemStack inputStack, int inputAmount) {
             if (!trashMode) {
+                if (isAtOrOverSoftCap()) {
+                    return inputStack;
+                }
                 return super.safeInsert(inputStack, inputAmount);
             }
             if (inputStack.isEmpty() || !mayPlace(inputStack)) {
@@ -546,9 +645,20 @@ public class FilterMenu extends AbstractContainerMenu {
             if (consume <= 0) {
                 return inputStack;
             }
+            int capacity = trashInsertCapacity();
+            if (capacity <= 0) {
+                ItemStack filterItem = inputStack.copy();
+                inputStack.shrink(consume);
+                if (slotStack.isEmpty()) {
+                    set(filterItem.copyWithCount(Math.min(consume, trashDisplayCount)));
+                }
+                return inputStack;
+            }
+            consume = Math.min(consume, capacity);
             ItemStack filterItem = inputStack.copy();
             inputStack.shrink(consume);
-            set(filterItem.copyWithCount(trashDisplayCount));
+            int newCount = slotStack.isEmpty() ? consume : slotStack.getCount() + consume;
+            set(filterItem.copyWithCount(newCount));
             return inputStack;
         }
 

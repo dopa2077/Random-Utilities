@@ -1,13 +1,17 @@
 package com.dopa.randomutilities.filteritem.client;
 
 import com.dopa.randomutilities.config.DevNullConfig;
+import com.dopa.randomutilities.filteritem.FilterContents;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -24,10 +28,15 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements ColorPickerHost {
     private static final Identifier CHEST_BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
+    private static final Identifier GATHER_TEXTURE =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/gather.png");
 
     public static final int SETTINGS_WIDTH = 106;
     public static final int SETTINGS_HEIGHT = 145;
@@ -59,6 +68,10 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private static final int CHANGE_COLOUR_BUTTON_Y = 118;
     private static final int CHANGE_COLOUR_BUTTON_H = 20;
     private static final int BUTTON_SIZE = 18;
+    private static final int GATHER_BUTTON_SIZE = 13;
+    private static final int GATHER_ICON_SIZE = 11;
+    private static final int HIGHLIGHT_BORDER = 2;
+    private static final float OVER_CAP_PULSE_SPEED = 0.25F;
 
     private static double pendingMouseX = Double.NaN;
     private static double pendingMouseY = Double.NaN;
@@ -72,9 +85,11 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private Button addSlotButton;
     private Button prevPageButton;
     private Button nextPageButton;
+    private IconButton gatherButton;
 
     private boolean removeConfirmPending;
     private boolean removeConfirmBulk;
+    private boolean gatherConfirmPending;
 
     public FilterScreen(FilterMenu menu, Inventory inventory, Component title) {
         super(
@@ -206,25 +221,59 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         );
     }
 
+    private Component gatherTooltip() {
+        MutableComponent tooltip = Component.translatable("gui.dopasrandomutilities.gather.tooltip");
+        if (this.menu.wouldGatherChange()) {
+            tooltip.append("\n\n")
+                    .append(Component.translatable("gui.dopasrandomutilities.gather.tooltip_warning")
+                            .withStyle(ChatFormatting.RED));
+            if (this.gatherConfirmPending) {
+                tooltip.append("\n\n")
+                        .append(Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip_void_confirm")
+                                .withStyle(ChatFormatting.DARK_RED));
+            }
+        }
+        return tooltip;
+    }
+
+    private void onGatherPressed() {
+        if (this.menu.wouldGatherChange()) {
+            if (this.gatherConfirmPending) {
+                this.gatherConfirmPending = false;
+                sendMenuButton(FilterMenu.BTN_GATHER);
+            } else {
+                this.gatherConfirmPending = true;
+                updateButtonStates();
+            }
+            return;
+        }
+        this.gatherConfirmPending = false;
+        sendMenuButton(FilterMenu.BTN_GATHER);
+    }
+
     private void onRemoveSlotPressed() {
         boolean bulk = isShiftHeld();
         if (this.menu.wouldRemoveVoidItems(bulk)) {
             if (this.removeConfirmPending && this.removeConfirmBulk == bulk) {
                 this.removeConfirmPending = false;
+                this.gatherConfirmPending = false;
                 sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
             } else {
                 this.removeConfirmPending = true;
                 this.removeConfirmBulk = bulk;
+                this.gatherConfirmPending = false;
                 updateButtonStates();
             }
             return;
         }
         this.removeConfirmPending = false;
+        this.gatherConfirmPending = false;
         sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
     }
 
     private void onAddSlotPressed() {
         this.removeConfirmPending = false;
+        this.gatherConfirmPending = false;
         sendSlotButton(FilterMenu.BTN_ADD_SLOT, FilterMenu.BTN_ADD_ROW);
     }
 
@@ -286,7 +335,19 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                 .build();
         this.addRenderableWidget(this.changeColourButton);
 
+        this.gatherButton = new IconButton(
+                this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,
+                this.topPos + 4,
+                GATHER_BUTTON_SIZE,
+                GATHER_ICON_SIZE,
+                GATHER_TEXTURE,
+                gatherTooltip(),
+                this::onGatherPressed
+        );
+        this.addRenderableWidget(this.gatherButton);
+
         this.removeConfirmPending = false;
+        this.gatherConfirmPending = false;
 
         updateButtonStates();
         restoreMousePositionIfPending();
@@ -308,6 +369,9 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         }
         if (this.nextPageButton != null) {
             this.nextPageButton.active = this.menu.getPage() < this.menu.getPageCount() - 1;
+        }
+        if (this.gatherButton != null) {
+            this.gatherButton.updateTooltip(gatherTooltip());
         }
     }
 
@@ -350,6 +414,9 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                         || isShiftHeld() != this.removeConfirmBulk) {
                     this.removeConfirmPending = false;
                 }
+            }
+            if (this.gatherConfirmPending && !this.menu.wouldGatherChange()) {
+                this.gatherConfirmPending = false;
             }
             updateButtonStates();
             syncEditBoxesFromMenu();
@@ -421,12 +488,57 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Override
     public void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        if (!this.menu.isBasic()) {
+            renderSelectedSlotHighlight(graphics);
+        }
         super.extractContents(graphics, mouseX, mouseY, partialTick);
         if (!this.menu.isBasic()) {
+            renderOverCapWarnings(graphics, partialTick);
             if (this.colorPicker.isOpen()) {
                 this.colorPicker.renderOnTop(graphics, this, mouseX, mouseY, partialTick);
             }
         }
+    }
+
+    private void renderOverCapWarnings(GuiGraphicsExtractor graphics, float partialTick) {
+        int maxStack = this.menu.getMaxStackSizeSetting();
+        float pulse = (float) (0.35F + 0.25F * (0.5F + 0.5F * Math.sin(partialTick * OVER_CAP_PULSE_SPEED)));
+        int alpha = (int) (pulse * 255.0F) << 24;
+        int tint = alpha | 0xFF0000;
+
+        for (int i = 0; i < this.menu.getPageSlotCount(); i++) {
+            if (!this.menu.isFilterSlotOverCap(i)) {
+                continue;
+            }
+            Slot slot = this.menu.slots.get(i);
+            ItemStack stack = slot.getItem();
+            if (stack.isEmpty() || stack.getCount() <= maxStack) {
+                continue;
+            }
+            int x = this.leftPos + slot.x;
+            int y = this.topPos + slot.y;
+            graphics.fill(x, y, x + 16, y + 16, tint);
+        }
+    }
+
+    private void renderSelectedSlotHighlight(GuiGraphicsExtractor graphics) {
+        int selected = this.menu.getSelectedSlot();
+        int local = selected - this.menu.getPage() * FilterContents.SLOTS_PER_PAGE;
+        if (local < 0 || local >= this.menu.getPageSlotCount()) {
+            return;
+        }
+        Slot slot = this.menu.slots.get(local);
+        if (this.menu.isFilterSlotOverCap(local)) {
+            return;
+        }
+        int color = 0xFF000000 | this.menu.getColor();
+        int x = this.leftPos + slot.x;
+        int y = this.topPos + slot.y;
+        int t = HIGHLIGHT_BORDER;
+        graphics.fill(x - t, y - t, x + 16 + t, y, color);
+        graphics.fill(x - t, y + 16, x + 16 + t, y + 16 + t, color);
+        graphics.fill(x - t, y, x, y + 16, color);
+        graphics.fill(x + 16, y, x + 16 + t, y + 16, color);
     }
 
     @Override
@@ -442,6 +554,18 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             return slot.index == 0;
         }
         return slot.index < this.menu.getPageSlotCount();
+    }
+
+    @Override
+    protected List<Component> getTooltipFromContainerItem(ItemStack itemStack) {
+        List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(itemStack));
+        if (!this.menu.isBasic() && this.hoveredSlot != null && isFilterSlot(this.hoveredSlot)
+                && this.menu.isFilterSlotOverCap(this.hoveredSlot.index)) {
+            tooltip.add(Component.empty());
+            tooltip.add(Component.translatable("gui.dopasrandomutilities.over_cap.tooltip")
+                    .withStyle(ChatFormatting.RED));
+        }
+        return tooltip;
     }
 
     @Override
@@ -527,5 +651,48 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             return super.mouseReleased(event);
         }
         return super.mouseReleased(event);
+    }
+
+    private static final class IconButton extends AbstractWidget {
+        private final Identifier texture;
+        private final int iconSize;
+        private final Runnable onPress;
+
+        IconButton(int x, int y, int size, int iconSize, Identifier texture, Component tooltip, Runnable onPress) {
+            super(x, y, size, size, Component.empty());
+            this.texture = texture;
+            this.iconSize = iconSize;
+            this.onPress = onPress;
+            this.setTooltip(Tooltip.create(tooltip));
+        }
+
+        void updateTooltip(Component tooltip) {
+            this.setTooltip(Tooltip.create(tooltip));
+        }
+
+        @Override
+        public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+            if (this.active) {
+                this.onPress.run();
+            }
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            output.add(NarratedElementType.TITLE, this.getMessage());
+        }
+
+        @Override
+        public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            int x = this.getX();
+            int y = this.getY();
+            int bg = this.isHovered() ? 0xFFC6C6C6 : 0xFF8B8B8B;
+            graphics.fill(x, y, x + this.width, y + this.height, bg);
+            graphics.fill(x + 1, y + 1, x + this.width - 1, y + this.height - 1, 0xFF373737);
+            int iconX = x + (this.width - iconSize) / 2;
+            int iconY = y + (this.height - iconSize) / 2;
+            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, iconX, iconY, 0.0F, 0.0F,
+                    iconSize, iconSize, iconSize, iconSize);
+        }
     }
 }

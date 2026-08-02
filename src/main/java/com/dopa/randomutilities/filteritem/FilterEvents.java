@@ -1,5 +1,7 @@
 package com.dopa.randomutilities.filteritem;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,29 +9,48 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.util.TriState;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
 public final class FilterEvents {
-    private static final Map<UUID, PendingUse> PENDING = new ConcurrentHashMap<>();
+    private static final Map<UUID, FilterSlotCache> FILTER_SLOTS = new ConcurrentHashMap<>();
 
     private FilterEvents() {}
 
-    public static void beginUse(Player player, InteractionHand hand, ItemStack host) {
-        PENDING.put(player.getUUID(), new PendingUse(hand, host.copy()));
+    static int[] getFilterSlotIndices(Player player) {
+        return FILTER_SLOTS.computeIfAbsent(player.getUUID(), uuid -> buildFilterSlotCache(player)).filterSlots();
     }
 
-    public static boolean isUsing(Player player) {
-        return PENDING.containsKey(player.getUUID());
+    static void invalidateFilterCache(Player player) {
+        FILTER_SLOTS.remove(player.getUUID());
+    }
+
+    private static boolean playerHasFilters(Player player) {
+        return getFilterSlotIndices(player).length > 0;
+    }
+
+    private static FilterSlotCache buildFilterSlotCache(Player player) {
+        Inventory inventory = player.getInventory();
+        List<Integer> slots = new ArrayList<>();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            if (FilterRegistry.isFilterItem(inventory.getItem(i))) {
+                slots.add(i);
+            }
+        }
+        int[] indices = new int[slots.size()];
+        for (int i = 0; i < slots.size(); i++) {
+            indices[i] = slots.get(i);
+        }
+        return new FilterSlotCache(indices);
     }
 
     @SubscribeEvent
@@ -40,24 +61,23 @@ public final class FilterEvents {
         if (picked.isEmpty() || player.level().isClientSide() || itemEntity.hasPickUpDelay()) {
             return;
         }
-        if (!FilterStorage.hasMatchingFilter(player, picked)) {
+        if (!playerHasFilters(player)) {
+            return;
+        }
+        if (!FilterStorage.tryVoidPickup(player, getFilterSlotIndices(player), picked)) {
             return;
         }
 
-        Inventory inventory = player.getInventory();
-        int remaining = picked.getCount();
-        for (int i = 0; i < inventory.getContainerSize() && remaining > 0; i++) {
-            ItemStack host = inventory.getItem(i);
-            if (!FilterRegistry.isFilterItem(host)) {
-                continue;
-            }
-            ItemStack probe = picked.copyWithCount(remaining);
-            int absorbed = probe.getCount() - FilterStorage.absorb(host, probe);
-            if (absorbed > 0) {
-                inventory.setItem(i, host);
-                remaining -= absorbed;
-            }
-        }
+        player.level().playSound(
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                SoundEvents.ITEM_PICKUP,
+                SoundSource.PLAYERS,
+                0.2F,
+                ((player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F
+        );
 
         picked.setCount(0);
         event.setCanPickup(TriState.FALSE);
@@ -67,32 +87,19 @@ public final class FilterEvents {
     }
 
     @SubscribeEvent
-    public static void onUseStop(LivingEntityUseItemEvent.Stop event) {
-        if (PENDING.containsKey(event.getEntity().getUUID())) {
-            finishUse(event.getEntity(), event.getItem());
-        }
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        FILTER_SLOTS.remove(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
-    public static void onUseFinish(LivingEntityUseItemEvent.Finish event) {
-        if (PENDING.containsKey(event.getEntity().getUUID())) {
-            finishUse(event.getEntity(), event.getResultStack());
-            event.setResultStack(ItemStack.EMPTY);
-        }
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        invalidateFilterCache(event.getEntity());
     }
 
-    private static void finishUse(LivingEntity entity, ItemStack remaining) {
-        if (!(entity instanceof Player player)) {
-            return;
-        }
-        PendingUse pending = PENDING.remove(player.getUUID());
-        if (pending == null) {
-            return;
-        }
-        ItemStack host = pending.host();
-        FilterStorage.setSelectedStack(host, remaining);
-        player.setItemInHand(pending.hand(), host);
+    @SubscribeEvent
+    public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
+        invalidateFilterCache(event.getEntity());
     }
 
-    private record PendingUse(InteractionHand hand, ItemStack host) {}
+    private record FilterSlotCache(int[] filterSlots) {}
 }

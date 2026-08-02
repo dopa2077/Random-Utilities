@@ -111,12 +111,7 @@ public record FilterContents(
     }
 
     public FilterContents withMaxStackSize(int value) {
-        int clamped = Math.max(1, value);
-        List<Slot> next = new ArrayList<>(slots.size());
-        for (Slot slot : slots) {
-            next.add(slot.isEmpty() ? slot : Slot.of(slot.resource(), Math.min(slot.count(), clamped)));
-        }
-        return new FilterContents(next, clamped, selectedSlot, page, color);
+        return new FilterContents(slots, Math.max(1, value), selectedSlot, page, color);
     }
 
     public FilterContents withSelectedSlot(int index) {
