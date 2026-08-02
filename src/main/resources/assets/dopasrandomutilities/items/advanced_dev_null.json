@@ -1,0 +1,39 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": "gui",
+        "model": {
+          "type": "minecraft:model",
+          "model": "dopasrandomutilities:item/advanced_dev_null",
+          "tints": [
+            {
+              "type": "dopasrandomutilities:filter_color",
+              "default": 16777215
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:composite",
+      "models": [
+        {
+          "type": "minecraft:model",
+          "model": "dopasrandomutilities:item/advanced_dev_null",
+          "tints": [
+            {
+              "type": "dopasrandomutilities:filter_color",
+              "default": 16777215
+            }
+          ]
+        },
+        {
+          "type": "dopasrandomutilities:filter_preview"
+        }
+      ]
+    }
+  }
+}
