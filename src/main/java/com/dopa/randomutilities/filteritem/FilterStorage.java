@@ -59,6 +59,11 @@ public final class FilterStorage {
     private static FilterContents clampBasic(FilterContents contents, FilterProfile profile) {
         int maxStack = Math.max(1, DevNullConfig.basicMaxStackSize());
         FilterContents clamped = contents.withMaxStackSize(Math.min(contents.maxStackSize(), maxStack));
+        clamped = new FilterContents(
+                clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
+                maxStack,
+                0, 0, clamped.color()
+        );
         return new FilterContents(
                 clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
                 maxStack,
@@ -80,6 +85,78 @@ public final class FilterStorage {
             contents = contents.withPage(page);
         }
         return contents;
+    }
+
+    /**
+     * Spills over-cap slot counts into partial same-type and empty slots.
+     * Remainder that cannot fit anywhere is voided.
+     */
+    public static FilterContents redistributeOverflow(FilterContents contents) {
+        int max = contents.maxStackSize();
+        int count = contents.slotCount();
+        List<Slot> slots = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            slots.add(contents.slot(i));
+        }
+
+        for (int i = 0; i < count; i++) {
+            Slot slot = slots.get(i);
+            if (slot.isEmpty() || slot.count() <= max) {
+                continue;
+            }
+            ItemResource resource = slot.resource();
+            int excess = slot.count() - max;
+            slots.set(i, Slot.of(resource, max));
+
+            for (int j = 0; j < count && excess > 0; j++) {
+                if (j == i) {
+                    continue;
+                }
+                Slot target = slots.get(j);
+                if (target.isEmpty() || !target.resource().equals(resource)) {
+                    continue;
+                }
+                int space = max - target.count();
+                if (space <= 0) {
+                    continue;
+                }
+                int move = Math.min(space, excess);
+                slots.set(j, Slot.of(resource, target.count() + move));
+                excess -= move;
+            }
+
+            for (int j = 0; j < count && excess > 0; j++) {
+                if (j == i || !slots.get(j).isEmpty()) {
+                    continue;
+                }
+                int move = Math.min(max, excess);
+                slots.set(j, Slot.of(resource, move));
+                excess -= move;
+            }
+        }
+
+        return new FilterContents(
+                slots,
+                contents.maxStackSize(),
+                contents.selectedSlot(),
+                contents.page(),
+                contents.color()
+        );
+    }
+
+    private static int totalItemCount(FilterContents contents) {
+        int total = 0;
+        for (int i = 0; i < contents.slotCount(); i++) {
+            Slot slot = contents.slot(i);
+            if (!slot.isEmpty()) {
+                total += slot.count();
+            }
+        }
+        return total;
+    }
+
+    public static boolean wouldGatherVoidItems(FilterContents contents) {
+        return totalItemCount(contents) > totalItemCount(redistributeOverflow(contents));
     }
 
     public static ItemStack getSelectedStack(ItemStack host) {
@@ -240,23 +317,29 @@ public final class FilterStorage {
     }
 
     /**
-     * Single-pass pickup absorb: tries every cached filter slot, absorbs matching stacks,
+     * Single-pass live inventory scan: absorbs into matching filter slots,
      * returns true if any filter had a matching slot (caller should void the pickup).
      */
-    public static boolean tryVoidPickup(Player player, int[] filterSlotIndices, ItemStack picked) {
-        if (picked.isEmpty() || filterSlotIndices.length == 0) {
+    public static boolean tryVoidPickup(Player player, ItemStack picked) {
+        if (player == null || picked.isEmpty()) {
+            return false;
+        }
+        Inventory inventory = player.getInventory();
+        if (inventory == null) {
             return false;
         }
         ItemResource resource = ItemResource.of(picked);
-        Inventory inventory = player.getInventory();
         int remaining = picked.getCount();
         boolean matched = false;
 
-        for (int slotIndex : filterSlotIndices) {
+        for (int slotIndex = 0; slotIndex < inventory.getContainerSize(); slotIndex++) {
             if (remaining <= 0) {
                 break;
             }
             ItemStack host = inventory.getItem(slotIndex);
+            if (!FilterRegistry.isFilterItem(host)) {
+                continue;
+            }
             if (!matchesAnySlot(host, resource)) {
                 continue;
             }
@@ -266,21 +349,6 @@ public final class FilterStorage {
             inventory.setItem(slotIndex, host);
         }
         return matched;
-    }
-
-    public static boolean hasMatchingFilter(Player player, ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        ItemResource resource = ItemResource.of(stack);
-        Inventory inventory = player.getInventory();
-        for (int i = 0; i < inventory.getContainerSize(); i++) {
-            ItemStack host = inventory.getItem(i);
-            if (FilterRegistry.isFilterItem(host) && matchesAnySlot(host, resource)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static int findMatchingSlot(ItemStack host, ItemStack filter) {
@@ -294,6 +362,7 @@ public final class FilterStorage {
     }
 
     public static FilterContents gather(FilterContents contents) {
+        contents = redistributeOverflow(contents);
         int max = contents.maxStackSize();
         int count = contents.slotCount();
         List<Slot> slots = new ArrayList<>(count);

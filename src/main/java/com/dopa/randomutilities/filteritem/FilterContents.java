@@ -3,6 +3,7 @@ package com.dopa.randomutilities.filteritem;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -100,7 +101,8 @@ public record FilterContents(
         while (next.size() <= index) {
             next.add(Slot.EMPTY);
         }
-        next.set(index, Slot.of(resource, count));
+        int capped = Math.max(0, count);
+        next.set(index, Slot.of(resource, capped));
         return new FilterContents(next, maxStackSize, selectedSlot, page, color);
     }
 
@@ -138,7 +140,9 @@ public record FilterContents(
     }
 
     public FilterContents ensureMinimum(int minSlots) {
-        return slotCount() < minSlots ? withSlotCount(minSlots, minSlots, MAX_TOTAL_SLOTS) : this;
+        return slotCount() < minSlots
+                ? withSlotCount(minSlots, minSlots, DevNullConfig.advancedMaxSlots())
+                : this;
     }
 
     public record Slot(ItemResource resource, int count) {

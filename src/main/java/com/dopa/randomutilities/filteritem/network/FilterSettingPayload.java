@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.filteritem.network;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 
@@ -42,9 +43,9 @@ public record FilterSettingPayload(byte kind, int value) implements CustomPacket
             Player player = context.player();
             if (player.containerMenu instanceof FilterMenu menu) {
                 if (payload.kind() == KIND_COLOR) {
-                    menu.setColorSetting(payload.value());
+                    menu.setColorSetting(payload.value() & 0xFFFFFF);
                 } else if (payload.kind() == KIND_MAX_STACK) {
-                    menu.setMaxStackSizeSetting(payload.value());
+                    menu.setMaxStackSizeSetting(DevNullConfig.clampAdvancedMaxStack(payload.value()));
                 }
             }
         });

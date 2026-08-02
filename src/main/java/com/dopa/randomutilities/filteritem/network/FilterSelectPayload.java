@@ -42,7 +42,7 @@ public record FilterSelectPayload(byte mode, Identifier blockId) implements Cust
         context.enqueueWork(() -> {
             Player player = context.player();
             ItemStack host = findCyclingHost(player);
-            if (host == null) {
+            if (host == null || !FilterRegistry.isFilterItem(host)) {
                 return;
             }
 
