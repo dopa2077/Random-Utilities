@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "minecraft:diamond",
+    "E": "minecraft:emerald",
+    "N": "dopasrandomutilities:dev_null"
+  },
+  "pattern": [
+    " D ",
+    "ENE",
+    " D "
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:advanced_dev_null"
+  }
+}
