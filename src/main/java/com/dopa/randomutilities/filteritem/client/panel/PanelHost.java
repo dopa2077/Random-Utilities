@@ -2,6 +2,7 @@ package com.dopa.randomutilities.filteritem.client.panel;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.Rect2i;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -62,8 +63,12 @@ public final class PanelHost {
 
     public void render(GuiGraphicsExtractor graphics, Font font, int leftPos, int topPos, int imageWidth,
                        int mouseX, int mouseY, float partialTick) {
+        // Tabs first, then bodies, so an open panel draws over neighboring tab icons.
         for (AttachedPanel panel : panels) {
-            panel.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
+            panel.renderTabOnly(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY);
+        }
+        for (AttachedPanel panel : panels) {
+            panel.renderBodyIfOpen(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
         }
     }
 
@@ -71,6 +76,33 @@ public final class PanelHost {
         for (AttachedPanel panel : panels) {
             panel.layoutWidgets(leftPos, topPos, imageWidth);
         }
+    }
+
+    /**
+     * Areas JEI should avoid: every tab, plus each panel body while it is open/animating.
+     */
+    public List<Rect2i> collectExtraAreas(int leftPos, int topPos, int imageWidth) {
+        List<Rect2i> areas = new ArrayList<>();
+        for (AttachedPanel panel : panels) {
+            areas.add(new Rect2i(
+                    panel.tabX(leftPos, imageWidth),
+                    panel.tabY(topPos),
+                    AttachedPanel.TAB_SIZE,
+                    AttachedPanel.TAB_SIZE
+            ));
+            if (panel.progress() > 0.001F) {
+                int w = panel.bodyWidthAnimated();
+                if (w > 0) {
+                    areas.add(new Rect2i(
+                            panel.bodyXAnimated(leftPos, imageWidth),
+                            panel.bodyY(topPos),
+                            w,
+                            panel.panelHeight()
+                    ));
+                }
+            }
+        }
+        return areas;
     }
 
     /**

@@ -5,6 +5,7 @@ import com.dopa.randomutilities.filteritem.client.panel.ConfiguratorPanel;
 import com.dopa.randomutilities.filteritem.client.panel.EnergyPanel;
 import com.dopa.randomutilities.filteritem.client.panel.InformativePanel;
 import com.dopa.randomutilities.filteritem.client.panel.PanelHost;
+import com.dopa.randomutilities.filteritem.client.panel.RedstonePanel;
 import com.dopa.randomutilities.filteritem.client.panel.UpgradePanel;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 
@@ -68,6 +69,8 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Nullable
     private ConfiguratorPanel configuratorPanel;
+    @Nullable
+    private RedstonePanel redstonePanel;
     private IconButton gatherButton;
     private boolean gatherConfirmPending;
 
@@ -87,6 +90,22 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     public FilterMenu getMenu() {
         return this.menu;
+    }
+
+    public PanelHost getPanelHost() {
+        return this.panelHost;
+    }
+
+    public int leftPos() {
+        return this.leftPos;
+    }
+
+    public int topPos() {
+        return this.topPos;
+    }
+
+    public int imageWidth() {
+        return this.imageWidth;
     }
 
     public <T extends net.minecraft.client.gui.components.events.GuiEventListener & net.minecraft.client.gui.components.Renderable & net.minecraft.client.gui.narration.NarratableEntry> T addOverlayWidget(T widget) {
@@ -224,6 +243,7 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         super.init();
         this.panelHost.clear();
         this.configuratorPanel = null;
+        this.redstonePanel = null;
 
         this.panelHost.add(new InformativePanel(this.menu.isBasic()));
 
@@ -232,8 +252,11 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             this.panelHost.add(this.configuratorPanel);
             this.panelHost.add(new EnergyPanel());
             this.panelHost.add(new UpgradePanel(this.menu.getUpgradeSlots()));
+            this.redstonePanel = new RedstonePanel(this);
+            this.panelHost.add(this.redstonePanel);
 
             this.configuratorPanel.initWidgets();
+            this.redstonePanel.initWidgets();
 
             this.gatherButton = new IconButton(
                     this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,

@@ -2,18 +2,28 @@ package com.dopa.randomutilities.filteritem.client.panel;
 
 /**
  * Where an {@link AttachedPanel} tab sits relative to the main inventory window.
+ * Stack index 0 = top, 1 = below, 2 = low (third in the column).
  */
 public enum PanelAnchor {
-    LEFT_TOP,
-    LEFT_BELOW,
-    RIGHT_TOP,
-    RIGHT_BELOW;
+    LEFT_TOP(0, true),
+    LEFT_BELOW(1, true),
+    RIGHT_TOP(0, false),
+    RIGHT_BELOW(1, false),
+    RIGHT_LOW(2, false);
 
-    public boolean isLeft() {
-        return this == LEFT_TOP || this == LEFT_BELOW;
+    private final int stackIndex;
+    private final boolean left;
+
+    PanelAnchor(int stackIndex, boolean left) {
+        this.stackIndex = stackIndex;
+        this.left = left;
     }
 
-    public boolean isBelowSibling() {
-        return this == LEFT_BELOW || this == RIGHT_BELOW;
+    public int stackIndex() {
+        return stackIndex;
+    }
+
+    public boolean isLeft() {
+        return left;
     }
 }
