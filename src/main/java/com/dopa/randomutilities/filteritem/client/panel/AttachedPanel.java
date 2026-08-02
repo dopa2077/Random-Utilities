@@ -125,7 +125,7 @@ public abstract class AttachedPanel {
     }
 
     public int tabOffsetY() {
-        return anchor.isBelowSibling() ? TOP_INSET + TAB_SIZE + TAB_GAP : TOP_INSET;
+        return TOP_INSET + anchor.stackIndex() * (TAB_SIZE + TAB_GAP);
     }
 
     public int tabX(int leftPos, int imageWidth) {
@@ -134,6 +134,14 @@ public abstract class AttachedPanel {
 
     public int tabY(int topPos) {
         return topPos + tabOffsetY();
+    }
+
+    public int panelWidth() {
+        return panelWidth;
+    }
+
+    public int panelHeight() {
+        return panelHeight;
     }
 
     public boolean isMouseOverTab(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
@@ -179,6 +187,18 @@ public abstract class AttachedPanel {
     public void render(GuiGraphicsExtractor graphics, Font font, int leftPos, int topPos, int imageWidth,
                        int mouseX, int mouseY, float partialTick) {
         renderTab(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY);
+        renderBodyIfOpen(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
+    }
+
+    /** Draw only the tab strip icon (first pass so bodies can paint over tabs). */
+    public void renderTabOnly(GuiGraphicsExtractor graphics, Font font, int leftPos, int topPos, int imageWidth,
+                              int mouseX, int mouseY) {
+        renderTab(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY);
+    }
+
+    /** Draw the expanding body if this panel is open/animating (second pass). */
+    public void renderBodyIfOpen(GuiGraphicsExtractor graphics, Font font, int leftPos, int topPos, int imageWidth,
+                                 int mouseX, int mouseY, float partialTick) {
         if (progress > 0.001F) {
             renderBody(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
         }
@@ -212,17 +232,45 @@ public abstract class AttachedPanel {
         }
     }
 
+    /**
+     * Vanilla/Thermal-style rounded panel: 2px cut corners with light/dark edge bevel.
+     */
     protected void fillPanel(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int argb) {
         if (w <= 0 || h <= 0) {
             return;
         }
-        graphics.fill(x, y, x + w, y + h, argb);
-        int borderDark = darken(argb, 28);
+        final int r = 2;
+        if (w <= r * 2 || h <= r * 2) {
+            graphics.fill(x, y, x + w, y + h, argb);
+            return;
+        }
+
+        // Center + edge strips (leave outer corner pixels empty for the cut)
+        graphics.fill(x + r, y, x + w - r, y + h, argb);
+        graphics.fill(x, y + r, x + r, y + h - r, argb);
+        graphics.fill(x + w - r, y + r, x + w, y + h - r, argb);
+
+        // Inner corner steps (radius 2)
+        graphics.fill(x + 1, y + 1, x + r, y + r, argb);
+        graphics.fill(x + w - r, y + 1, x + w - 1, y + r, argb);
+        graphics.fill(x + 1, y + h - r, x + r, y + h - 1, argb);
+        graphics.fill(x + w - r, y + h - r, x + w - 1, y + h - 1, argb);
+
         int borderLight = lighten(argb, 22);
-        graphics.fill(x, y, x + w, y + 1, borderLight);
-        graphics.fill(x, y + h - 1, x + w, y + h, borderDark);
-        graphics.fill(x, y, x + 1, y + h, borderLight);
-        graphics.fill(x + w - 1, y, x + w, y + h, borderDark);
+        int borderDark = darken(argb, 28);
+
+        // Horizontal borders (inset for corners)
+        graphics.fill(x + r, y, x + w - r, y + 1, borderLight);
+        graphics.fill(x + r, y + h - 1, x + w - r, y + h, borderDark);
+        // Vertical borders
+        graphics.fill(x, y + r, x + 1, y + h - r, borderLight);
+        graphics.fill(x + w - 1, y + r, x + w, y + h - r, borderDark);
+
+        // Corner border pixels
+        graphics.fill(x + 1, y + 1, x + 2, y + 2, borderLight);
+        graphics.fill(x + w - 2, y + 1, x + w - 1, y + 2, borderLight);
+        graphics.fill(x + 1, y + h - 2, x + 2, y + h - 1, borderDark);
+        graphics.fill(x + w - 2, y + h - 2, x + w - 1, y + h - 1, borderDark);
     }
 
     protected static int darken(int argb, int amount) {
