@@ -1,5 +1,8 @@
 package com.dopa.randomutilities.filteritem;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import com.dopa.randomutilities.filteritem.client.CompactCountFormat;
@@ -17,7 +20,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -26,6 +31,9 @@ import net.minecraft.world.phys.BlockHitResult;
 
 /** Filter/void item — behaviour driven entirely by {@link FilterProfile}. Register new variants via {@link FilterRegistry}. */
 public class FilterItem extends Item {
+    private static final int GUI_SUPPRESS_TICKS = 15;
+    private static final Map<UUID, Integer> SUPPRESS_GUI_UNTIL = new ConcurrentHashMap<>();
+
     private final FilterProfile profile;
 
     public FilterItem(Properties properties, FilterProfile profile) {
@@ -47,18 +55,23 @@ public class FilterItem extends Item {
 
         ItemStack selected = FilterStorage.getSelectedStack(host);
         if (selected.isEmpty()) {
+            if (player.tickCount < SUPPRESS_GUI_UNTIL.getOrDefault(player.getUUID(), 0)) {
+                return InteractionResult.PASS;
+            }
             openGui(player, hand);
             return InteractionResult.SUCCESS;
         }
 
         if (selected.get(DataComponents.CONSUMABLE) != null) {
-            if (!level.isClientSide() && !FilterEvents.isUsing(player)) {
-                FilterEvents.beginUse(player, hand, host);
-                player.setItemInHand(hand, selected.copy());
+            Consumable consumable = selected.get(DataComponents.CONSUMABLE);
+            if (consumable != null) {
+                consumable.emitParticlesAndSounds(player.getRandom(), player, selected, selected.getUseDuration(player));
             }
-            return player.getItemInHand(hand).use(level, player, hand);
+            player.startUsingItem(hand);
+            return InteractionResult.CONSUME;
         }
 
+        // Instant actions: swap to proxy, use, restore filter in the same call.
         player.setItemInHand(hand, selected);
         return restoreHost(player, hand, host, selected.use(level, player, hand));
     }
@@ -113,6 +126,62 @@ public class FilterItem extends Item {
     }
 
     @Override
+    public ItemUseAnimation getUseAnimation(ItemStack host) {
+        ItemStack selected = FilterStorage.getSelectedStack(host);
+        return selected.isEmpty() ? super.getUseAnimation(host) : selected.getUseAnimation();
+    }
+
+    @Override
+    public int getUseDuration(ItemStack host, LivingEntity user) {
+        ItemStack selected = FilterStorage.getSelectedStack(host);
+        return selected.isEmpty() ? 0 : selected.getUseDuration(user);
+    }
+
+    @Override
+    public void onUseTick(Level level, LivingEntity entity, ItemStack host, int remainingUseDuration) {
+        ItemStack selected = FilterStorage.getSelectedStack(host);
+        if (!selected.isEmpty()) {
+            selected.onUseTick(level, entity, remainingUseDuration);
+        }
+    }
+
+    @Override
+    public ItemStack finishUsingItem(ItemStack host, Level level, LivingEntity entity) {
+        ItemStack selected = FilterStorage.getSelectedStack(host);
+        if (selected.isEmpty() || selected.get(DataComponents.CONSUMABLE) == null) {
+            return host;
+        }
+        if (!level.isClientSide()) {
+            FilterContents contents = FilterStorage.get(host);
+            int slotIndex = contents.selectedSlot();
+            int countBefore = selected.getCount();
+
+            ItemStack single = selected.copyWithCount(1);
+            // Filter storage always consumes real items; remainders must not follow creative infinite-materials rules.
+            ItemStack remainder = FilterStorage.resolveUseRemainder(single, 1, false);
+            single.getItem().finishUsingItem(single, level, entity);
+
+            ItemStack remaining = countBefore <= 1
+                    ? ItemStack.EMPTY
+                    : selected.copyWithCount(countBefore - 1);
+            FilterStorage.setSelectedStack(host, remaining);
+
+            if (!remainder.isEmpty()) {
+                if (countBefore <= 1) {
+                    FilterStorage.setSlotStack(host, slotIndex, remainder);
+                } else if (entity instanceof Player player) {
+                    FilterStorage.insertRemainderOrDrop(host, slotIndex, remainder, player);
+                }
+            }
+
+            if (remaining.isEmpty() && entity instanceof Player player) {
+                SUPPRESS_GUI_UNTIL.put(player.getUUID(), player.tickCount + GUI_SUPPRESS_TICKS);
+            }
+        }
+        return host;
+    }
+
+    @Override
     public float getDestroySpeed(ItemStack stack, BlockState state) {
         ItemStack selected = FilterStorage.getSelectedStack(stack);
         return selected.isEmpty() ? 1.0F : selected.getDestroySpeed(state);
@@ -159,6 +228,7 @@ public class FilterItem extends Item {
         if (selected.isEmpty()) {
             return InteractionResult.PASS;
         }
+        // Instant swap + restore in the same call (non-consumables).
         player.setItemInHand(hand, selected);
         return restoreHost(player, hand, stack, selected.interactLivingEntity(player, target, hand));
     }
