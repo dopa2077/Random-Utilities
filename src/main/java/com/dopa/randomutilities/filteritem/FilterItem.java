@@ -12,6 +12,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.stats.Stats;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -24,6 +25,7 @@ import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.component.UseCooldown;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -62,7 +64,7 @@ public class FilterItem extends Item {
             return InteractionResult.SUCCESS;
         }
 
-        if (selected.get(DataComponents.CONSUMABLE) != null) {
+        if (selected.get(DataComponents.CONSUMABLE) != null || selected.getUseDuration(player) > 0) {
             Consumable consumable = selected.get(DataComponents.CONSUMABLE);
             if (consumable != null) {
                 consumable.emitParticlesAndSounds(player.getRandom(), player, selected, selected.getUseDuration(player));
@@ -73,7 +75,14 @@ public class FilterItem extends Item {
 
         // Instant actions: swap to proxy, use, restore filter in the same call.
         player.setItemInHand(hand, selected);
-        return restoreHost(player, hand, host, selected.use(level, player, hand));
+        InteractionResult result;
+        try {
+            result = selected.use(level, player, hand);
+        } catch (RuntimeException exception) {
+            player.setItemInHand(hand, host);
+            throw exception;
+        }
+        return restoreHost(player, hand, host, result);
     }
 
     @Override
@@ -92,6 +101,9 @@ public class FilterItem extends Item {
 
         ItemStack selected = FilterStorage.getSelectedStack(host);
         if (selected.isEmpty()) {
+            if (player.tickCount < SUPPRESS_GUI_UNTIL.getOrDefault(player.getUUID(), 0)) {
+                return InteractionResult.PASS;
+            }
             openGui(player, hand);
             return InteractionResult.SUCCESS;
         }
@@ -103,7 +115,14 @@ public class FilterItem extends Item {
                 context.isInside()
         );
         player.setItemInHand(hand, selected);
-        return restoreHost(player, hand, host, selected.useOn(new UseOnContext(player, hand, hit)));
+        InteractionResult result;
+        try {
+            result = selected.useOn(new UseOnContext(player, hand, hit));
+        } catch (RuntimeException exception) {
+            player.setItemInHand(hand, host);
+            throw exception;
+        }
+        return restoreHost(player, hand, host, result);
     }
 
     private static InteractionResult restoreHost(
@@ -112,6 +131,11 @@ public class FilterItem extends Item {
             ItemStack host,
             InteractionResult result
     ) {
+        if (result == InteractionResult.CONSUME) {
+            player.setItemInHand(hand, host);
+            return result;
+        }
+
         ItemStack after = player.getItemInHand(hand);
         if (result instanceof InteractionResult.Success success
                 && success.itemContext().heldItemTransformedTo() != null) {
@@ -148,34 +172,50 @@ public class FilterItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack host, Level level, LivingEntity entity) {
         ItemStack selected = FilterStorage.getSelectedStack(host);
-        if (selected.isEmpty() || selected.get(DataComponents.CONSUMABLE) == null) {
+        if (selected.isEmpty()) {
             return host;
         }
+
+        if (selected.get(DataComponents.CONSUMABLE) == null) {
+            if (selected.getUseDuration(entity) > 0 && !level.isClientSide()) {
+                ItemStack result = selected.finishUsingItem(level, entity);
+                FilterStorage.setSelectedStack(host, result);
+            }
+            return host;
+        }
+
         if (!level.isClientSide()) {
             FilterContents contents = FilterStorage.get(host);
             int slotIndex = contents.selectedSlot();
             int countBefore = selected.getCount();
+            boolean infiniteMaterials = entity instanceof Player player && player.hasInfiniteMaterials();
 
             ItemStack single = selected.copyWithCount(1);
-            // Filter storage always consumes real items; remainders must not follow creative infinite-materials rules.
-            ItemStack remainder = FilterStorage.resolveUseRemainder(single, 1, false);
             single.getItem().finishUsingItem(single, level, entity);
 
-            ItemStack remaining = countBefore <= 1
-                    ? ItemStack.EMPTY
-                    : selected.copyWithCount(countBefore - 1);
-            FilterStorage.setSelectedStack(host, remaining);
-
-            if (!remainder.isEmpty()) {
-                if (countBefore <= 1) {
-                    FilterStorage.setSlotStack(host, slotIndex, remainder);
-                } else if (entity instanceof Player player) {
-                    FilterStorage.insertRemainderOrDrop(host, slotIndex, remainder, player);
-                }
+            UseCooldown useCooldown = selected.get(DataComponents.USE_COOLDOWN);
+            if (useCooldown != null && entity instanceof Player player) {
+                useCooldown.apply(selected, player);
             }
 
-            if (remaining.isEmpty() && entity instanceof Player player) {
-                SUPPRESS_GUI_UNTIL.put(player.getUUID(), player.tickCount + GUI_SUPPRESS_TICKS);
+            if (!infiniteMaterials) {
+                ItemStack remainder = FilterStorage.resolveUseRemainder(single, 1, false);
+                ItemStack remaining = countBefore <= 1
+                        ? ItemStack.EMPTY
+                        : selected.copyWithCount(countBefore - 1);
+                FilterStorage.setSelectedStack(host, remaining);
+
+                if (!remainder.isEmpty()) {
+                    if (countBefore <= 1) {
+                        FilterStorage.setSlotStack(host, slotIndex, remainder);
+                    } else if (entity instanceof Player player) {
+                        FilterStorage.insertRemainderOrDrop(host, slotIndex, remainder, player);
+                    }
+                }
+
+                if (remaining.isEmpty() && entity instanceof Player player) {
+                    SUPPRESS_GUI_UNTIL.put(player.getUUID(), player.tickCount + GUI_SUPPRESS_TICKS);
+                }
             }
         }
         return host;
@@ -193,7 +233,11 @@ public class FilterItem extends Item {
         if (selected.isEmpty()) {
             return false;
         }
-        boolean result = selected.getItem().mineBlock(selected, level, state, pos, owner);
+        Item usedItem = selected.getItem();
+        boolean result = usedItem.mineBlock(selected, level, state, pos, owner);
+        if (result && owner instanceof Player player) {
+            player.awardStat(Stats.ITEM_USED.get(usedItem));
+        }
         FilterStorage.setSelectedStack(stack, selected);
         return result;
     }

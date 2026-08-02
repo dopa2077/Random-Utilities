@@ -220,6 +220,13 @@ public class FilterMenu extends AbstractContainerMenu {
         return data != null && data.get(9) != 0;
     }
 
+    public boolean wouldGatherVoidItems() {
+        if (profile == null || profile.isBasic()) {
+            return false;
+        }
+        return FilterStorage.wouldGatherVoidItems(FilterStorage.get(host()));
+    }
+
     public boolean wouldSingleRemoveVoidItems() {
         return isLastSlotOccupied();
     }

@@ -3,6 +3,7 @@ package com.dopa.randomutilities.filteritem;
 import com.dopa.randomutilities.registry.ModDataComponents;
 
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.ItemAccessResourceHandler;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
 import net.neoforged.neoforge.transfer.item.ItemResource;
@@ -38,8 +39,14 @@ public class FilterItemHandler extends ItemAccessResourceHandler<ItemResource> {
         if (!accessResource.is(validItem) || FilterRegistry.isFilterItem(newResource.toStack())) {
             return ItemResource.EMPTY;
         }
+        ItemStack stack = accessResource.toStack();
         FilterContents updated = contents(accessResource).withSlot(index, newResource, newAmount);
-        return accessResource.with(ModDataComponents.FILTER_CONTENTS.get(), updated);
+        FilterStorage.set(stack, updated);
+        FilterContents clamped = stack.get(ModDataComponents.FILTER_CONTENTS.get());
+        if (clamped == null) {
+            return ItemResource.EMPTY;
+        }
+        return accessResource.with(ModDataComponents.FILTER_CONTENTS.get(), clamped);
     }
 
     @Override

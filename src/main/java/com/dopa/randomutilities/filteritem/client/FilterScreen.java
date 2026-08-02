@@ -90,6 +90,7 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private boolean removeConfirmPending;
     private boolean removeConfirmBulk;
     private boolean gatherConfirmPending;
+    private boolean maxStackBoxWasFocused;
 
     public FilterScreen(FilterMenu menu, Inventory inventory, Component title) {
         super(
@@ -303,7 +304,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                 Component.translatable("gui.dopasrandomutilities.max_stack"));
         this.maxStackBox.setMaxLength(10);
         this.maxStackBox.setValue(formatMaxStackDisplay(this.menu.getMaxStackSizeSetting()));
-        this.maxStackBox.setResponder(this::onMaxStackChanged);
         this.maxStackBox.setCanLoseFocus(true);
         this.maxStackBox.setTooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.stack_size.tooltip")));
         this.addRenderableWidget(this.maxStackBox);
@@ -375,18 +375,39 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         }
     }
 
-    private void onMaxStackChanged(String text) {
-        String trimmed = text.trim();
+    private int effectiveMaxStackForDisplay() {
+        if (this.maxStackBox != null && this.maxStackBox.isFocused()) {
+            try {
+                long parsed = Long.parseLong(this.maxStackBox.getValue().trim());
+                if (parsed >= 1) {
+                    return DevNullConfig.clampAdvancedMaxStack(
+                            (int) Math.min(DevNullConfig.advancedMaxStackSize(), parsed)
+                    );
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return this.menu.getMaxStackSizeSetting();
+    }
+
+    private void commitMaxStackSetting() {
+        if (this.maxStackBox == null || this.menu.isBasic()) {
+            return;
+        }
+        String trimmed = this.maxStackBox.getValue().trim();
         try {
             long parsed = Long.parseLong(trimmed);
             if (parsed < 1) {
+                syncEditBoxesFromMenu();
                 return;
             }
             int value = DevNullConfig.clampAdvancedMaxStack((int) Math.min(DevNullConfig.advancedMaxStackSize(), parsed));
+            this.maxStackBox.setValue(formatMaxStackDisplay(value));
             if (value != this.menu.getMaxStackSizeSetting()) {
                 ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(value));
             }
         } catch (NumberFormatException ignored) {
+            syncEditBoxesFromMenu();
         }
     }
 
@@ -409,6 +430,13 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     public void containerTick() {
         super.containerTick();
         if (!this.menu.isBasic()) {
+            if (this.maxStackBox != null) {
+                boolean focused = this.maxStackBox.isFocused();
+                if (this.maxStackBoxWasFocused && !focused) {
+                    commitMaxStackSetting();
+                }
+                this.maxStackBoxWasFocused = focused;
+            }
             if (this.removeConfirmPending) {
                 if (!this.menu.wouldRemoveVoidItems(this.removeConfirmBulk)
                         || isShiftHeld() != this.removeConfirmBulk) {
@@ -425,8 +453,13 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Override
     public void onClose() {
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            this.colorPicker.close(this);
+        if (!this.menu.isBasic()) {
+            if (this.maxStackBox != null && this.maxStackBox.isFocused()) {
+                commitMaxStackSetting();
+            }
+            if (this.colorPicker.isOpen()) {
+                this.colorPicker.close(this);
+            }
         }
         super.onClose();
     }
@@ -501,15 +534,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     }
 
     private void renderOverCapWarnings(GuiGraphicsExtractor graphics, float partialTick) {
-        int maxStack = this.menu.getMaxStackSizeSetting();
+        int maxStack = effectiveMaxStackForDisplay();
         float pulse = (float) (0.35F + 0.25F * (0.5F + 0.5F * Math.sin(partialTick * OVER_CAP_PULSE_SPEED)));
         int alpha = (int) (pulse * 255.0F) << 24;
         int tint = alpha | 0xFF0000;
 
         for (int i = 0; i < this.menu.getPageSlotCount(); i++) {
-            if (!this.menu.isFilterSlotOverCap(i)) {
-                continue;
-            }
             Slot slot = this.menu.slots.get(i);
             ItemStack stack = slot.getItem();
             if (stack.isEmpty() || stack.getCount() <= maxStack) {
