@@ -1,25 +1,27 @@
 package com.dopa.randomutilities.filteritem.client;
 
-import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.FilterContents;
+import com.dopa.randomutilities.filteritem.client.panel.ConfiguratorPanel;
+import com.dopa.randomutilities.filteritem.client.panel.EnergyPanel;
+import com.dopa.randomutilities.filteritem.client.panel.InformativePanel;
+import com.dopa.randomutilities.filteritem.client.panel.PanelHost;
+import com.dopa.randomutilities.filteritem.client.panel.UpgradePanel;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
-import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.ChatFormatting;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
@@ -38,10 +40,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private static final Identifier GATHER_TEXTURE =
             Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/gather.png");
 
-    public static final int SETTINGS_WIDTH = 106;
-    public static final int SETTINGS_HEIGHT = 145;
-    public static final int SETTINGS_GAP = 6;
-
     private static final int PLAYER_INV_HEIGHT = 96;
     private static final int TEXTURE_SIZE = 256;
     private static final int INTERIOR_U = 7;
@@ -50,24 +48,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private static final int DIVIDER_STRIP_H = 7;
 
     private static final int LABEL_COLOR = 0xFF404040;
-    private static final int MUTED_LABEL_COLOR = 0xFF606060;
-    private static final int SECTION_TITLE_COLOR = 0xFF3A3A3A;
     private static final int BODY_COLOR = 0xFFC6C6C6;
 
     private static final int BASIC_FOOTER_Y = 35;
     private static final int BASIC_IMAGE_HEIGHT = 114 + 18;
     private static final int LARGE_SLOT = 26;
 
-    private static final int SETTINGS_TITLE_Y = 6;
-    private static final int STACK_LABEL_Y = 20;
-    private static final int STACK_BOX_Y = 30;
-    private static final int SLOTS_LABEL_Y = 51;
-    private static final int SLOT_BUTTONS_Y = 60;
-    private static final int PAGE_LABEL_Y = 86;
-    private static final int PAGE_BUTTONS_Y = 96;
-    private static final int CHANGE_COLOUR_BUTTON_Y = 118;
-    private static final int CHANGE_COLOUR_BUTTON_H = 20;
-    private static final int BUTTON_SIZE = 18;
     private static final int GATHER_BUTTON_SIZE = 13;
     private static final int GATHER_ICON_SIZE = 11;
     private static final int HIGHLIGHT_BORDER = 2;
@@ -78,19 +64,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     private final int containerRows;
     private final FilterColorPicker colorPicker = new FilterColorPicker();
+    private final PanelHost panelHost = new PanelHost();
 
-    private EditBox maxStackBox;
-    private Button changeColourButton;
-    private Button removeSlotButton;
-    private Button addSlotButton;
-    private Button prevPageButton;
-    private Button nextPageButton;
+    @Nullable
+    private ConfiguratorPanel configuratorPanel;
     private IconButton gatherButton;
-
-    private boolean removeConfirmPending;
-    private boolean removeConfirmBulk;
     private boolean gatherConfirmPending;
-    private boolean maxStackBoxWasFocused;
 
     public FilterScreen(FilterMenu menu, Inventory inventory, Component title) {
         super(
@@ -118,6 +97,35 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         this.removeWidget(widget);
     }
 
+    public void sendMenuButton(int buttonId) {
+        preserveMousePosition(this.minecraft);
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
+    }
+
+    public void sendSlotButton(int normalButtonId, int rowButtonId) {
+        sendMenuButton(isShiftHeldPublic() ? rowButtonId : normalButtonId);
+    }
+
+    public boolean isShiftHeldPublic() {
+        if (this.minecraft == null) {
+            return false;
+        }
+        if (this.minecraft.hasShiftDown()) {
+            return true;
+        }
+        long window = this.minecraft.getWindow().handle();
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+    }
+
+    public void openColorPicker() {
+        this.colorPicker.open(this);
+    }
+
+    public void clearGatherConfirm() {
+        this.gatherConfirmPending = false;
+    }
+
     @Override
     public int getPickerColor() {
         return this.menu.getColor();
@@ -125,7 +133,8 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Override
     public void onPickerColorCommitted(int rgb) {
-        ClientPacketDistributor.sendToServer(FilterSettingPayload.color(rgb));
+        ClientPacketDistributor.sendToServer(
+                com.dopa.randomutilities.filteritem.network.FilterSettingPayload.color(rgb));
     }
 
     @Override
@@ -175,53 +184,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         pendingMouseY = Double.NaN;
     }
 
-    private void sendMenuButton(int buttonId) {
-        preserveMousePosition(this.minecraft);
-        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
-    }
-
-    private boolean isShiftHeld() {
-        if (this.minecraft == null) {
-            return false;
-        }
-        if (this.minecraft.hasShiftDown()) {
-            return true;
-        }
-        long window = this.minecraft.getWindow().handle();
-        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
-    }
-
-    private void sendSlotButton(int normalButtonId, int rowButtonId) {
-        sendMenuButton(isShiftHeld() ? rowButtonId : normalButtonId);
-    }
-
-    private static Component twoLineTooltip(String firstKey, String secondKey) {
-        return Component.translatable(firstKey)
-                .append("\n")
-                .append(Component.translatable(secondKey).withStyle(ChatFormatting.GRAY));
-    }
-
-    private Component removeSlotTooltip() {
-        boolean bulk = isShiftHeld();
-        if (this.menu.wouldRemoveVoidItems(bulk)) {
-            String warningKey = bulk
-                    ? "gui.dopasrandomutilities.remove_slot.tooltip_void_bulk"
-                    : "gui.dopasrandomutilities.remove_slot.tooltip_void";
-            MutableComponent tooltip = Component.translatable(warningKey).withStyle(ChatFormatting.RED);
-            if (this.removeConfirmPending && this.removeConfirmBulk == bulk) {
-                tooltip.append("\n\n")
-                        .append(Component.translatable("gui.dopasrandomutilities.remove_slot.tooltip_void_confirm")
-                                .withStyle(ChatFormatting.DARK_RED));
-            }
-            return tooltip;
-        }
-        return twoLineTooltip(
-                "gui.dopasrandomutilities.remove_slot.tooltip",
-                "gui.dopasrandomutilities.remove_slot.tooltip_shift"
-        );
-    }
-
     private Component gatherTooltip() {
         MutableComponent tooltip = Component.translatable("gui.dopasrandomutilities.gather.tooltip");
         if (this.menu.wouldGatherChange()) {
@@ -244,7 +206,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                 sendMenuButton(FilterMenu.BTN_GATHER);
             } else {
                 this.gatherConfirmPending = true;
-                updateButtonStates();
+                if (this.configuratorPanel != null) {
+                    this.configuratorPanel.clearRemoveConfirm();
+                }
+                if (this.gatherButton != null) {
+                    this.gatherButton.updateTooltip(gatherTooltip());
+                }
             }
             return;
         }
@@ -252,214 +219,62 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         sendMenuButton(FilterMenu.BTN_GATHER);
     }
 
-    private void onRemoveSlotPressed() {
-        boolean bulk = isShiftHeld();
-        if (this.menu.wouldRemoveVoidItems(bulk)) {
-            if (this.removeConfirmPending && this.removeConfirmBulk == bulk) {
-                this.removeConfirmPending = false;
-                this.gatherConfirmPending = false;
-                sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
-            } else {
-                this.removeConfirmPending = true;
-                this.removeConfirmBulk = bulk;
-                this.gatherConfirmPending = false;
-                updateButtonStates();
-            }
-            return;
-        }
-        this.removeConfirmPending = false;
-        this.gatherConfirmPending = false;
-        sendMenuButton(bulk ? FilterMenu.BTN_REMOVE_ROW : FilterMenu.BTN_REMOVE_SLOT);
-    }
-
-    private void onAddSlotPressed() {
-        this.removeConfirmPending = false;
-        this.gatherConfirmPending = false;
-        sendSlotButton(FilterMenu.BTN_ADD_SLOT, FilterMenu.BTN_ADD_ROW);
-    }
-
-    private Button settingsButton(int x, int y, Component label, Component tooltip, Runnable action) {
-        return Button.builder(label, b -> action.run())
-                .bounds(x, y, BUTTON_SIZE, BUTTON_SIZE)
-                .tooltip(Tooltip.create(tooltip))
-                .build();
-    }
-
-    private static String formatMaxStackDisplay(int value) {
-        return Integer.toString(value);
-    }
-
     @Override
     protected void init() {
         super.init();
-        if (this.menu.isBasic()) {
-            return;
+        this.panelHost.clear();
+        this.configuratorPanel = null;
+
+        this.panelHost.add(new InformativePanel(this.menu.isBasic()));
+
+        if (!this.menu.isBasic()) {
+            this.configuratorPanel = new ConfiguratorPanel(this);
+            this.panelHost.add(this.configuratorPanel);
+            this.panelHost.add(new EnergyPanel());
+            this.panelHost.add(new UpgradePanel(this.menu.getUpgradeSlots()));
+
+            this.configuratorPanel.initWidgets();
+
+            this.gatherButton = new IconButton(
+                    this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,
+                    this.topPos + 4,
+                    GATHER_BUTTON_SIZE,
+                    GATHER_ICON_SIZE,
+                    GATHER_TEXTURE,
+                    gatherTooltip(),
+                    this::onGatherPressed
+            );
+            this.addRenderableWidget(this.gatherButton);
+            this.gatherConfirmPending = false;
         }
 
-        int sx = this.leftPos - SETTINGS_GAP - SETTINGS_WIDTH;
-        int sy = this.topPos;
-        int innerWidth = SETTINGS_WIDTH - 16;
-
-        this.maxStackBox = new EditBox(this.font, sx + 8, sy + STACK_BOX_Y, innerWidth, 12,
-                Component.translatable("gui.dopasrandomutilities.max_stack"));
-        this.maxStackBox.setMaxLength(10);
-        this.maxStackBox.setValue(formatMaxStackDisplay(this.menu.getMaxStackSizeSetting()));
-        this.maxStackBox.setCanLoseFocus(true);
-        this.maxStackBox.setTooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.stack_size.tooltip")));
-        this.addRenderableWidget(this.maxStackBox);
-
-        this.removeSlotButton = settingsButton(sx + 8, sy + SLOT_BUTTONS_Y, Component.literal("-"),
-                removeSlotTooltip(),
-                this::onRemoveSlotPressed);
-        this.addSlotButton = settingsButton(sx + 8 + BUTTON_SIZE + 4, sy + SLOT_BUTTONS_Y, Component.literal("+"),
-                twoLineTooltip("gui.dopasrandomutilities.add_slot.tooltip",
-                        "gui.dopasrandomutilities.add_slot.tooltip_shift"),
-                this::onAddSlotPressed);
-        this.addRenderableWidget(this.removeSlotButton);
-        this.addRenderableWidget(this.addSlotButton);
-
-        this.prevPageButton = settingsButton(sx + 8, sy + PAGE_BUTTONS_Y, Component.literal("<"),
-                Component.translatable("gui.dopasrandomutilities.prev_page.tooltip"),
-                () -> sendMenuButton(FilterMenu.BTN_PREV_PAGE));
-        this.nextPageButton = settingsButton(sx + 8 + BUTTON_SIZE + 4, sy + PAGE_BUTTONS_Y, Component.literal(">"),
-                Component.translatable("gui.dopasrandomutilities.next_page.tooltip"),
-                () -> sendMenuButton(FilterMenu.BTN_NEXT_PAGE));
-        this.addRenderableWidget(this.prevPageButton);
-        this.addRenderableWidget(this.nextPageButton);
-
-        this.changeColourButton = Button.builder(
-                Component.translatable("gui.dopasrandomutilities.change_color"),
-                button -> this.colorPicker.open(this)
-        ).bounds(sx + 8, sy + CHANGE_COLOUR_BUTTON_Y, innerWidth, CHANGE_COLOUR_BUTTON_H)
-                .tooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.change_color.tooltip")))
-                .build();
-        this.addRenderableWidget(this.changeColourButton);
-
-        this.gatherButton = new IconButton(
-                this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,
-                this.topPos + 4,
-                GATHER_BUTTON_SIZE,
-                GATHER_ICON_SIZE,
-                GATHER_TEXTURE,
-                gatherTooltip(),
-                this::onGatherPressed
-        );
-        this.addRenderableWidget(this.gatherButton);
-
-        this.removeConfirmPending = false;
-        this.gatherConfirmPending = false;
-
-        updateButtonStates();
+        this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
         restoreMousePositionIfPending();
-    }
-
-    private void updateButtonStates() {
-        if (this.menu.isBasic()) {
-            return;
-        }
-        if (this.removeSlotButton != null) {
-            this.removeSlotButton.active = this.menu.canRemoveSlot();
-            this.removeSlotButton.setTooltip(Tooltip.create(removeSlotTooltip()));
-        }
-        if (this.addSlotButton != null) {
-            this.addSlotButton.active = this.menu.getSlotCountSetting() < DevNullConfig.advancedMaxSlots();
-        }
-        if (this.prevPageButton != null) {
-            this.prevPageButton.active = this.menu.getPage() > 0;
-        }
-        if (this.nextPageButton != null) {
-            this.nextPageButton.active = this.menu.getPage() < this.menu.getPageCount() - 1;
-        }
-        if (this.gatherButton != null) {
-            this.gatherButton.updateTooltip(gatherTooltip());
-        }
-    }
-
-    private int effectiveMaxStackForDisplay() {
-        if (this.maxStackBox != null && this.maxStackBox.isFocused()) {
-            try {
-                long parsed = Long.parseLong(this.maxStackBox.getValue().trim());
-                if (parsed >= 1) {
-                    return DevNullConfig.clampAdvancedMaxStack(
-                            (int) Math.min(DevNullConfig.advancedMaxStackSize(), parsed)
-                    );
-                }
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return this.menu.getMaxStackSizeSetting();
-    }
-
-    private void commitMaxStackSetting() {
-        if (this.maxStackBox == null || this.menu.isBasic()) {
-            return;
-        }
-        String trimmed = this.maxStackBox.getValue().trim();
-        try {
-            long parsed = Long.parseLong(trimmed);
-            if (parsed < 1) {
-                syncEditBoxesFromMenu();
-                return;
-            }
-            int value = DevNullConfig.clampAdvancedMaxStack((int) Math.min(DevNullConfig.advancedMaxStackSize(), parsed));
-            this.maxStackBox.setValue(formatMaxStackDisplay(value));
-            if (value != this.menu.getMaxStackSizeSetting()) {
-                ClientPacketDistributor.sendToServer(FilterSettingPayload.maxStack(value));
-            }
-        } catch (NumberFormatException ignored) {
-            syncEditBoxesFromMenu();
-        }
-    }
-
-    private void clearSettingsFieldFocusIfOutside(double mouseX, double mouseY) {
-        if (this.getFocused() instanceof EditBox focused && !focused.isMouseOver(mouseX, mouseY)) {
-            this.clearFocus();
-        }
-    }
-
-    private void syncEditBoxesFromMenu() {
-        if (this.maxStackBox != null && !this.maxStackBox.isFocused()) {
-            String expected = formatMaxStackDisplay(this.menu.getMaxStackSizeSetting());
-            if (!expected.equals(this.maxStackBox.getValue())) {
-                this.maxStackBox.setValue(expected);
-            }
-        }
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
+        this.panelHost.tick();
+        this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
+
         if (!this.menu.isBasic()) {
-            if (this.maxStackBox != null) {
-                boolean focused = this.maxStackBox.isFocused();
-                if (this.maxStackBoxWasFocused && !focused) {
-                    commitMaxStackSetting();
-                }
-                this.maxStackBoxWasFocused = focused;
-            }
-            if (this.removeConfirmPending) {
-                if (!this.menu.wouldRemoveVoidItems(this.removeConfirmBulk)
-                        || isShiftHeld() != this.removeConfirmBulk) {
-                    this.removeConfirmPending = false;
-                }
-            }
             if (this.gatherConfirmPending && !this.menu.wouldGatherChange()) {
                 this.gatherConfirmPending = false;
             }
-            updateButtonStates();
-            syncEditBoxesFromMenu();
+            if (this.gatherButton != null) {
+                this.gatherButton.updateTooltip(gatherTooltip());
+            }
         }
     }
 
     @Override
     public void onClose() {
-        if (!this.menu.isBasic()) {
-            if (this.maxStackBox != null && this.maxStackBox.isFocused()) {
-                commitMaxStackSetting();
-            }
-            if (this.colorPicker.isOpen()) {
-                this.colorPicker.close(this);
-            }
+        if (this.configuratorPanel != null) {
+            this.configuratorPanel.onScreenClose();
+        }
+        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
+            this.colorPicker.close(this);
         }
         super.onClose();
     }
@@ -475,15 +290,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             VanillaContainerPanel.blitRegion(graphics, xo + 8 + col * 18, coverY, 18, 18,
                     INTERIOR_U, DIVIDER_V, INTERIOR_W, DIVIDER_STRIP_H);
         }
-    }
-
-    private void drawSlotsLine(GuiGraphicsExtractor graphics, int sx, int sy) {
-        Component prefix = Component.translatable("gui.dopasrandomutilities.slots_prefix");
-        int x = sx + 8;
-        int y = sy + SLOTS_LABEL_Y;
-        graphics.text(this.font, prefix, x, y, LABEL_COLOR, false);
-        graphics.text(this.font, Component.literal(Integer.toString(this.menu.getSlotCountSetting())),
-                x + this.font.width(prefix), y, MUTED_LABEL_COLOR, false);
     }
 
     private void renderBasicBackground(GuiGraphicsExtractor graphics) {
@@ -506,17 +312,18 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         if (this.menu.isBasic()) {
             renderBasicBackground(graphics);
-            return;
+        } else {
+            int xo = this.leftPos;
+            int yo = this.topPos;
+            graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
+                    this.imageWidth, this.containerRows * 18 + 17, TEXTURE_SIZE, TEXTURE_SIZE);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + this.containerRows * 18 + 17,
+                    0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
+            coverUnusedSlotsOnLastRow(graphics, xo, yo, this.menu.getPageSlotCount());
         }
-
-        int xo = this.leftPos;
-        int yo = this.topPos;
-        VanillaContainerPanel.blit(graphics, xo - SETTINGS_GAP - SETTINGS_WIDTH, yo, SETTINGS_WIDTH, SETTINGS_HEIGHT);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                this.imageWidth, this.containerRows * 18 + 17, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + this.containerRows * 18 + 17,
-                0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
-        coverUnusedSlotsOnLastRow(graphics, xo, yo, this.menu.getPageSlotCount());
+        this.panelHost.tick();
+        this.panelHost.render(graphics, this.font, this.leftPos, this.topPos, this.imageWidth,
+                mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -534,7 +341,9 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     }
 
     private void renderOverCapWarnings(GuiGraphicsExtractor graphics, float partialTick) {
-        int maxStack = effectiveMaxStackForDisplay();
+        int maxStack = this.configuratorPanel != null
+                ? this.configuratorPanel.effectiveMaxStackForDisplay()
+                : this.menu.getMaxStackSizeSetting();
         float pulse = (float) (0.35F + 0.25F * (0.5F + 0.5F * Math.sin(partialTick * OVER_CAP_PULSE_SPEED)));
         int alpha = (int) (pulse * 255.0F) << 24;
         int tint = alpha | 0xFF0000;
@@ -602,20 +411,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         graphics.text(this.font, this.title, this.titleLabelX, this.titleLabelY, LABEL_COLOR, false);
         graphics.text(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, LABEL_COLOR, false);
-        if (this.menu.isBasic()) {
-            return;
-        }
-
-        int sx = -SETTINGS_GAP - SETTINGS_WIDTH;
-        int sy = 0;
-        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.settings").withStyle(ChatFormatting.BOLD),
-                sx + 8, sy + SETTINGS_TITLE_Y, SECTION_TITLE_COLOR, false);
-        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.stack_size"),
-                sx + 8, sy + STACK_LABEL_Y, LABEL_COLOR, false);
-        drawSlotsLine(graphics, sx, sy);
-        graphics.text(this.font, Component.translatable("gui.dopasrandomutilities.page",
-                        this.menu.getPage() + 1, this.menu.getPageCount()),
-                sx + 8, sy + PAGE_LABEL_Y, LABEL_COLOR, false);
     }
 
     @Override
@@ -653,9 +448,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             super.mouseClicked(event, doubleClick);
             return true;
         }
+        if (this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth)) {
+            return true;
+        }
         boolean handled = super.mouseClicked(event, doubleClick);
-        if (!this.menu.isBasic()) {
-            clearSettingsFieldFocusIfOutside(event.x(), event.y());
+        if (this.configuratorPanel != null) {
+            this.configuratorPanel.clearFocusIfOutside(event.x(), event.y());
         }
         return handled;
     }

@@ -12,6 +12,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -23,6 +24,9 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.world.inventory.StackCopySlot;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class FilterMenu extends AbstractContainerMenu {
@@ -47,6 +51,8 @@ public class FilterMenu extends AbstractContainerMenu {
     private final int pageSlotCount;
     private final int rows;
     private final int displayPage;
+    private final List<UpgradeSlot> upgradeSlots;
+    private final int playerInvStart;
 
     public FilterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
         this(containerId, playerInv, buf.readEnum(InteractionHand.class), null, buf);
@@ -82,6 +88,8 @@ public class FilterMenu extends AbstractContainerMenu {
             this.pageSlotCount = 1;
             this.rows = 1;
             this.displayPage = 0;
+            this.upgradeSlots = List.of();
+            this.playerInvStart = 1;
             NonNullList<ItemStack> stacks = NonNullList.withSize(1, ItemStack.EMPTY);
             stacks.set(0, contents.stackInSlot(0));
             int maxStack = profile != null && profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : 64;
@@ -111,6 +119,17 @@ public class FilterMenu extends AbstractContainerMenu {
             int row = i / 9;
             this.addSlot(new FilterSlot(handler, i, 8 + col * 18, 18 + row * 18, false, 0));
         }
+
+        SimpleContainer upgradeContainer = new SimpleContainer(UpgradeSlot.COUNT);
+        List<UpgradeSlot> upgrades = new ArrayList<>(UpgradeSlot.COUNT);
+        for (int i = 0; i < UpgradeSlot.COUNT; i++) {
+            UpgradeSlot slot = new UpgradeSlot(upgradeContainer, i, UpgradeSlot.slotX(i), UpgradeSlot.slotY(i));
+            this.addSlot(slot);
+            upgrades.add(slot);
+        }
+        this.upgradeSlots = Collections.unmodifiableList(upgrades);
+        this.playerInvStart = pageSlotCount + UpgradeSlot.COUNT;
+
         this.addStandardInventorySlots(playerInv, 8, playerInvY());
         syncData();
         this.addDataSlots(data);
@@ -134,6 +153,18 @@ public class FilterMenu extends AbstractContainerMenu {
 
     public int getPageSlotCount() {
         return pageSlotCount;
+    }
+
+    public int getPlayerInvStart() {
+        return playerInvStart;
+    }
+
+    public List<UpgradeSlot> getUpgradeSlots() {
+        return upgradeSlots;
+    }
+
+    public boolean isUpgradeSlotIndex(int index) {
+        return !isBasic() && index >= pageSlotCount && index < playerInvStart;
     }
 
     private ItemStack host() {
@@ -489,10 +520,13 @@ public class FilterMenu extends AbstractContainerMenu {
         if (slot != null && slot.hasItem()) {
             ItemStack raw = slot.getItem();
             result = raw.copy();
+            if (isUpgradeSlotIndex(index)) {
+                return ItemStack.EMPTY;
+            }
             if (index < pageSlotCount) {
                 int moveCount = Math.min(raw.getCount(), raw.getMaxStackSize());
                 ItemStack toMove = raw.copyWithCount(moveCount);
-                if (!this.moveItemStackTo(toMove, pageSlotCount, this.slots.size(), true)) {
+                if (!this.moveItemStackTo(toMove, playerInvStart, this.slots.size(), true)) {
                     return ItemStack.EMPTY;
                 }
                 raw.shrink(moveCount);
