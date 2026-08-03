@@ -102,8 +102,8 @@ public class FilterMenu extends AbstractContainerMenu {
             this.playerInvStart = 1;
             NonNullList<ItemStack> stacks = NonNullList.withSize(1, ItemStack.EMPTY);
             stacks.set(0, contents.stackInSlot(0));
-            int maxStack = profile != null && profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : 64;
-            this.handler = new FilterStacksHandler(stacks, () -> maxStack);
+            int maxStack = DevNullConfig.basicMaxStackSize();
+            this.handler = new FilterStacksHandler(stacks, DevNullConfig::basicMaxStackSize, true);
             this.handler.setOnChanged(this::saveBasic);
             this.addSlot(new FilterSlot(handler, 0, BASIC_SLOT_X, BASIC_SLOT_Y, true, maxStack));
             this.addStandardInventorySlots(playerInv, 8, BASIC_PLAYER_INV_Y);
@@ -128,7 +128,7 @@ public class FilterMenu extends AbstractContainerMenu {
             stacks.set(i, contents.stackInSlot(start + i));
         }
 
-        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(host()).maxStackSize());
+        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(host()).maxStackSize(), false);
         this.handler.setOnChanged(this::savePage);
         for (int i = 0; i < pageSlotCount; i++) {
             int col = i % 9;
@@ -703,7 +703,8 @@ public class FilterMenu extends AbstractContainerMenu {
         @Override
         protected void setStackCopy(ItemStack stack) {
             if (trashMode && !stack.isEmpty()) {
-                stack = stack.copyWithCount(Math.min(stack.getCount(), trashDisplayCount));
+                int limit = trashSlotLimit(stack);
+                stack = stack.copyWithCount(Math.min(stack.getCount(), limit));
             }
             handler.set(handlerIndex, ItemResource.of(stack), stack.getCount());
         }
@@ -726,12 +727,19 @@ public class FilterMenu extends AbstractContainerMenu {
             return handler.getAmountAsInt(handlerIndex) >= softCap();
         }
 
-        private int trashInsertCapacity() {
+        /** Filter display max, further limited by {@link DevNullConfig#effectiveSlotCapacity}. */
+        private int trashSlotLimit(ItemStack forItem) {
+            int effective = handler.getCapacityAsInt(handlerIndex, ItemResource.of(forItem));
+            return Math.min(trashDisplayCount, Math.max(1, effective));
+        }
+
+        private int trashInsertCapacity(ItemStack incoming) {
             ItemStack current = getStackCopy();
+            int limit = trashSlotLimit(incoming.isEmpty() ? current : incoming);
             if (current.isEmpty()) {
-                return trashDisplayCount;
+                return limit;
             }
-            return Math.max(0, trashDisplayCount - current.getCount());
+            return Math.max(0, limit - current.getCount());
         }
 
         private int trashItemMaxStackSize(ItemStack stack) {
@@ -742,18 +750,20 @@ public class FilterMenu extends AbstractContainerMenu {
             return current.isEmpty() ? trashDisplayCount : current.getMaxStackSize();
         }
 
-        private int trashReportedMaxStackSize(int itemMaxStack) {
+        private int trashReportedMaxStackSize(ItemStack stack) {
+            int limit = trashSlotLimit(stack.isEmpty() ? getStackCopy() : stack);
             int current = getStackCopy().getCount();
-            if (current < trashDisplayCount) {
-                return trashDisplayCount;
+            if (current < limit) {
+                return limit;
             }
-            return current + itemMaxStack;
+            // At limit: still report room so inserts can void extras into /dev/null.
+            return current + trashItemMaxStackSize(stack);
         }
 
         @Override
         public int getMaxStackSize() {
             if (trashMode) {
-                return trashReportedMaxStackSize(trashItemMaxStackSize(ItemStack.EMPTY));
+                return trashReportedMaxStackSize(ItemStack.EMPTY);
             }
             if (isAtOrOverSoftCap()) {
                 return 0;
@@ -764,12 +774,12 @@ public class FilterMenu extends AbstractContainerMenu {
         @Override
         public int getMaxStackSize(ItemStack stack) {
             if (trashMode) {
-                return trashReportedMaxStackSize(trashItemMaxStackSize(stack));
+                return trashReportedMaxStackSize(stack);
             }
             if (isAtOrOverSoftCap()) {
                 return 0;
             }
-            return softCap();
+            return handler.getCapacityAsInt(handlerIndex, ItemResource.of(stack));
         }
 
         @Override
@@ -802,12 +812,12 @@ public class FilterMenu extends AbstractContainerMenu {
             if (consume <= 0) {
                 return inputStack;
             }
-            int capacity = trashInsertCapacity();
+            int capacity = trashInsertCapacity(inputStack);
             if (capacity <= 0) {
                 ItemStack filterItem = inputStack.copy();
                 inputStack.shrink(consume);
                 if (slotStack.isEmpty()) {
-                    set(filterItem.copyWithCount(Math.min(consume, trashDisplayCount)));
+                    set(filterItem.copyWithCount(Math.min(consume, trashSlotLimit(filterItem))));
                 }
                 return inputStack;
             }

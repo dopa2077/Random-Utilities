@@ -146,6 +146,7 @@ public class FilterItem extends Item {
             boolean infiniteMaterials = entity instanceof Player player && player.hasInfiniteMaterials();
 
             ItemStack single = selected.copyWithCount(1);
+            ItemStack beforeUse = single.copy();
             single.getItem().finishUsingItem(single, level, entity);
 
             UseCooldown useCooldown = selected.get(DataComponents.USE_COOLDOWN);
@@ -154,7 +155,7 @@ public class FilterItem extends Item {
             }
 
             if (!infiniteMaterials) {
-                ItemStack remainder = FilterStorage.resolveUseRemainder(single, 1, false);
+                ItemStack remainder = FilterStorage.resolveUseRemainder(beforeUse, single, 1, false);
                 ItemStack remaining = countBefore <= 1
                         ? ItemStack.EMPTY
                         : selected.copyWithCount(countBefore - 1);
