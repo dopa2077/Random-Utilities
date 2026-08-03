@@ -6,7 +6,9 @@ import com.dopa.randomutilities.filteritem.FilterProfile;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,10 +25,12 @@ public final class DevNullConfig {
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/devnull.json";
 
     private static int basicMaxStackSize = 64;
+    private static boolean basicAllowOverstacking = true;
     private static int advancedMinSlots = FilterContents.MIN_ADVANCED_SLOTS;
     private static int advancedMaxSlots = FilterContents.SLOTS_PER_PAGE;
     private static int advancedMaxStackSize = 1_000_000;
     private static int advancedMaxPages = 1;
+    private static boolean advancedAllowOverstacking = true;
 
     static {
         loadDefaultsFromJar();
@@ -74,6 +78,40 @@ public final class DevNullConfig {
         return advancedMaxPages;
     }
 
+    public static boolean basicAllowOverstacking() {
+        return basicAllowOverstacking;
+    }
+
+    public static boolean advancedAllowOverstacking() {
+        return advancedAllowOverstacking;
+    }
+
+    public static boolean allowOverstacking(boolean basic) {
+        return basic ? basicAllowOverstacking : advancedAllowOverstacking;
+    }
+
+    /**
+     * Per-slot fill limit for a given item. When overstacking is disabled, vanilla-unstackable
+     * items (max stack size 1) are capped at 1; other items still use the filter max.
+     */
+    public static int effectiveSlotCapacity(ItemStack stack, int filterMax, boolean basic) {
+        if (allowOverstacking(basic) || stack.isEmpty()) {
+            return Math.max(1, filterMax);
+        }
+        int vanilla = stack.getMaxStackSize();
+        if (vanilla <= 1) {
+            return 1;
+        }
+        return Math.max(1, filterMax);
+    }
+
+    public static int effectiveSlotCapacity(ItemResource resource, int filterMax, boolean basic) {
+        if (resource.isEmpty()) {
+            return Math.max(1, filterMax);
+        }
+        return effectiveSlotCapacity(resource.toStack(1), filterMax, basic);
+    }
+
     public static FilterProfile basicProfile() {
         return new FilterProfile(
                 1, 1, basicMaxStackSize,
@@ -93,7 +131,7 @@ public final class DevNullConfig {
                 0,
                 true, true, true, true,
                 true, true,
-                false, false, false, false, false,
+                true, false, false, false, true,
                 "item.dopasrandomutilities.advanced_dev_null.empty",
                 "container.dopasrandomutilities.advanced_dev_null",
                 "item.dopasrandomutilities.advanced_dev_null.slots"
@@ -161,10 +199,12 @@ public final class DevNullConfig {
 
     private static void applyBuiltInDefaults() {
         basicMaxStackSize = 64;
+        basicAllowOverstacking = true;
         advancedMinSlots = FilterContents.MIN_ADVANCED_SLOTS;
         advancedMaxSlots = FilterContents.SLOTS_PER_PAGE;
         advancedMaxStackSize = 1_000_000;
         advancedMaxPages = 1;
+        advancedAllowOverstacking = true;
     }
 
     private static void applyJson(JsonObject root) {
@@ -175,10 +215,12 @@ public final class DevNullConfig {
         }
 
         basicMaxStackSize = Math.max(1, basic.get("max_stack_size").getAsInt());
+        basicAllowOverstacking = !basic.has("allow_overstacking") || basic.get("allow_overstacking").getAsBoolean();
         advancedMinSlots = Math.max(1, advanced.get("min_slots").getAsInt());
         advancedMaxSlots = Math.max(advancedMinSlots, advanced.get("max_slots").getAsInt());
         advancedMaxStackSize = Math.max(1, advanced.get("max_stack_size").getAsInt());
         advancedMaxPages = Math.max(1, advanced.get("max_pages").getAsInt());
+        advancedAllowOverstacking = !advanced.has("allow_overstacking") || advanced.get("allow_overstacking").getAsBoolean();
 
         int slotsForPages = Math.min(advancedMaxSlots, advancedMaxPages * FilterContents.SLOTS_PER_PAGE);
         if (slotsForPages < advancedMaxSlots) {

@@ -315,8 +315,11 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
         graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + BASIC_FOOTER_Y,
                 0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
 
-        int frameX = xo + FilterMenu.BASIC_SLOT_X - (LARGE_SLOT - 18) / 2;
-        int frameY = yo + FilterMenu.BASIC_SLOT_Y - (LARGE_SLOT - 18) / 2;
+        int slotX = FilterMenu.BASIC_SLOT_X;
+        int slotY = FilterMenu.BASIC_SLOT_Y;
+        // Center the enlarged slot sprite on the 16x16 item/hover area (not on an 18x18 box at slot origin).
+        int frameX = xo + slotX + 8 - LARGE_SLOT / 2;
+        int frameY = yo + slotY + 8 - LARGE_SLOT / 2;
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, frameX, frameY, LARGE_SLOT, LARGE_SLOT);
     }
 

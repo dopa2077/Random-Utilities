@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.filteritem;
 
+import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.registry.ModDataComponents;
 
 import net.minecraft.world.item.Item;
@@ -57,6 +58,15 @@ public class FilterItemHandler extends ItemAccessResourceHandler<ItemResource> {
 
     @Override
     protected int getCapacity(int index, ItemResource resource) {
-        return itemAccess.getResource().is(validItem) ? contents(itemAccess.getResource()).maxStackSize() : 0;
+        if (!itemAccess.getResource().is(validItem)) {
+            return 0;
+        }
+        FilterContents contents = contents(itemAccess.getResource());
+        FilterProfile profile = FilterRegistry.profile(validItem);
+        boolean basic = profile == null || profile.isBasic();
+        ItemResource effective = resource.isEmpty()
+                ? contents.slot(index).resource()
+                : resource;
+        return DevNullConfig.effectiveSlotCapacity(effective, contents.maxStackSize(), basic);
     }
 }
