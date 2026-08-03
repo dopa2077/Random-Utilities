@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.registry;
 
+import com.dopa.randomutilities.block.UiTestBlockEntity;
 import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
@@ -20,6 +21,16 @@ public final class ModBlockEntities {
                             ResourceGeneratorBlockEntity::new,
                             false,
                             ModBlocks.allGenerators()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<UiTestBlockEntity>> UI_TEST =
+            BLOCK_ENTITIES.register(
+                    "ui_test",
+                    () -> new BlockEntityType<>(
+                            UiTestBlockEntity::new,
+                            false,
+                            ModBlocks.UI_TEST_BLOCK.get()
                     )
             );
 

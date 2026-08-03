@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.block.ResourceGeneratorBlock;
+import com.dopa.randomutilities.block.UiTestBlock;
 import com.dopa.randomutilities.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
@@ -16,6 +17,12 @@ import java.util.Map;
 public final class ModBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(dOPasRandomUtilities.MOD_ID);
     private static final Map<GeneratorType, DeferredBlock<ResourceGeneratorBlock>> BY_TYPE = new EnumMap<>(GeneratorType.class);
+
+    public static final DeferredBlock<UiTestBlock> UI_TEST_BLOCK = BLOCKS.registerBlock(
+            "ui_test_block",
+            UiTestBlock::new,
+            props -> props.mapColor(MapColor.COLOR_PURPLE).strength(0.5F).sound(SoundType.STONE)
+    );
 
     static {
         for (GeneratorType type : GeneratorType.values()) {

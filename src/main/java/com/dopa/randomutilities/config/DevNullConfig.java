@@ -77,7 +77,9 @@ public final class DevNullConfig {
     public static FilterProfile basicProfile() {
         return new FilterProfile(
                 1, 1, basicMaxStackSize,
-                false, false, false, false,
+                false, true, false, false,
+                true, false,
+                false, false, false, false, false,
                 "item.dopasrandomutilities.dev_null.empty",
                 "container.dopasrandomutilities.dev_null",
                 null
@@ -90,8 +92,25 @@ public final class DevNullConfig {
                 advancedMaxSlots,
                 0,
                 true, true, true, true,
+                true, true,
+                false, false, false, false, false,
                 "item.dopasrandomutilities.advanced_dev_null.empty",
                 "container.dopasrandomutilities.advanced_dev_null",
+                "item.dopasrandomutilities.advanced_dev_null.slots"
+        );
+    }
+
+    /** Full AttachedPanel set for creative UI testers. */
+    public static FilterProfile uiTestProfile() {
+        return new FilterProfile(
+                advancedMinSlots,
+                advancedMaxSlots,
+                0,
+                true, true, true, true,
+                true, true,
+                true, true, true, true, true,
+                "item.dopasrandomutilities.ui_test_item.empty",
+                "container.dopasrandomutilities.ui_test",
                 "item.dopasrandomutilities.advanced_dev_null.slots"
         );
     }

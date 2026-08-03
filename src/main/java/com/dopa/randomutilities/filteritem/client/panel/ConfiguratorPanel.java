@@ -13,30 +13,28 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /**
- * Advanced /dev/null settings: max stack, slot add/remove, paging, and colour.
+ * Advanced /dev/null settings: max stack, slot add/remove, and paging.
  */
 public final class ConfiguratorPanel extends AttachedPanel {
     private static final int BG = 0xFF1A4548;
-    private static final int LABEL_COLOR = 0xFFD0D0D0;
-    private static final int MUTED_LABEL_COLOR = 0xFFA8A8A8;
     private static final int BUTTON_SIZE = 18;
-    private static final int CHANGE_COLOUR_BUTTON_H = 20;
+    private static final ItemStack COMPARATOR_ICON = new ItemStack(Items.COMPARATOR);
 
-    private static final int STACK_LABEL_Y = 20;
-    private static final int STACK_BOX_Y = 30;
-    private static final int SLOTS_LABEL_Y = 51;
-    private static final int SLOT_BUTTONS_Y = 60;
-    private static final int PAGE_LABEL_Y = 86;
-    private static final int PAGE_BUTTONS_Y = 96;
-    private static final int CHANGE_COLOUR_BUTTON_Y = 118;
+    private static final int STACK_LABEL_Y = 28;
+    private static final int STACK_BOX_Y = 38;
+    private static final int SLOTS_LABEL_Y = 59;
+    private static final int SLOT_BUTTONS_Y = 68;
+    private static final int PAGE_LABEL_Y = 94;
+    private static final int PAGE_BUTTONS_Y = 104;
 
     private final FilterScreen screen;
 
     private EditBox maxStackBox;
-    private Button changeColourButton;
     private Button removeSlotButton;
     private Button addSlotButton;
     private Button prevPageButton;
@@ -50,8 +48,8 @@ public final class ConfiguratorPanel extends AttachedPanel {
     public ConfiguratorPanel(FilterScreen screen) {
         super(
                 PanelAnchor.LEFT_BELOW,
-                106,
-                145,
+                118,
+                128,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.config")
         );
@@ -91,14 +89,6 @@ public final class ConfiguratorPanel extends AttachedPanel {
         screen.addOverlayWidget(prevPageButton);
         screen.addOverlayWidget(nextPageButton);
 
-        changeColourButton = Button.builder(
-                Component.translatable("gui.dopasrandomutilities.change_color"),
-                button -> screen.openColorPicker()
-        ).bounds(0, 0, innerWidth, CHANGE_COLOUR_BUTTON_H)
-                .tooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.change_color.tooltip")))
-                .build();
-        screen.addOverlayWidget(changeColourButton);
-
         removeConfirmPending = false;
         updateWidgetVisibility(false);
         updateButtonStates();
@@ -133,10 +123,6 @@ public final class ConfiguratorPanel extends AttachedPanel {
         prevPageButton.setY(by + PAGE_BUTTONS_Y);
         nextPageButton.setX(bx + CONTENT_PAD + BUTTON_SIZE + 4);
         nextPageButton.setY(by + PAGE_BUTTONS_Y);
-
-        changeColourButton.setX(bx + CONTENT_PAD);
-        changeColourButton.setY(by + CHANGE_COLOUR_BUTTON_Y);
-        changeColourButton.setWidth(innerWidth);
     }
 
     @Override
@@ -150,8 +136,6 @@ public final class ConfiguratorPanel extends AttachedPanel {
         addSlotButton.visible = interactive;
         prevPageButton.visible = interactive;
         nextPageButton.visible = interactive;
-        changeColourButton.visible = interactive;
-        changeColourButton.active = interactive;
         if (!interactive && maxStackBox.isFocused()) {
             screen.clearFocus();
         }
@@ -191,7 +175,6 @@ public final class ConfiguratorPanel extends AttachedPanel {
         addSlotButton.active = contentsInteractive() && menu.getSlotCountSetting() < DevNullConfig.advancedMaxSlots();
         prevPageButton.active = contentsInteractive() && menu.getPage() > 0;
         nextPageButton.active = contentsInteractive() && menu.getPage() < menu.getPageCount() - 1;
-        changeColourButton.active = contentsInteractive();
     }
 
     public int effectiveMaxStackForDisplay() {
@@ -311,36 +294,30 @@ public final class ConfiguratorPanel extends AttachedPanel {
 
     @Override
     protected void renderIcon(GuiGraphicsExtractor graphics, Font font, int centerX, int centerY) {
-        int c = 0xFF7EC8C8;
-        // Gear-ish: center hub + teeth
-        graphics.fill(centerX - 2, centerY - 2, centerX + 3, centerY + 3, c);
-        graphics.fill(centerX - 1, centerY - 6, centerX + 2, centerY - 3, c);
-        graphics.fill(centerX - 1, centerY + 4, centerX + 2, centerY + 7, c);
-        graphics.fill(centerX - 6, centerY - 1, centerX - 3, centerY + 2, c);
-        graphics.fill(centerX + 4, centerY - 1, centerX + 7, centerY + 2, c);
-        graphics.fill(centerX - 5, centerY - 5, centerX - 2, centerY - 2, 0xFF5AA0A0);
-        graphics.fill(centerX + 3, centerY - 5, centerX + 6, centerY - 2, 0xFF5AA0A0);
-        graphics.fill(centerX - 5, centerY + 3, centerX - 2, centerY + 6, 0xFF5AA0A0);
-        graphics.fill(centerX + 3, centerY + 3, centerX + 6, centerY + 6, 0xFF5AA0A0);
+        graphics.item(COMPARATOR_ICON, centerX - 8, centerY - 8, centerX ^ centerY);
     }
 
     @Override
     protected void renderContents(GuiGraphicsExtractor graphics, Font font, int bodyX, int bodyY,
                                   int mouseX, int mouseY, float partialTick) {
         FilterMenu menu = screen.getMenu();
-        graphics.text(font, title, bodyX + CONTENT_PAD, bodyY + 6, 0xFFE0F0F0, false);
-        graphics.text(font, Component.translatable("gui.dopasrandomutilities.stack_size"),
-                bodyX + CONTENT_PAD, bodyY + STACK_LABEL_Y, LABEL_COLOR, false);
+        renderTitleRow(graphics, font, bodyX, bodyY);
+        drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.stack_size"),
+                bodyX, bodyY + STACK_LABEL_Y);
 
         Component prefix = Component.translatable("gui.dopasrandomutilities.slots_prefix");
         int sx = bodyX + CONTENT_PAD;
         int sy = bodyY + SLOTS_LABEL_Y;
-        graphics.text(font, prefix, sx, sy, LABEL_COLOR, false);
-        graphics.text(font, Component.literal(Integer.toString(menu.getSlotCountSetting())),
-                sx + font.width(prefix), sy, MUTED_LABEL_COLOR, false);
+        drawLabel(graphics, font, prefix, bodyX, sx, sy);
+        drawValue(graphics, font, Component.literal(Integer.toString(menu.getSlotCountSetting())),
+                bodyX, sx + font.width(prefix), sy);
 
-        graphics.text(font, Component.translatable("gui.dopasrandomutilities.page",
-                        menu.getPage() + 1, menu.getPageCount()),
-                bodyX + CONTENT_PAD, bodyY + PAGE_LABEL_Y, LABEL_COLOR, false);
+        Component pageLabel = Component.translatable("gui.dopasrandomutilities.page_label");
+        int px = bodyX + CONTENT_PAD;
+        int py = bodyY + PAGE_LABEL_Y;
+        drawLabel(graphics, font, pageLabel, bodyX, px, py);
+        drawValue(graphics, font,
+                Component.literal((menu.getPage() + 1) + " / " + menu.getPageCount()),
+                bodyX, px + font.width(pageLabel) + 4, py);
     }
 }

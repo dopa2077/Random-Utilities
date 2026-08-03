@@ -11,6 +11,13 @@ public record FilterProfile(
         boolean colorable,
         boolean configurableMaxStack,
         boolean slotCycling,
+        boolean showCosmetic,
+        boolean showCosmeticHighlight,
+        boolean showConfigurator,
+        boolean showEnergy,
+        boolean showUpgrades,
+        boolean showRedstone,
+        boolean showGatherButton,
         String emptyTooltipKey,
         String containerTitleKey,
         String slotsTooltipKey
