@@ -29,7 +29,6 @@ import net.minecraft.world.item.component.UseCooldown;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 
 /** Filter/void item — behaviour driven entirely by {@link FilterProfile}. Register new variants via {@link FilterRegistry}. */
 public class FilterItem extends Item {
@@ -73,16 +72,10 @@ public class FilterItem extends Item {
             return InteractionResult.CONSUME;
         }
 
-        // Instant actions: swap to proxy, use, restore filter in the same call.
-        player.setItemInHand(hand, selected);
-        InteractionResult result;
-        try {
-            result = selected.use(level, player, hand);
-        } catch (RuntimeException exception) {
-            player.setItemInHand(hand, host);
-            throw exception;
-        }
-        return restoreHost(player, hand, host, result);
+        // Instant hand-swap proxy is unsafe: items like backpacks open a menu bound to the
+        // temporary hand stack; even closing that menu leaves in-flight open-screen packets
+        // that desync/wipe the player inventory. Consumables use startUsingItem on the host instead.
+        return InteractionResult.PASS;
     }
 
     @Override
@@ -108,45 +101,7 @@ public class FilterItem extends Item {
             return InteractionResult.SUCCESS;
         }
 
-        BlockHitResult hit = new BlockHitResult(
-                context.getClickLocation(),
-                context.getClickedFace(),
-                context.getClickedPos(),
-                context.isInside()
-        );
-        player.setItemInHand(hand, selected);
-        InteractionResult result;
-        try {
-            result = selected.useOn(new UseOnContext(player, hand, hit));
-        } catch (RuntimeException exception) {
-            player.setItemInHand(hand, host);
-            throw exception;
-        }
-        return restoreHost(player, hand, host, result);
-    }
-
-    private static InteractionResult restoreHost(
-            Player player,
-            InteractionHand hand,
-            ItemStack host,
-            InteractionResult result
-    ) {
-        if (result == InteractionResult.CONSUME) {
-            player.setItemInHand(hand, host);
-            return result;
-        }
-
-        ItemStack after = player.getItemInHand(hand);
-        if (result instanceof InteractionResult.Success success
-                && success.itemContext().heldItemTransformedTo() != null) {
-            after = success.itemContext().heldItemTransformedTo();
-            FilterStorage.setSelectedStack(host, after);
-            player.setItemInHand(hand, host);
-            return success.heldItemTransformedTo(host);
-        }
-        FilterStorage.setSelectedStack(host, after);
-        player.setItemInHand(hand, host);
-        return result;
+        return InteractionResult.PASS;
     }
 
     @Override
@@ -268,13 +223,7 @@ public class FilterItem extends Item {
 
     @Override
     public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target, InteractionHand hand) {
-        ItemStack selected = FilterStorage.getSelectedStack(stack);
-        if (selected.isEmpty()) {
-            return InteractionResult.PASS;
-        }
-        // Instant swap + restore in the same call (non-consumables).
-        player.setItemInHand(hand, selected);
-        return restoreHost(player, hand, stack, selected.interactLivingEntity(player, target, hand));
+        return InteractionResult.PASS;
     }
 
     @Override
