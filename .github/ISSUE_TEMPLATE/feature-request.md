@@ -1,0 +1,57 @@
+---
+name: Feature Request
+about: Suggest an idea for this project
+title: ''
+labels: ''
+assignees: ''
+
+---
+
+name: Feature Request
+description: Suggest a new item, block, mechanic or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the feature clearly.  
+        The more concrete the better (especially for a QoL / Random Utilities style mod).
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature Description
+      description: What do you want added or changed?
+      placeholder: A new block/item/mechanic that does X
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case / Why is this useful?
+      description: How would this improve gameplay?
+    validations:
+      required: true
+
+  - type: textarea
+    id: possible-implementation
+    attributes:
+      label: Possible Implementation (optional)
+      description: Any ideas how it could work? Recipes, config options, etc.
+      placeholder: Optional but appreciated
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways this could be solved, or existing mods that do something similar
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to help implement this (code / textures / testing)
+          required: false
