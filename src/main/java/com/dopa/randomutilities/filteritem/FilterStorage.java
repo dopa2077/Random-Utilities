@@ -48,7 +48,7 @@ public final class FilterStorage {
             contents = clampBasic(new FilterContents(
                     contents.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(contents.slot(0)),
                     profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : contents.maxStackSize(),
-                    0, 0, contents.color()
+                    0, 0, contents.color(), contents.highlightMatchColor()
             ), profile);
         } else {
             contents = clampAdvanced(contents.ensureMinimum(profile.minSlots()), profile);
@@ -62,12 +62,12 @@ public final class FilterStorage {
         clamped = new FilterContents(
                 clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
                 maxStack,
-                0, 0, clamped.color()
+                0, 0, clamped.color(), clamped.highlightMatchColor()
         );
         return new FilterContents(
                 clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
                 maxStack,
-                0, 0, clamped.color()
+                0, 0, clamped.color(), clamped.highlightMatchColor()
         );
     }
 
@@ -140,7 +140,8 @@ public final class FilterStorage {
                 contents.maxStackSize(),
                 contents.selectedSlot(),
                 contents.page(),
-                contents.color()
+                contents.color(),
+                contents.highlightMatchColor()
         );
     }
 
@@ -409,7 +410,8 @@ public final class FilterStorage {
                 contents.maxStackSize(),
                 contents.selectedSlot(),
                 contents.page(),
-                contents.color()
+                contents.color(),
+                contents.highlightMatchColor()
         );
     }
 

@@ -7,6 +7,7 @@ package com.dopa.randomutilities.filteritem.client.panel;
 public enum PanelAnchor {
     LEFT_TOP(0, true),
     LEFT_BELOW(1, true),
+    LEFT_LOW(2, true),
     RIGHT_TOP(0, false),
     RIGHT_BELOW(1, false),
     RIGHT_LOW(2, false);

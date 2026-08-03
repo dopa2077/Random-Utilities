@@ -18,20 +18,23 @@ public record FilterContents(
         int maxStackSize,
         int selectedSlot,
         int page,
-        int color
+        int color,
+        boolean highlightMatchColor
 ) {
     public static final int SLOTS_PER_PAGE = 54;
     public static final int SLOTS_PER_ROW = 9;
     public static final int MIN_ADVANCED_SLOTS = 9;
     public static final int MAX_TOTAL_SLOTS = SLOTS_PER_PAGE * 64;
     public static final int DEFAULT_COLOR = 0xFFFFFF;
+    /** GUI selected-slot highlight when {@link #highlightMatchColor} is false. */
+    public static final int DEFAULT_HIGHLIGHT_COLOR = 0x555555;
 
     public static FilterContents basicDefault() {
-        return new FilterContents(List.of(Slot.EMPTY), 64, 0, 0, DEFAULT_COLOR);
+        return new FilterContents(List.of(Slot.EMPTY), 64, 0, 0, DEFAULT_COLOR, false);
     }
 
     public static FilterContents advancedDefault(int minSlots) {
-        return new FilterContents(emptySlots(minSlots), 64, 0, 0, DEFAULT_COLOR);
+        return new FilterContents(emptySlots(minSlots), 64, 0, 0, DEFAULT_COLOR, false);
     }
 
     public static final Codec<FilterContents> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -39,7 +42,8 @@ public record FilterContents(
             Codec.INT.fieldOf("max_stack_size").forGetter(FilterContents::maxStackSize),
             Codec.INT.fieldOf("selected_slot").forGetter(FilterContents::selectedSlot),
             Codec.INT.fieldOf("page").forGetter(FilterContents::page),
-            Codec.INT.fieldOf("color").forGetter(FilterContents::color)
+            Codec.INT.fieldOf("color").forGetter(FilterContents::color),
+            Codec.BOOL.optionalFieldOf("highlight_match", false).forGetter(FilterContents::highlightMatchColor)
     ).apply(instance, FilterContents::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FilterContents> STREAM_CODEC = StreamCodec.composite(
@@ -53,6 +57,8 @@ public record FilterContents(
             FilterContents::page,
             ByteBufCodecs.INT,
             FilterContents::color,
+            ByteBufCodecs.BOOL,
+            FilterContents::highlightMatchColor,
             FilterContents::new
     );
 
@@ -103,7 +109,7 @@ public record FilterContents(
         }
         int capped = Math.max(0, count);
         next.set(index, Slot.of(resource, capped));
-        return new FilterContents(next, maxStackSize, selectedSlot, page, color);
+        return new FilterContents(next, maxStackSize, selectedSlot, page, color, highlightMatchColor);
     }
 
     public FilterContents withSlotStack(int index, ItemStack stack) {
@@ -113,19 +119,23 @@ public record FilterContents(
     }
 
     public FilterContents withMaxStackSize(int value) {
-        return new FilterContents(slots, Math.max(1, value), selectedSlot, page, color);
+        return new FilterContents(slots, Math.max(1, value), selectedSlot, page, color, highlightMatchColor);
     }
 
     public FilterContents withSelectedSlot(int index) {
-        return new FilterContents(slots, maxStackSize, index, page, color);
+        return new FilterContents(slots, maxStackSize, index, page, color, highlightMatchColor);
     }
 
     public FilterContents withPage(int newPage) {
-        return new FilterContents(slots, maxStackSize, selectedSlot, newPage, color);
+        return new FilterContents(slots, maxStackSize, selectedSlot, newPage, color, highlightMatchColor);
     }
 
     public FilterContents withColor(int rgb) {
-        return new FilterContents(slots, maxStackSize, selectedSlot, page, rgb);
+        return new FilterContents(slots, maxStackSize, selectedSlot, page, rgb, highlightMatchColor);
+    }
+
+    public FilterContents withHighlightMatchColor(boolean match) {
+        return new FilterContents(slots, maxStackSize, selectedSlot, page, color, match);
     }
 
     public FilterContents withSlotCount(int count, int minSlots, int maxSlots) {
@@ -136,7 +146,7 @@ public record FilterContents(
         }
         int newSelected = Math.min(selectedSlot, target - 1);
         int newPage = Math.min(page, Math.max(0, (target + SLOTS_PER_PAGE - 1) / SLOTS_PER_PAGE - 1));
-        return new FilterContents(next, maxStackSize, newSelected, newPage, color);
+        return new FilterContents(next, maxStackSize, newSelected, newPage, color, highlightMatchColor);
     }
 
     public FilterContents ensureMinimum(int minSlots) {

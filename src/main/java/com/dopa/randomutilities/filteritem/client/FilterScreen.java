@@ -2,8 +2,10 @@ package com.dopa.randomutilities.filteritem.client;
 
 import com.dopa.randomutilities.filteritem.FilterContents;
 import com.dopa.randomutilities.filteritem.client.panel.ConfiguratorPanel;
+import com.dopa.randomutilities.filteritem.client.panel.CosmeticPanel;
 import com.dopa.randomutilities.filteritem.client.panel.EnergyPanel;
 import com.dopa.randomutilities.filteritem.client.panel.InformativePanel;
+import com.dopa.randomutilities.filteritem.client.panel.PanelAnchor;
 import com.dopa.randomutilities.filteritem.client.panel.PanelHost;
 import com.dopa.randomutilities.filteritem.client.panel.RedstonePanel;
 import com.dopa.randomutilities.filteritem.client.panel.UpgradePanel;
@@ -11,10 +13,14 @@ import com.dopa.randomutilities.filteritem.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.WidgetSprites;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -24,17 +30,17 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements ColorPickerHost {
+public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     private static final Identifier CHEST_BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
@@ -64,11 +70,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     private static double pendingMouseY = Double.NaN;
 
     private final int containerRows;
-    private final FilterColorPicker colorPicker = new FilterColorPicker();
     private final PanelHost panelHost = new PanelHost();
 
     @Nullable
     private ConfiguratorPanel configuratorPanel;
+    @Nullable
+    private CosmeticPanel cosmeticPanel;
     @Nullable
     private RedstonePanel redstonePanel;
     private IconButton gatherButton;
@@ -137,48 +144,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                 || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
     }
 
-    public void openColorPicker() {
-        this.colorPicker.open(this);
-    }
-
     public void clearGatherConfirm() {
         this.gatherConfirmPending = false;
     }
 
-    @Override
-    public int getPickerColor() {
-        return this.menu.getColor();
-    }
-
-    @Override
-    public void onPickerColorCommitted(int rgb) {
-        ClientPacketDistributor.sendToServer(
-                com.dopa.randomutilities.filteritem.network.FilterSettingPayload.color(rgb));
-    }
-
-    @Override
-    public <T extends net.minecraft.client.gui.components.events.GuiEventListener & net.minecraft.client.gui.components.Renderable & net.minecraft.client.gui.narration.NarratableEntry> T addPickerWidget(T widget) {
-        return addOverlayWidget(widget);
-    }
-
-    @Override
-    public void removePickerWidget(net.minecraft.client.gui.components.events.GuiEventListener widget) {
-        removeOverlayWidget(widget);
-    }
-
-    @Override
-    public net.minecraft.client.gui.Font getFont() {
+    public Font getFont() {
         return this.font;
-    }
-
-    @Override
-    public int width() {
-        return this.width;
-    }
-
-    @Override
-    public int height() {
-        return this.height;
     }
 
     public static void preserveMousePosition(Minecraft minecraft) {
@@ -243,21 +214,38 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         super.init();
         this.panelHost.clear();
         this.configuratorPanel = null;
+        this.cosmeticPanel = null;
         this.redstonePanel = null;
 
+        var profile = this.menu.profile();
         this.panelHost.add(new InformativePanel(this.menu.isBasic()));
 
-        if (!this.menu.isBasic()) {
+        if (profile != null && profile.showConfigurator()) {
             this.configuratorPanel = new ConfiguratorPanel(this);
             this.panelHost.add(this.configuratorPanel);
+            this.configuratorPanel.initWidgets();
+        }
+
+        if (profile != null && profile.showCosmetic()) {
+            PanelAnchor cosmeticAnchor = profile.showConfigurator() ? PanelAnchor.LEFT_LOW : PanelAnchor.LEFT_BELOW;
+            this.cosmeticPanel = new CosmeticPanel(this, cosmeticAnchor, profile.showCosmeticHighlight());
+            this.panelHost.add(this.cosmeticPanel);
+            this.cosmeticPanel.initWidgets();
+        }
+
+        if (profile != null && profile.showEnergy()) {
             this.panelHost.add(new EnergyPanel());
+        }
+        if (profile != null && profile.showUpgrades()) {
             this.panelHost.add(new UpgradePanel(this.menu.getUpgradeSlots()));
+        }
+        if (profile != null && profile.showRedstone()) {
             this.redstonePanel = new RedstonePanel(this);
             this.panelHost.add(this.redstonePanel);
-
-            this.configuratorPanel.initWidgets();
             this.redstonePanel.initWidgets();
+        }
 
+        if (profile != null && profile.showGatherButton()) {
             this.gatherButton = new IconButton(
                     this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,
                     this.topPos + 4,
@@ -269,9 +257,16 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
             );
             this.addRenderableWidget(this.gatherButton);
             this.gatherConfirmPending = false;
+        } else {
+            this.gatherButton = null;
+            this.gatherConfirmPending = false;
         }
 
         this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
+        if (this.menu.shouldRestoreConfigPanel()) {
+            this.panelHost.snapOpen(PanelAnchor.LEFT_BELOW);
+            this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
+        }
         restoreMousePositionIfPending();
     }
 
@@ -281,13 +276,11 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         this.panelHost.tick();
         this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
 
-        if (!this.menu.isBasic()) {
+        if (this.gatherButton != null) {
             if (this.gatherConfirmPending && !this.menu.wouldGatherChange()) {
                 this.gatherConfirmPending = false;
             }
-            if (this.gatherButton != null) {
-                this.gatherButton.updateTooltip(gatherTooltip());
-            }
+            this.gatherButton.updateTooltip(gatherTooltip());
         }
     }
 
@@ -295,9 +288,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     public void onClose() {
         if (this.configuratorPanel != null) {
             this.configuratorPanel.onScreenClose();
-        }
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            this.colorPicker.close(this);
         }
         super.onClose();
     }
@@ -333,6 +323,10 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        // Panels first so the inventory frame draws over them (glued / underneath look).
+        this.panelHost.tick();
+        this.panelHost.render(graphics, this.font, this.leftPos, this.topPos, this.imageWidth,
+                mouseX, mouseY, partialTick);
         if (this.menu.isBasic()) {
             renderBasicBackground(graphics);
         } else {
@@ -344,9 +338,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
                     0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
             coverUnusedSlotsOnLastRow(graphics, xo, yo, this.menu.getPageSlotCount());
         }
-        this.panelHost.tick();
-        this.panelHost.render(graphics, this.font, this.leftPos, this.topPos, this.imageWidth,
-                mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -357,9 +348,11 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         super.extractContents(graphics, mouseX, mouseY, partialTick);
         if (!this.menu.isBasic()) {
             renderOverCapWarnings(graphics, partialTick);
-            if (this.colorPicker.isOpen()) {
-                this.colorPicker.renderOnTop(graphics, this, mouseX, mouseY, partialTick);
-            }
+        }
+        Component tabTooltip = this.panelHost.hoveredTabTooltip(
+                mouseX, mouseY, this.leftPos, this.topPos, this.imageWidth);
+        if (tabTooltip != null) {
+            graphics.setTooltipForNextFrame(this.font, tabTooltip, mouseX, mouseY);
         }
     }
 
@@ -393,7 +386,9 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         if (this.menu.isFilterSlotOverCap(local)) {
             return;
         }
-        int color = 0xFF000000 | this.menu.getColor();
+        int color = 0xFF000000 | (this.menu.isHighlightMatchColor()
+                ? this.menu.getColor()
+                : FilterContents.DEFAULT_HIGHLIGHT_COLOR);
         int x = this.leftPos + slot.x;
         int y = this.topPos + slot.y;
         int t = HIGHLIGHT_BORDER;
@@ -438,17 +433,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            if (event.isEscape()) {
-                this.colorPicker.close(this);
-                return true;
-            }
-            if (this.minecraft != null && this.minecraft.options.keyInventory.matches(event)) {
-                this.colorPicker.close(this);
-                return true;
-            }
-            return true;
-        }
         if (this.getFocused() instanceof EditBox editBox) {
             if (event.isConfirmation()) {
                 this.clearFocus();
@@ -463,48 +447,128 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            if (!this.colorPicker.contains(event.x(), event.y())) {
-                this.colorPicker.close(this);
+        // Tabs / panel bodies sit outside the inventory rect; AbstractContainerScreen treats those
+        // clicks as slotId -999 (drop) and returns true, so handle them without that path.
+        boolean overTab = false;
+        for (var p : this.panelHost.panels()) {
+            if (p.isMouseOverTab(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth)) {
+                overTab = true;
+                break;
+            }
+        }
+        var occupying = this.panelHost.openPanel();
+        boolean overBody = occupying != null
+                && occupying.isMouseOverBody(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+        if (overTab) {
+            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+        }
+        if (overBody) {
+            // Widgets first (Screen children), then empty-body close — skip container outside-click.
+            for (int i = this.children().size() - 1; i >= 0; i--) {
+                GuiEventListener child = this.children().get(i);
+                if (child.mouseClicked(event, doubleClick)) {
+                    this.setFocused(child);
+                    // Clear sticky button highlight only — clearing all focus kills slider drag/release.
+                    if (child instanceof Button) {
+                        this.clearFocus();
+                    } else {
+                        // Screen.mouseDragged only forwards when isDragging(); vanilla mouseClicked sets this.
+                        this.setDragging(true);
+                    }
+                    if (this.configuratorPanel != null) {
+                        this.configuratorPanel.clearFocusIfOutside(event.x(), event.y());
+                    }
+                    return true;
+                }
+            }
+            // Inactive widgets still occupy space; AbstractWidget.isMouseOver often ignores them.
+            for (int i = this.children().size() - 1; i >= 0; i--) {
+                GuiEventListener child = this.children().get(i);
+                if (child instanceof AbstractWidget widget
+                        && widget.visible
+                        && !widget.active
+                        && isOverWidget(widget, event.x(), event.y())) {
+                    return true;
+                }
+            }
+            // Upgrade slots live in the panel body — let the container handle them; do not close.
+            Slot slotUnder = findActiveSlotAt(event.x(), event.y());
+            if (slotUnder != null && this.menu.isUpgradeSlotIndex(slotUnder.index)) {
+                boolean handled = super.mouseClicked(event, doubleClick);
+                if (handled && !(this.getFocused() instanceof EditBox)) {
+                    this.clearFocus();
+                }
                 return true;
             }
-            super.mouseClicked(event, doubleClick);
+            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+        }
+        boolean handled = super.mouseClicked(event, doubleClick);
+        if (handled) {
+            // Drop button highlight focus; keep EditBox focus for typing.
+            if (!(this.getFocused() instanceof EditBox)) {
+                this.clearFocus();
+            }
+            if (this.configuratorPanel != null) {
+                this.configuratorPanel.clearFocusIfOutside(event.x(), event.y());
+            }
             return true;
         }
         if (this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth)) {
             return true;
         }
-        boolean handled = super.mouseClicked(event, doubleClick);
         if (this.configuratorPanel != null) {
             this.configuratorPanel.clearFocusIfOutside(event.x(), event.y());
         }
-        return handled;
-    }
-
-    @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            return this.getFocused() != null && this.isDragging() && event.button() == 0
-                    && this.getFocused().mouseDragged(event, dx, dy);
-        }
-        return super.mouseDragged(event, dx, dy);
+        return false;
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (!this.menu.isBasic() && this.colorPicker.isOpen()) {
-            if (event.button() == 0 && this.isDragging()) {
-                this.setDragging(false);
-                if (this.getFocused() != null) {
-                    return this.getFocused().mouseReleased(event);
-                }
-            }
-            return super.mouseReleased(event);
+        // Outside-GUI release can skip focused overlay widgets; deliver release first so sliders commit.
+        GuiEventListener focused = this.getFocused();
+        boolean handled = focused != null && focused.mouseReleased(event);
+        this.setDragging(false);
+        if (handled) {
+            return true;
         }
         return super.mouseReleased(event);
     }
 
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (this.panelHost.mouseScrolled(mouseX, mouseY, scrollY, this.leftPos, this.topPos, this.imageWidth, this.font)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    private static boolean isOverWidget(AbstractWidget widget, double mouseX, double mouseY) {
+        return mouseX >= widget.getX()
+                && mouseY >= widget.getY()
+                && mouseX < widget.getX() + widget.getWidth()
+                && mouseY < widget.getY() + widget.getHeight();
+    }
+
+    @Nullable
+    private Slot findActiveSlotAt(double mouseX, double mouseY) {
+        for (Slot slot : this.menu.slots) {
+            if (!slot.isActive()) {
+                continue;
+            }
+            if (this.isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
     private static final class IconButton extends AbstractWidget {
+        private static final WidgetSprites BUTTON_SPRITES = new WidgetSprites(
+                Identifier.withDefaultNamespace("widget/button"),
+                Identifier.withDefaultNamespace("widget/button_disabled"),
+                Identifier.withDefaultNamespace("widget/button_highlighted")
+        );
+
         private final Identifier texture;
         private final int iconSize;
         private final Runnable onPress;
@@ -537,9 +601,15 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> implements
         public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             int x = this.getX();
             int y = this.getY();
-            int bg = this.isHovered() ? 0xFFC6C6C6 : 0xFF8B8B8B;
-            graphics.fill(x, y, x + this.width, y + this.height, bg);
-            graphics.fill(x + 1, y + 1, x + this.width - 1, y + this.height - 1, 0xFF373737);
+            graphics.blitSprite(
+                    RenderPipelines.GUI_TEXTURED,
+                    BUTTON_SPRITES.get(this.active, this.isHoveredOrFocused()),
+                    x,
+                    y,
+                    this.width,
+                    this.height,
+                    ARGB.white(this.alpha)
+            );
             int iconX = x + (this.width - iconSize) / 2;
             int iconY = y + (this.height - iconSize) / 2;
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture, iconX, iconY, 0.0F, 0.0F,

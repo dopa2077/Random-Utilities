@@ -3,14 +3,17 @@ package com.dopa.randomutilities.filteritem.client.panel;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public final class EnergyPanel extends AttachedPanel {
-    private static final int BG = 0xFF3A5570;
+    private static final int BG = 0xFF2A66B0;
+    private static final ItemStack ENERGY_ICON = new ItemStack(Items.LIGHTNING_ROD.weathering().unaffected());
 
     public EnergyPanel() {
         super(
                 PanelAnchor.RIGHT_TOP,
-                96,
+                108,
                 64,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.energy")
@@ -19,19 +22,17 @@ public final class EnergyPanel extends AttachedPanel {
 
     @Override
     protected void renderIcon(GuiGraphicsExtractor graphics, Font font, int centerX, int centerY) {
-        // Lightning bolt silhouette
-        int c = 0xFFB8D4F0;
-        graphics.fill(centerX - 1, centerY - 7, centerX + 2, centerY - 1, c);
-        graphics.fill(centerX - 4, centerY - 1, centerX + 3, centerY + 1, c);
-        graphics.fill(centerX - 1, centerY + 1, centerX + 2, centerY + 7, c);
-        graphics.fill(centerX + 1, centerY + 2, centerX + 5, centerY + 4, c);
+        graphics.item(ENERGY_ICON, centerX - 8, centerY - 8, centerX ^ centerY);
     }
 
     @Override
     protected void renderContents(GuiGraphicsExtractor graphics, Font font, int bodyX, int bodyY,
                                   int mouseX, int mouseY, float partialTick) {
-        graphics.text(font, title, bodyX + CONTENT_PAD, bodyY + CONTENT_PAD, 0xFFE8F0FF, false);
-        graphics.text(font, Component.translatable("gui.dopasrandomutilities.panel.energy.empty"),
-                bodyX + CONTENT_PAD, bodyY + CONTENT_PAD + 14, 0xFFA0B8D0, false);
+        renderTitleRow(graphics, font, bodyX, bodyY);
+        int statusY = bodyY + TITLE_ROW_HEIGHT + 2;
+        drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.panel.energy.status"),
+                bodyX, statusY);
+        drawValue(graphics, font, Component.translatable("gui.dopasrandomutilities.panel.energy.empty"),
+                bodyX, statusY + font.lineHeight + 1);
     }
 }

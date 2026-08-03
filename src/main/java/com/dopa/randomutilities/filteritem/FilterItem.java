@@ -330,15 +330,22 @@ public class FilterItem extends Item {
             return;
         }
         FilterContents contents = FilterStorage.get(host);
+        boolean restoreConfig = FilterMenu.restoreConfigOnNextOpen;
+        FilterMenu.restoreConfigOnNextOpen = false;
         serverPlayer.openMenu(
                 new SimpleMenuProvider(
                         (id, inv, p) -> new FilterMenu(id, inv, hand),
                         profile.containerTitle()
                 ),
                 buf -> {
+                    buf.writeBoolean(false);
                     buf.writeEnum(hand);
                     if (!profile.isBasic()) {
+                        buf.writeBoolean(true);
                         FilterContents.STREAM_CODEC.encode(buf, contents);
+                        buf.writeBoolean(restoreConfig);
+                    } else {
+                        buf.writeBoolean(false);
                     }
                 }
         );

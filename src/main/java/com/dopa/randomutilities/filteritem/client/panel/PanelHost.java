@@ -3,6 +3,7 @@ package com.dopa.randomutilities.filteritem.client.panel;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public final class PanelHost {
     @Nullable
     public AttachedPanel openPanel() {
         for (AttachedPanel panel : panels) {
-            if (panel.isExpanded()) {
+            if (panel.isOccupying()) {
                 return panel;
             }
         }
@@ -63,12 +64,19 @@ public final class PanelHost {
 
     public void render(GuiGraphicsExtractor graphics, Font font, int leftPos, int topPos, int imageWidth,
                        int mouseX, int mouseY, float partialTick) {
-        // Tabs first, then bodies, so an open panel draws over neighboring tab icons.
+        // Closed tabs, then bodies (cover neighbors), then occupying icon on top of the body corner.
         for (AttachedPanel panel : panels) {
+            if (panel.isOccupying() && panel.progress() > 0.001F) {
+                continue;
+            }
             panel.renderTabOnly(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY);
         }
         for (AttachedPanel panel : panels) {
             panel.renderBodyIfOpen(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
+        }
+        AttachedPanel occupying = openPanel();
+        if (occupying != null && occupying.progress() > 0.001F) {
+            occupying.renderTabIconOnly(graphics, font, leftPos, topPos, imageWidth);
         }
     }
 
@@ -92,12 +100,13 @@ public final class PanelHost {
             ));
             if (panel.progress() > 0.001F) {
                 int w = panel.bodyWidthAnimated();
-                if (w > 0) {
+                int h = panel.bodyHeightAnimated();
+                if (w > 0 && h > 0) {
                     areas.add(new Rect2i(
                             panel.bodyXAnimated(leftPos, imageWidth),
                             panel.bodyY(topPos),
                             w,
-                            panel.panelHeight()
+                            h
                     ));
                 }
             }
@@ -105,10 +114,41 @@ public final class PanelHost {
         return areas;
     }
 
+    @Nullable
+    public Component hoveredTabTooltip(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        AttachedPanel occupying = openPanel();
+        if (occupying != null && occupying.isMouseOverBody(mouseX, mouseY, leftPos, topPos, imageWidth)) {
+            // Open panel suppresses its own tab tooltip; closed tabs under the body stay hidden too.
+            return null;
+        }
+        for (AttachedPanel panel : panels) {
+            if (panel.isOccupying()) {
+                continue;
+            }
+            if (panel.isMouseOverTab(mouseX, mouseY, leftPos, topPos, imageWidth)) {
+                return panel.title();
+            }
+        }
+        return null;
+    }
+
     /**
      * @return true if a tab click was handled
      */
     public boolean handleTabClick(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        AttachedPanel occupying = openPanel();
+        if (occupying != null && occupying.isMouseOverBody(mouseX, mouseY, leftPos, topPos, imageWidth)) {
+            if (occupying.isMouseOverTab(mouseX, mouseY, leftPos, topPos, imageWidth)) {
+                pendingOpen = null;
+                occupying.requestClose();
+                return true;
+            }
+            // Other tabs under this body are covered visually — treat as empty body (close),
+            // do not open/activate the covered tab.
+            pendingOpen = null;
+            occupying.requestClose();
+            return true;
+        }
         for (AttachedPanel panel : panels) {
             if (!panel.isMouseOverTab(mouseX, mouseY, leftPos, topPos, imageWidth)) {
                 continue;
@@ -124,6 +164,15 @@ public final class PanelHost {
         return false;
     }
 
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY,
+                                 int leftPos, int topPos, int imageWidth, Font font) {
+        AttachedPanel occupying = openPanel();
+        if (occupying == null) {
+            return false;
+        }
+        return occupying.mouseScrolled(mouseX, mouseY, scrollY, leftPos, topPos, imageWidth, font);
+    }
+
     public void requestOpen(AttachedPanel panel) {
         AttachedPanel current = openPanel();
         if (current == null) {
@@ -136,5 +185,16 @@ public final class PanelHost {
         }
         pendingOpen = panel;
         current.requestClose();
+    }
+
+    /** Instantly open the panel at the given anchor (used after screen rebuild). */
+    public void snapOpen(PanelAnchor anchor) {
+        pendingOpen = null;
+        for (AttachedPanel panel : panels) {
+            if (panel.anchor() == anchor) {
+                panel.snapOpen();
+                return;
+            }
+        }
     }
 }

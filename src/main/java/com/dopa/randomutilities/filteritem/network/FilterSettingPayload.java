@@ -15,6 +15,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public record FilterSettingPayload(byte kind, int value) implements CustomPacketPayload {
     public static final byte KIND_COLOR = 0;
     public static final byte KIND_MAX_STACK = 1;
+    public static final byte KIND_HIGHLIGHT_MATCH = 2;
 
     public static final Type<FilterSettingPayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath(dOPasRandomUtilities.MOD_ID, "filter_setting"));
@@ -33,6 +34,10 @@ public record FilterSettingPayload(byte kind, int value) implements CustomPacket
         return new FilterSettingPayload(KIND_MAX_STACK, size);
     }
 
+    public static FilterSettingPayload highlightMatch(boolean match) {
+        return new FilterSettingPayload(KIND_HIGHLIGHT_MATCH, match ? 1 : 0);
+    }
+
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
@@ -46,6 +51,8 @@ public record FilterSettingPayload(byte kind, int value) implements CustomPacket
                     menu.setColorSetting(payload.value() & 0xFFFFFF);
                 } else if (payload.kind() == KIND_MAX_STACK) {
                     menu.setMaxStackSizeSetting(DevNullConfig.clampAdvancedMaxStack(payload.value()));
+                } else if (payload.kind() == KIND_HIGHLIGHT_MATCH) {
+                    menu.setHighlightMatchColorSetting(payload.value() != 0);
                 }
             }
         });

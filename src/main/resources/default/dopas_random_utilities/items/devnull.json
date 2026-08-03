@@ -3,9 +3,9 @@
     "max_stack_size": 64
   },
   "advanced": {
-    "min_slots": 9,
-    "max_slots": 54,
-    "max_stack_size": 1000000,
-    "max_pages": 1
+    "min_slots": 27,
+    "max_slots": 81,
+    "max_stack_size": 1000,
+    "max_pages": 2
   }
 }

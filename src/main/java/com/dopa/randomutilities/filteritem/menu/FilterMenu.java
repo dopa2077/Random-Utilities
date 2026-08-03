@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.filteritem.menu;
 
+import com.dopa.randomutilities.block.UiTestBlockEntity;
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.FilterContents;
 import com.dopa.randomutilities.filteritem.FilterItem;
@@ -8,6 +9,7 @@ import com.dopa.randomutilities.filteritem.FilterRegistry;
 import com.dopa.randomutilities.filteritem.FilterStorage;
 import com.dopa.randomutilities.registry.ModMenus;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +25,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.world.inventory.StackCopySlot;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,54 +40,61 @@ public class FilterMenu extends AbstractContainerMenu {
     public static final int BTN_ADD_ROW = 4;
     public static final int BTN_REMOVE_ROW = 5;
     public static final int BTN_GATHER = 6;
-    public static final int DATA_SIZE = 10;
+    public static final int DATA_SIZE = 11;
+
+    /** Set before reopen so the client snaps Configuration open after menu rebuild. */
+    public static boolean restoreConfigOnNextOpen;
 
     public static final int BASIC_SLOT_X = 80;
     public static final int BASIC_SLOT_Y = 18;
     public static final int BASIC_PLAYER_INV_Y = 49;
 
     private final Player player;
+    @Nullable
     private final InteractionHand hand;
+    @Nullable
+    private final BlockPos blockPos;
     private final FilterProfile profile;
     private final FilterStacksHandler handler;
     private final ContainerData data;
     private final int pageSlotCount;
     private final int rows;
-    private final int displayPage;
+    private int displayPage;
     private final List<UpgradeSlot> upgradeSlots;
     private final int playerInvStart;
+    private final boolean restoreConfigPanel;
 
     public FilterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
-        this(containerId, playerInv, buf.readEnum(InteractionHand.class), null, buf);
+        this(containerId, playerInv, OpenSource.decode(playerInv.player, buf));
     }
 
     public FilterMenu(int containerId, Inventory playerInv, InteractionHand hand) {
-        this(containerId, playerInv, hand, FilterStorage.get(playerInv.player.getItemInHand(hand)), null);
+        this(containerId, playerInv, OpenSource.forHand(playerInv.player, hand, null, false));
     }
 
-    private FilterMenu(
-            int containerId,
-            Inventory playerInv,
-            InteractionHand hand,
-            FilterContents presetContents,
-            RegistryFriendlyByteBuf buf
-    ) {
+    public FilterMenu(int containerId, Inventory playerInv, BlockPos blockPos, FilterContents contents) {
+        this(containerId, playerInv, OpenSource.forBlock(blockPos, contents, false));
+    }
+
+    private FilterMenu(int containerId, Inventory playerInv, OpenSource source) {
         super(ModMenus.FILTER.get(), containerId);
         this.player = playerInv.player;
-        this.hand = hand;
-        ItemStack host = player.getItemInHand(hand);
+        this.hand = source.hand();
+        this.blockPos = source.blockPos();
+        ItemStack host = host();
         this.profile = FilterRegistry.profile(host);
-        this.data = profile != null && !profile.isBasic() ? new SimpleContainerData(DATA_SIZE) : null;
+        this.data = profile != null && (!profile.isBasic() || profile.colorable())
+                ? new SimpleContainerData(DATA_SIZE)
+                : null;
 
-        FilterContents contents = presetContents;
-        if (contents == null && profile != null && !profile.isBasic() && buf != null) {
-            contents = FilterContents.STREAM_CODEC.decode(buf);
-        }
+        FilterContents contents = source.presetContents();
         if (contents == null) {
             contents = FilterStorage.get(host);
         }
+        boolean restoreConfig = source.restoreConfig();
 
         if (profile == null || profile.isBasic()) {
+            this.restoreConfigPanel = false;
             this.pageSlotCount = 1;
             this.rows = 1;
             this.displayPage = 0;
@@ -97,8 +107,14 @@ public class FilterMenu extends AbstractContainerMenu {
             this.handler.setOnChanged(this::saveBasic);
             this.addSlot(new FilterSlot(handler, 0, BASIC_SLOT_X, BASIC_SLOT_Y, true, maxStack));
             this.addStandardInventorySlots(playerInv, 8, BASIC_PLAYER_INV_Y);
+            if (data != null) {
+                syncData();
+                this.addDataSlots(data);
+            }
             return;
         }
+
+        this.restoreConfigPanel = restoreConfig;
 
         int page = contents.clampedPage();
         this.displayPage = page;
@@ -112,7 +128,7 @@ public class FilterMenu extends AbstractContainerMenu {
             stacks.set(i, contents.stackInSlot(start + i));
         }
 
-        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(player.getItemInHand(hand)).maxStackSize());
+        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(host()).maxStackSize());
         this.handler.setOnChanged(this::savePage);
         for (int i = 0; i < pageSlotCount; i++) {
             int col = i % 9;
@@ -120,19 +136,61 @@ public class FilterMenu extends AbstractContainerMenu {
             this.addSlot(new FilterSlot(handler, i, 8 + col * 18, 18 + row * 18, false, 0));
         }
 
-        SimpleContainer upgradeContainer = new SimpleContainer(UpgradeSlot.COUNT);
-        List<UpgradeSlot> upgrades = new ArrayList<>(UpgradeSlot.COUNT);
-        for (int i = 0; i < UpgradeSlot.COUNT; i++) {
-            UpgradeSlot slot = new UpgradeSlot(upgradeContainer, i, UpgradeSlot.slotX(i), UpgradeSlot.slotY(i));
-            this.addSlot(slot);
-            upgrades.add(slot);
+        if (profile.showUpgrades()) {
+            SimpleContainer upgradeContainer = new SimpleContainer(UpgradeSlot.COUNT);
+            List<UpgradeSlot> upgrades = new ArrayList<>(UpgradeSlot.COUNT);
+            for (int i = 0; i < UpgradeSlot.COUNT; i++) {
+                UpgradeSlot slot = new UpgradeSlot(upgradeContainer, i, UpgradeSlot.slotX(i), UpgradeSlot.slotY(i));
+                this.addSlot(slot);
+                upgrades.add(slot);
+            }
+            this.upgradeSlots = Collections.unmodifiableList(upgrades);
+            this.playerInvStart = pageSlotCount + UpgradeSlot.COUNT;
+        } else {
+            this.upgradeSlots = List.of();
+            this.playerInvStart = pageSlotCount;
         }
-        this.upgradeSlots = Collections.unmodifiableList(upgrades);
-        this.playerInvStart = pageSlotCount + UpgradeSlot.COUNT;
 
         this.addStandardInventorySlots(playerInv, 8, playerInvY());
         syncData();
         this.addDataSlots(data);
+    }
+
+    private record OpenSource(
+            @Nullable InteractionHand hand,
+            @Nullable BlockPos blockPos,
+            @Nullable FilterContents presetContents,
+            boolean restoreConfig
+    ) {
+        static OpenSource forHand(Player player, InteractionHand hand,
+                                  @Nullable FilterContents preset, boolean restoreConfig) {
+            return new OpenSource(hand, null, preset, restoreConfig);
+        }
+
+        static OpenSource forBlock(BlockPos pos, FilterContents contents, boolean restoreConfig) {
+            return new OpenSource(null, pos, contents, restoreConfig);
+        }
+
+        static OpenSource decode(Player player, RegistryFriendlyByteBuf buf) {
+            if (buf.readBoolean()) {
+                BlockPos pos = buf.readBlockPos();
+                FilterContents contents = FilterContents.STREAM_CODEC.decode(buf);
+                boolean restore = buf.readBoolean();
+                return forBlock(pos, contents, restore);
+            }
+            InteractionHand hand = buf.readEnum(InteractionHand.class);
+            FilterContents contents = null;
+            boolean restore = false;
+            if (buf.readBoolean()) {
+                contents = FilterContents.STREAM_CODEC.decode(buf);
+                restore = buf.readBoolean();
+            }
+            return forHand(player, hand, contents, restore);
+        }
+    }
+
+    public boolean shouldRestoreConfigPanel() {
+        return restoreConfigPanel;
     }
 
     public FilterProfile profile() {
@@ -168,6 +226,12 @@ public class FilterMenu extends AbstractContainerMenu {
     }
 
     private ItemStack host() {
+        if (blockPos != null) {
+            if (player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity be) {
+                return be.hostStack();
+            }
+            return ItemStack.EMPTY;
+        }
         return player.getItemInHand(hand);
     }
 
@@ -179,6 +243,8 @@ public class FilterMenu extends AbstractContainerMenu {
         FilterContents contents = FilterStorage.get(host);
         ItemStack stack = handler.getResource(0).toStack(handler.getAmountAsInt(0));
         FilterStorage.set(host, contents.withSlotStack(0, stack));
+        markHostDirty();
+        syncData();
     }
 
     private void savePage() {
@@ -194,7 +260,14 @@ public class FilterMenu extends AbstractContainerMenu {
             contents = contents.withSlotStack(start + i, stack);
         }
         FilterStorage.set(host, contents);
+        markHostDirty();
         syncData();
+    }
+
+    private void markHostDirty() {
+        if (blockPos != null && player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity be) {
+            be.setChanged();
+        }
     }
 
     private void syncData() {
@@ -213,6 +286,7 @@ public class FilterMenu extends AbstractContainerMenu {
         int lastIndex = contents.slotCount() - 1;
         data.set(8, lastIndex >= 0 && !contents.slot(lastIndex).isEmpty() ? 1 : 0);
         data.set(9, FilterStorage.wouldGatherChange(contents) ? 1 : 0);
+        data.set(10, contents.highlightMatchColor() ? 1 : 0);
     }
 
     public int getMaxStackSizeSetting() {
@@ -233,6 +307,10 @@ public class FilterMenu extends AbstractContainerMenu {
 
     public int getColor() {
         return data != null ? data.get(4) : FilterContents.DEFAULT_COLOR;
+    }
+
+    public boolean isHighlightMatchColor() {
+        return data != null && data.get(10) != 0;
     }
 
     public int getSelectedSlot() {
@@ -287,6 +365,7 @@ public class FilterMenu extends AbstractContainerMenu {
         savePage();
         FilterContents contents = FilterStorage.get(host()).withMaxStackSize(DevNullConfig.clampAdvancedMaxStack(value));
         FilterStorage.set(host(), contents);
+        markHostDirty();
         syncData();
         broadcastChanges();
     }
@@ -304,6 +383,17 @@ public class FilterMenu extends AbstractContainerMenu {
             return;
         }
         FilterStorage.set(host(), FilterStorage.get(host()).withColor(rgb));
+        markHostDirty();
+        syncData();
+        broadcastChanges();
+    }
+
+    public void setHighlightMatchColorSetting(boolean match) {
+        if (profile == null || !profile.colorable() || !profile.showCosmeticHighlight()) {
+            return;
+        }
+        FilterStorage.set(host(), FilterStorage.get(host()).withHighlightMatchColor(match));
+        markHostDirty();
         syncData();
         broadcastChanges();
     }
@@ -389,13 +479,29 @@ public class FilterMenu extends AbstractContainerMenu {
         }
 
         FilterStorage.set(host(), contents);
+        markHostDirty();
         if (buttonId == BTN_GATHER) {
             reloadPageFromContents(contents);
             syncData();
             broadcastChanges();
             return true;
         }
+
+        int newPage = contents.clampedPage();
+        int start = newPage * FilterContents.SLOTS_PER_PAGE;
+        int end = Math.min(contents.slotCount(), start + FilterContents.SLOTS_PER_PAGE);
+        int newPageSlotCount = Math.max(1, end - start);
+        int newRows = FilterContents.rowsForSlotCount(newPageSlotCount);
+        if (newRows == this.rows && newPageSlotCount == this.pageSlotCount) {
+            this.displayPage = newPage;
+            reloadPageFromContents(contents);
+            syncData();
+            broadcastChanges();
+            return true;
+        }
+
         if (player instanceof ServerPlayer serverPlayer) {
+            restoreConfigOnNextOpen = true;
             serverPlayer.closeContainer();
             FilterItem.openGui(serverPlayer, hand);
         }
@@ -545,7 +651,17 @@ public class FilterMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return FilterRegistry.isFilterItem(player.getItemInHand(hand));
+        if (blockPos != null) {
+            if (!(player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity)) {
+                return false;
+            }
+            return player.distanceToSqr(
+                    blockPos.getX() + 0.5D,
+                    blockPos.getY() + 0.5D,
+                    blockPos.getZ() + 0.5D
+            ) <= 64.0D;
+        }
+        return hand != null && FilterRegistry.isFilterItem(player.getItemInHand(hand));
     }
 
     @Override
