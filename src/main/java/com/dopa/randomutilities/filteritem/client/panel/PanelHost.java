@@ -143,6 +143,9 @@ public final class PanelHost {
                 occupying.requestClose();
                 return true;
             }
+            if (occupying.isMouseOverDecorativeArea(mouseX, mouseY, leftPos, topPos, imageWidth)) {
+                return true;
+            }
             // Other tabs under this body are covered visually — treat as empty body (close),
             // do not open/activate the covered tab.
             pendingOpen = null;
