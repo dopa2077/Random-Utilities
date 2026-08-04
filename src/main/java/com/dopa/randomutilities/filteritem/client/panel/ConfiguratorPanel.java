@@ -358,7 +358,8 @@ public final class ConfiguratorPanel extends AttachedPanel {
         px += font.width(pageLabel) + 4;
         drawValue(graphics, font, currentPage, bodyX, px, py);
         px += font.width(currentPage);
-        drawLabel(graphics, font, pageSeparator, bodyX, px, py);
+        // Draw separator directly — drawLabel/wrapText splits on spaces and drops the leading one.
+        graphics.text(font, pageSeparator, px, py, LABEL_COLOR, true);
         px += font.width(pageSeparator);
         drawValue(graphics, font, pageCount, bodyX, px, py);
         renderTray(graphics, pageTrayBounds(bodyX, bodyY), BG);
