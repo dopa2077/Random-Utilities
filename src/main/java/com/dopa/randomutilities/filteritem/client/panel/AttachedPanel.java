@@ -201,6 +201,31 @@ public abstract class AttachedPanel {
     }
 
     /**
+     * Non-widget decorative regions (e.g. button trays) that should consume clicks without closing the panel.
+     */
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        return false;
+    }
+
+    protected record TrayBounds(int x, int y, int width, int height) {}
+
+    protected static TrayBounds trayBounds(int bodyX, int panelWidth, int groupWidth, int groupY, int groupHeight, int trayPad) {
+        int trayX = bodyX + (panelWidth - groupWidth) / 2 - trayPad;
+        int trayY = groupY - trayPad;
+        int trayW = groupWidth + trayPad * 2;
+        int trayH = groupHeight + trayPad * 2;
+        return new TrayBounds(trayX, trayY, trayW, trayH);
+    }
+
+    protected void renderTray(GuiGraphicsExtractor graphics, TrayBounds tray, int bgColor) {
+        graphics.fill(tray.x(), tray.y(), tray.x() + tray.width(), tray.y() + tray.height(), darken(bgColor, 40));
+    }
+
+    protected static boolean isMouseOverRect(double mouseX, double mouseY, int x, int y, int w, int h) {
+        return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+    }
+
+    /**
      * Fully-open body origin relative to the GUI (leftPos/topPos space uses absolute screen coords).
      */
     public int bodyXOpen(int leftPos, int imageWidth) {

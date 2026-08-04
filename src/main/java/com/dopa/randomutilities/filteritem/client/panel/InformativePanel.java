@@ -27,7 +27,7 @@ public final class InformativePanel extends AttachedPanel {
     public InformativePanel(boolean basic) {
         super(
                 PanelAnchor.LEFT_TOP,
-                108,
+                122,
                 78,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.info")

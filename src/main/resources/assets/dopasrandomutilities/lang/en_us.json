@@ -15,7 +15,7 @@
   "gui.dopasrandomutilities.stack_size": "Stack Size:",
   "gui.dopasrandomutilities.stack_size.tooltip": "Click to edit the max stack size",
   "gui.dopasrandomutilities.color": "Colour",
-  "gui.dopasrandomutilities.slots_prefix": "Slots: ",
+  "gui.dopasrandomutilities.slots_prefix": "Slot Count: ",
   "gui.dopasrandomutilities.channel_red": "Red:",
   "gui.dopasrandomutilities.channel_green": "Green:",
   "gui.dopasrandomutilities.channel_blue": "Blue:",

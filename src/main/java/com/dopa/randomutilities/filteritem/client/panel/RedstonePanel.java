@@ -21,11 +21,11 @@ import net.minecraft.world.item.Items;
  * Client-only redstone control preview for visual testing on Advanced /dev/null.
  */
 public final class RedstonePanel extends AttachedPanel {
-    private static final int BG = 0xFFB02E26;
+    private static final int BG = 0xFF962520;
     private static final int BUTTON_H = 18;
     private static final int BUTTON_W = 20;
     private static final int BUTTON_GAP = 4;
-    private static final int TRAY_PAD = 3;
+    private static final int TRAY_PAD = 6;
     private static final int SELECTOR_Y = 28;
     private static final int STATUS_Y = 58;
     private static final int SIGNAL_Y = 80;
@@ -118,6 +118,19 @@ public final class RedstonePanel extends AttachedPanel {
         return BUTTON_W * 3 + BUTTON_GAP * 2;
     }
 
+    private TrayBounds selectorTrayBounds(int bodyX, int bodyY) {
+        return trayBounds(bodyX, panelWidth, selectorGroupWidth(), bodyY + SELECTOR_Y, BUTTON_H, TRAY_PAD);
+    }
+
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        if (!contentsInteractive()) {
+            return false;
+        }
+        TrayBounds tray = selectorTrayBounds(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
+        return isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height());
+    }
+
     @Override
     public void layoutWidgets(int leftPos, int topPos, int imageWidth) {
         if (!widgetsCreated) {
@@ -165,12 +178,7 @@ public final class RedstonePanel extends AttachedPanel {
                                   int mouseX, int mouseY, float partialTick) {
         renderTitleRow(graphics, font, bodyX, bodyY);
 
-        int groupW = selectorGroupWidth();
-        int trayX = bodyX + (panelWidth - groupW) / 2 - TRAY_PAD;
-        int trayY = bodyY + SELECTOR_Y - TRAY_PAD;
-        int trayW = groupW + TRAY_PAD * 2;
-        int trayH = BUTTON_H + TRAY_PAD * 2;
-        graphics.fill(trayX, trayY, trayX + trayW, trayY + trayH, darken(BG, 40));
+        renderTray(graphics, selectorTrayBounds(bodyX, bodyY), BG);
 
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.panel.redstone.control_status"),
                 bodyX, bodyY + STATUS_Y);

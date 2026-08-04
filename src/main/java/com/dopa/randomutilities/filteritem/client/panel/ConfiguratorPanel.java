@@ -22,15 +22,17 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
  */
 public final class ConfiguratorPanel extends AttachedPanel {
     private static final int BG = 0xFF1A4548;
-    private static final int BUTTON_SIZE = 18;
+    private static final int BUTTON_SIZE = 20;
+    private static final int BUTTON_GAP = 7;
+    private static final int TRAY_PAD = 3;
     private static final ItemStack COMPARATOR_ICON = new ItemStack(Items.COMPARATOR);
 
     private static final int STACK_LABEL_Y = 28;
     private static final int STACK_BOX_Y = 38;
-    private static final int SLOTS_LABEL_Y = 59;
-    private static final int SLOT_BUTTONS_Y = 68;
-    private static final int PAGE_LABEL_Y = 94;
-    private static final int PAGE_BUTTONS_Y = 104;
+    private static final int SLOTS_LABEL_Y = 55;
+    private static final int SLOT_BUTTONS_Y = 66;
+    private static final int PAGE_LABEL_Y = 95;
+    private static final int PAGE_BUTTONS_Y = 107;
 
     private final FilterScreen screen;
 
@@ -49,7 +51,7 @@ public final class ConfiguratorPanel extends AttachedPanel {
         super(
                 PanelAnchor.LEFT_BELOW,
                 118,
-                128,
+                136,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.config")
         );
@@ -101,6 +103,33 @@ public final class ConfiguratorPanel extends AttachedPanel {
                 .build();
     }
 
+    private static int buttonGroupWidth() {
+        return BUTTON_SIZE * 2 + BUTTON_GAP;
+    }
+
+    private TrayBounds slotTrayBounds(int bodyX, int bodyY) {
+        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + SLOT_BUTTONS_Y, BUTTON_SIZE, TRAY_PAD);
+    }
+
+    private TrayBounds pageTrayBounds(int bodyX, int bodyY) {
+        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + PAGE_BUTTONS_Y, BUTTON_SIZE, TRAY_PAD);
+    }
+
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        if (!contentsInteractive()) {
+            return false;
+        }
+        int bodyX = bodyXOpen(leftPos, imageWidth);
+        int bodyY = bodyY(topPos);
+        TrayBounds slots = slotTrayBounds(bodyX, bodyY);
+        if (isMouseOverRect(mouseX, mouseY, slots.x(), slots.y(), slots.width(), slots.height())) {
+            return true;
+        }
+        TrayBounds page = pageTrayBounds(bodyX, bodyY);
+        return isMouseOverRect(mouseX, mouseY, page.x(), page.y(), page.width(), page.height());
+    }
+
     @Override
     public void layoutWidgets(int leftPos, int topPos, int imageWidth) {
         if (!widgetsCreated) {
@@ -109,19 +138,21 @@ public final class ConfiguratorPanel extends AttachedPanel {
         int bx = bodyXOpen(leftPos, imageWidth);
         int by = bodyY(topPos);
         int innerWidth = panelWidth - CONTENT_PAD * 2;
+        int groupW = buttonGroupWidth();
+        int groupX = bx + (panelWidth - groupW) / 2;
 
         maxStackBox.setX(bx + CONTENT_PAD);
         maxStackBox.setY(by + STACK_BOX_Y);
         maxStackBox.setWidth(innerWidth);
 
-        removeSlotButton.setX(bx + CONTENT_PAD);
+        removeSlotButton.setX(groupX);
         removeSlotButton.setY(by + SLOT_BUTTONS_Y);
-        addSlotButton.setX(bx + CONTENT_PAD + BUTTON_SIZE + 4);
+        addSlotButton.setX(groupX + BUTTON_SIZE + BUTTON_GAP);
         addSlotButton.setY(by + SLOT_BUTTONS_Y);
 
-        prevPageButton.setX(bx + CONTENT_PAD);
+        prevPageButton.setX(groupX);
         prevPageButton.setY(by + PAGE_BUTTONS_Y);
-        nextPageButton.setX(bx + CONTENT_PAD + BUTTON_SIZE + 4);
+        nextPageButton.setX(groupX + BUTTON_SIZE + BUTTON_GAP);
         nextPageButton.setY(by + PAGE_BUTTONS_Y);
     }
 
@@ -305,19 +336,31 @@ public final class ConfiguratorPanel extends AttachedPanel {
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.stack_size"),
                 bodyX, bodyY + STACK_LABEL_Y);
 
-        Component prefix = Component.translatable("gui.dopasrandomutilities.slots_prefix");
-        int sx = bodyX + CONTENT_PAD;
+        Component slotsPrefix = Component.translatable("gui.dopasrandomutilities.slots_prefix");
+        Component slotsValue = Component.literal(Integer.toString(menu.getSlotCountSetting()));
+        int slotsLabelWidth = font.width(slotsPrefix) + font.width(slotsValue);
+        int slotsLabelX = bodyX + (panelWidth - slotsLabelWidth) / 2;
         int sy = bodyY + SLOTS_LABEL_Y;
-        drawLabel(graphics, font, prefix, bodyX, sx, sy);
-        drawValue(graphics, font, Component.literal(Integer.toString(menu.getSlotCountSetting())),
-                bodyX, sx + font.width(prefix), sy);
+        drawLabel(graphics, font, slotsPrefix, bodyX, slotsLabelX, sy);
+        drawValue(graphics, font, slotsValue, bodyX, slotsLabelX + font.width(slotsPrefix), sy);
+        renderTray(graphics, slotTrayBounds(bodyX, bodyY), BG);
 
         Component pageLabel = Component.translatable("gui.dopasrandomutilities.page_label");
-        int px = bodyX + CONTENT_PAD;
+        Component currentPage = Component.literal(Integer.toString(menu.getPage() + 1));
+        Component pageSeparator = Component.literal(" / ");
+        Component pageCount = Component.literal(Integer.toString(menu.getPageCount()));
+        int pageRowWidth = font.width(pageLabel) + 4 + font.width(currentPage)
+                + font.width(pageSeparator) + font.width(pageCount);
+        int pageLabelX = bodyX + (panelWidth - pageRowWidth) / 2;
         int py = bodyY + PAGE_LABEL_Y;
+        int px = pageLabelX;
         drawLabel(graphics, font, pageLabel, bodyX, px, py);
-        drawValue(graphics, font,
-                Component.literal((menu.getPage() + 1) + " / " + menu.getPageCount()),
-                bodyX, px + font.width(pageLabel) + 4, py);
+        px += font.width(pageLabel) + 4;
+        drawValue(graphics, font, currentPage, bodyX, px, py);
+        px += font.width(currentPage);
+        drawLabel(graphics, font, pageSeparator, bodyX, px, py);
+        px += font.width(pageSeparator);
+        drawValue(graphics, font, pageCount, bodyX, px, py);
+        renderTray(graphics, pageTrayBounds(bodyX, bodyY), BG);
     }
 }
