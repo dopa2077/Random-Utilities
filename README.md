@@ -1,10 +1,9 @@
 # dOPa's Random Utilities
 
-**A collection of random, useful items and blocks for Minecraft**. No theme, no fluff, just quality-of-life stuff that makes your world a little better.
+**A collection of random, useful items and blocks for Minecraft.**  
+No theme, no fluff. Just quality-of-life stuff that makes your world a little better.
 
-Inspired by classic mods like **Random Things** and **Extra Utilities**. (Inspiration, not copied 1 to 1!)
-
-More random utilities will be added over time!
+> Currently this mod is still in the `paper stage`. I will break and re-do the whole mod if I don't like it. More random utilities will be added over time! (check the `Projects` tab for more information on what my plans.)
 
 ---
 
@@ -26,7 +25,8 @@ More random utilities will be added over time!
 
 ### Configuration
 
-Settings and generator recipes live under `config/dopas_random_utilities/`. Defaults are created on first launch, edit them to tweak behaviour.
+Settings and generator recipes live under `config/dopas_random_utilities/`.  
+Defaults are created on first launch, edit them to tweak behaviour.
 
 ---
 
@@ -46,6 +46,9 @@ MIT License
 
 ### Credits
 
-* Inspired by [Random Things](https://www.curseforge.com/minecraft/mc-mods/random-things) by Lumien and [Extra Utilities](https://www.curseforge.com/minecraft/mc-mods/extra-utilities) by RWTema
 * Built with the [NeoForged MDK](https://docs.neoforged.net/)
-* Developed with AI assistance (Cursor + Grok 4.5)
+* Mods I took inspiration from:
+  - [Random Things](https://www.curseforge.com/minecraft/mc-mods/random-things) by Lumien231
+  - [Extra Utilities](https://www.curseforge.com/minecraft/mc-mods/extra-utilities) by RWTema
+  - [OpenBlocks](https://www.curseforge.com/minecraft/mc-mods/openblocks) by OpenMods
+  - [Thermal Foundation](https://www.curseforge.com/minecraft/mc-mods/thermal-foundation) by TeamCoFH
