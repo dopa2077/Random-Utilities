@@ -47,8 +47,8 @@ public final class FilterStorage {
         if (profile.isBasic()) {
             contents = clampBasic(new FilterContents(
                     contents.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(contents.slot(0)),
-                    profile.fixedMaxStack() > 0 ? profile.fixedMaxStack() : contents.maxStackSize(),
-                    0, 0, contents.color()
+                    DevNullConfig.basicMaxStackSize(),
+                    0, 0, contents.color(), contents.highlightMatchColor()
             ), profile);
         } else {
             contents = clampAdvanced(contents.ensureMinimum(profile.minSlots()), profile);
@@ -58,16 +58,10 @@ public final class FilterStorage {
 
     private static FilterContents clampBasic(FilterContents contents, FilterProfile profile) {
         int maxStack = Math.max(1, DevNullConfig.basicMaxStackSize());
-        FilterContents clamped = contents.withMaxStackSize(Math.min(contents.maxStackSize(), maxStack));
-        clamped = new FilterContents(
-                clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
-                maxStack,
-                0, 0, clamped.color()
-        );
         return new FilterContents(
-                clamped.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(clamped.slot(0)),
+                contents.slots().isEmpty() ? List.of(Slot.EMPTY) : List.of(contents.slot(0)),
                 maxStack,
-                0, 0, clamped.color()
+                0, 0, contents.color(), contents.highlightMatchColor()
         );
     }
 
@@ -92,7 +86,11 @@ public final class FilterStorage {
      * Remainder that cannot fit anywhere is voided.
      */
     public static FilterContents redistributeOverflow(FilterContents contents) {
-        int max = contents.maxStackSize();
+        return redistributeOverflow(contents, false);
+    }
+
+    public static FilterContents redistributeOverflow(FilterContents contents, boolean basic) {
+        int filterMax = contents.maxStackSize();
         int count = contents.slotCount();
         List<Slot> slots = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
@@ -101,7 +99,11 @@ public final class FilterStorage {
 
         for (int i = 0; i < count; i++) {
             Slot slot = slots.get(i);
-            if (slot.isEmpty() || slot.count() <= max) {
+            if (slot.isEmpty()) {
+                continue;
+            }
+            int max = DevNullConfig.effectiveSlotCapacity(slot.resource(), filterMax, basic);
+            if (slot.count() <= max) {
                 continue;
             }
             ItemResource resource = slot.resource();
@@ -140,7 +142,8 @@ public final class FilterStorage {
                 contents.maxStackSize(),
                 contents.selectedSlot(),
                 contents.page(),
-                contents.color()
+                contents.color(),
+                contents.highlightMatchColor()
         );
     }
 
@@ -156,7 +159,7 @@ public final class FilterStorage {
     }
 
     public static boolean wouldGatherVoidItems(FilterContents contents) {
-        return totalItemCount(contents) > totalItemCount(redistributeOverflow(contents));
+        return totalItemCount(contents) > totalItemCount(redistributeOverflow(contents, false));
     }
 
     public static ItemStack getSelectedStack(ItemStack host) {
@@ -191,8 +194,12 @@ public final class FilterStorage {
         set(host, contents.withSlotStack(index, stack));
     }
 
-    public static ItemStack resolveUseRemainder(ItemStack consumed, int countBefore, boolean infiniteMaterials) {
-        UseRemainder useRemainder = consumed.get(DataComponents.USE_REMAINDER);
+    /**
+     * @param beforeUse stack that still has {@link DataComponents#USE_REMAINDER} (pre-consume copy)
+     * @param afterUse  stack returned/mutated by {@code finishUsingItem} (often empty)
+     */
+    public static ItemStack resolveUseRemainder(ItemStack beforeUse, ItemStack afterUse, int countBefore, boolean infiniteMaterials) {
+        UseRemainder useRemainder = beforeUse.get(DataComponents.USE_REMAINDER);
         if (useRemainder == null) {
             return ItemStack.EMPTY;
         }
@@ -207,7 +214,7 @@ public final class FilterStorage {
                 captured[0].grow(stack.getCount());
             }
         };
-        ItemStack converted = useRemainder.convertIntoRemainder(ItemStack.EMPTY, countBefore, infiniteMaterials, extraHandler);
+        ItemStack converted = useRemainder.convertIntoRemainder(afterUse, countBefore, infiniteMaterials, extraHandler);
         if (!converted.isEmpty()) {
             if (captured[0] == null || captured[0].isEmpty()) {
                 return converted;
@@ -223,13 +230,16 @@ public final class FilterStorage {
             return;
         }
         FilterContents contents = get(host);
-        int max = contents.maxStackSize();
+        FilterProfile profile = profile(host);
+        boolean basic = profile == null || profile.isBasic();
+        int filterMax = contents.maxStackSize();
         ItemStack leftover = remainder.copy();
 
         for (int i = 0; i < contents.slotCount() && !leftover.isEmpty(); i++) {
             if (i == excludeIndex) {
                 continue;
             }
+            int max = DevNullConfig.effectiveSlotCapacity(leftover, filterMax, basic);
             ItemStack inSlot = contents.stackInSlot(i);
             if (inSlot.isEmpty()) {
                 int move = Math.min(leftover.getCount(), max);
@@ -264,7 +274,8 @@ public final class FilterStorage {
         FilterContents contents = get(host);
         ItemResource resource = ItemResource.of(incoming);
         int remaining = incoming.getCount();
-        int max = contents.maxStackSize();
+        boolean basic = profile == null || profile.isBasic();
+        int max = DevNullConfig.effectiveSlotCapacity(incoming, contents.maxStackSize(), basic);
 
         if (profile != null && profile.isBasic()) {
             Slot slot = contents.slot(0);
@@ -362,8 +373,12 @@ public final class FilterStorage {
     }
 
     public static FilterContents gather(FilterContents contents) {
-        contents = redistributeOverflow(contents);
-        int max = contents.maxStackSize();
+        return gather(contents, false);
+    }
+
+    public static FilterContents gather(FilterContents contents, boolean basic) {
+        contents = redistributeOverflow(contents, basic);
+        int filterMax = contents.maxStackSize();
         int count = contents.slotCount();
         List<Slot> slots = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
@@ -375,6 +390,7 @@ public final class FilterStorage {
             if (slotI.isEmpty()) {
                 continue;
             }
+            int max = DevNullConfig.effectiveSlotCapacity(slotI.resource(), filterMax, basic);
             for (int j = 0; j < i; j++) {
                 Slot slotJ = slots.get(j);
                 if (slotJ.isEmpty() || !slotJ.resource().equals(slotI.resource())) {
@@ -409,12 +425,13 @@ public final class FilterStorage {
                 contents.maxStackSize(),
                 contents.selectedSlot(),
                 contents.page(),
-                contents.color()
+                contents.color(),
+                contents.highlightMatchColor()
         );
     }
 
     public static boolean wouldGatherChange(FilterContents contents) {
-        return !gather(contents).slots().equals(contents.slots());
+        return !gather(contents, false).slots().equals(contents.slots());
     }
 
     public static int cycleNonEmptySlot(ItemStack host, int direction) {
