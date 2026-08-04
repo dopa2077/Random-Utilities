@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.block.UiTestBlockEntity;
+import com.dopa.randomutilities.blockentity.UiTestBlockEntity;
 import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 

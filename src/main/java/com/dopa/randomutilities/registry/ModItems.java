@@ -38,6 +38,10 @@ public final class ModItems {
             props -> new UiTestBlockItem(ModBlocks.UI_TEST_BLOCK.get(), props)
     );
 
+    public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
+    public static final DeferredItem<Item> CAPACITY_UPGRADE = ITEMS.registerItem("capacity_upgrade", Item::new);
+    public static final DeferredItem<Item> OVERCLOCK_UPGRADE = ITEMS.registerItem("overclock_upgrade", Item::new);
+
     private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
 
     static {

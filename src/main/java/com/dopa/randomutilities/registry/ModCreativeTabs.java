@@ -29,5 +29,16 @@ public final class ModCreativeTabs {
                     })
                     .build());
 
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> UPGRADES =
+            CREATIVE_MODE_TABS.register("upgrades", () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup.dopasrandomutilities.upgrades"))
+                    .icon(() -> new ItemStack(ModItems.UPGRADE_CASING.get()))
+                    .displayItems((parameters, output) -> {
+                        output.accept(ModItems.UPGRADE_CASING.get());
+                        output.accept(ModItems.CAPACITY_UPGRADE.get());
+                        output.accept(ModItems.OVERCLOCK_UPGRADE.get());
+                    })
+                    .build());
+
     private ModCreativeTabs() {}
 }

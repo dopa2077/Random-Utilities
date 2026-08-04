@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.filteritem.menu;
 
-import com.dopa.randomutilities.block.UiTestBlockEntity;
+import com.dopa.randomutilities.blockentity.UiTestBlockEntity;
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.filteritem.FilterContents;
 import com.dopa.randomutilities.filteritem.FilterItem;

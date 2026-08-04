@@ -2,6 +2,7 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -15,6 +16,9 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<FilterMenu>> FILTER =
             MENUS.register("filter", () -> IMenuTypeExtension.create(FilterMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<ResourceGeneratorMenu>> RESOURCE_GENERATOR =
+            MENUS.register("resource_generator", () -> IMenuTypeExtension.create(ResourceGeneratorMenu::new));
 
     private ModMenus() {}
 }

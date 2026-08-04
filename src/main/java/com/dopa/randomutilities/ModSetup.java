@@ -2,7 +2,9 @@ package com.dopa.randomutilities;
 
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.config.UpgradeConfig;
 import com.dopa.randomutilities.filteritem.FilterNetwork;
+import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -23,6 +25,8 @@ public final class ModSetup {
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":generator_recipes");
     private static final Identifier DEV_NULL_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":devnull_config");
+    private static final Identifier UPGRADE_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":upgrade_config");
 
     private ModSetup() {}
 
@@ -36,10 +40,12 @@ public final class ModSetup {
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(() -> {
                     DevNullConfig.load();
+                    UpgradeConfig.load();
                     GeneratorRecipeConfig.load();
                 }));
         modEventBus.addListener(FilterNetwork::registerCapabilities);
         modEventBus.addListener(FilterNetwork::registerPayloads);
+        modEventBus.addListener(MachineNetwork::registerPayloads);
     }
 
     @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
@@ -58,6 +64,10 @@ public final class ModSetup {
             event.addListener(
                     DEV_NULL_CONFIG_LISTENER,
                     (ResourceManagerReloadListener) resourceManager -> DevNullConfig.reload()
+            );
+            event.addListener(
+                    UPGRADE_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> UpgradeConfig.reload()
             );
         }
 

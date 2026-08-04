@@ -2,11 +2,16 @@ package com.dopa.randomutilities.block;
 
 import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.config.GeneratorType;
+import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -21,6 +26,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class ResourceGeneratorBlock extends BaseEntityBlock {
@@ -77,6 +83,31 @@ public class ResourceGeneratorBlock extends BaseEntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new ResourceGeneratorBlockEntity(pos, state);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            BlockHitResult hit
+    ) {
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        if (!(level.getBlockEntity(pos) instanceof ResourceGeneratorBlockEntity be)
+                || !(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResult.PASS;
+        }
+        serverPlayer.openMenu(
+                new SimpleMenuProvider(
+                        (id, inv, p) -> new ResourceGeneratorMenu(id, inv, be),
+                        state.getBlock().getName()
+                ),
+                buf -> buf.writeBlockPos(pos)
+        );
+        return InteractionResult.CONSUME;
     }
 
     @Nullable

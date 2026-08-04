@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.block;
+package com.dopa.randomutilities.blockentity;
 
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModItems;
