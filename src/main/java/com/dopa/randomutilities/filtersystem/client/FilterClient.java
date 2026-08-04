@@ -1,10 +1,9 @@
-package com.dopa.randomutilities.filteritem.client;
+package com.dopa.randomutilities.filtersystem.client;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterProfile;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
-import com.dopa.randomutilities.filteritem.network.FilterSelectPayload;
+import com.dopa.randomutilities.filtersystem.FilterProfile;
+import com.dopa.randomutilities.filtersystem.FilterRegistry;
+import com.dopa.randomutilities.filtersystem.network.FilterSelectPayload;
 import com.dopa.randomutilities.registry.ModMenus;
 
 import net.minecraft.client.Minecraft;

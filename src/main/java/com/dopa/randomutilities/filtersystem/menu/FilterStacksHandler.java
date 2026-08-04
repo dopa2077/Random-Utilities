@@ -1,9 +1,9 @@
-package com.dopa.randomutilities.filteritem.menu;
+package com.dopa.randomutilities.filtersystem.menu;
 
 import java.util.function.IntSupplier;
 
 import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
+import com.dopa.randomutilities.filtersystem.FilterRegistry;
 
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;

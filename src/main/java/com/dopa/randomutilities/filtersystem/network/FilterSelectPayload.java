@@ -1,10 +1,10 @@
-package com.dopa.randomutilities.filteritem.network;
+package com.dopa.randomutilities.filtersystem.network;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterContents;
-import com.dopa.randomutilities.filteritem.FilterProfile;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
-import com.dopa.randomutilities.filteritem.FilterStorage;
+import com.dopa.randomutilities.filtersystem.FilterContents;
+import com.dopa.randomutilities.filtersystem.FilterProfile;
+import com.dopa.randomutilities.filtersystem.FilterRegistry;
+import com.dopa.randomutilities.filtersystem.FilterStorage;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;

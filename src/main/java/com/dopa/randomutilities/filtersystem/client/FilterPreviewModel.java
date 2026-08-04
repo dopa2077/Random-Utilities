@@ -1,6 +1,6 @@
-package com.dopa.randomutilities.filteritem.client;
+package com.dopa.randomutilities.filtersystem.client;
 
-import com.dopa.randomutilities.filteritem.FilterStorage;
+import com.dopa.randomutilities.filtersystem.FilterStorage;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.client.multiplayer.ClientLevel;

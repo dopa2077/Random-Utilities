@@ -1,15 +1,15 @@
-package com.dopa.randomutilities.filteritem.client;
+package com.dopa.randomutilities.filtersystem.client;
 
-import com.dopa.randomutilities.filteritem.FilterContents;
-import com.dopa.randomutilities.filteritem.client.panel.ConfiguratorPanel;
-import com.dopa.randomutilities.filteritem.client.panel.CosmeticPanel;
-import com.dopa.randomutilities.filteritem.client.panel.EnergyPanel;
-import com.dopa.randomutilities.filteritem.client.panel.InformativePanel;
-import com.dopa.randomutilities.filteritem.client.panel.PanelAnchor;
-import com.dopa.randomutilities.filteritem.client.panel.PanelHost;
-import com.dopa.randomutilities.filteritem.client.panel.RedstonePanel;
-import com.dopa.randomutilities.filteritem.client.panel.UpgradePanel;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.FilterContents;
+import com.dopa.randomutilities.filtersystem.client.panel.ConfiguratorPanel;
+import com.dopa.randomutilities.filtersystem.client.panel.CosmeticPanel;
+import com.dopa.randomutilities.filtersystem.client.panel.EnergyPanel;
+import com.dopa.randomutilities.filtersystem.client.panel.InformativePanel;
+import com.dopa.randomutilities.filtersystem.client.panel.PanelAnchor;
+import com.dopa.randomutilities.filtersystem.client.panel.PanelHost;
+import com.dopa.randomutilities.filtersystem.client.panel.RedstonePanel;
+import com.dopa.randomutilities.filtersystem.client.panel.UpgradePanel;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

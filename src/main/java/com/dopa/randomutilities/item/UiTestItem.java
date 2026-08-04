@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.item;
 
 import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.filteritem.FilterItem;
+import com.dopa.randomutilities.filtersystem.FilterItem;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;

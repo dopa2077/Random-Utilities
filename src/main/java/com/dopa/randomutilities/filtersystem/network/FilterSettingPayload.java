@@ -1,8 +1,8 @@
-package com.dopa.randomutilities.filteritem.network;
+package com.dopa.randomutilities.filtersystem.network;
 
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;

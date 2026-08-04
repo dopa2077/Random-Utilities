@@ -26,7 +26,8 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
-import com.dopa.randomutilities.filteritem.client.FilterScreen;
+import com.dopa.randomutilities.filtersystem.client.FilterScreen;
+import com.dopa.randomutilities.machine.generator.client.ResourceGeneratorScreen;
 import com.dopa.randomutilities.registry.ModItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -75,6 +76,16 @@ public class dOPasJeiPlugin implements IModPlugin {
         registration.addGuiContainerHandler(FilterScreen.class, new IGuiContainerHandler<>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(FilterScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
+        registration.addGuiContainerHandler(ResourceGeneratorScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(ResourceGeneratorScreen screen) {
                 return screen.getPanelHost().collectExtraAreas(
                         screen.leftPos(),
                         screen.topPos(),

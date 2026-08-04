@@ -1,9 +1,9 @@
 package com.dopa.randomutilities.machine.client.panel;
 
 import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filteritem.client.panel.AttachedPanel;
-import com.dopa.randomutilities.filteritem.client.panel.PanelAnchor;
-import com.dopa.randomutilities.filteritem.menu.UpgradeSlot;
+import com.dopa.randomutilities.filtersystem.client.panel.AttachedPanel;
+import com.dopa.randomutilities.filtersystem.client.panel.PanelAnchor;
+import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.registry.ModItems;
 

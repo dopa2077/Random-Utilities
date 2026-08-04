@@ -1,6 +1,6 @@
-package com.dopa.randomutilities.filteritem.client.panel;
+package com.dopa.randomutilities.filtersystem.client.panel;
 
-import com.dopa.randomutilities.filteritem.client.FilterScreen;
+import com.dopa.randomutilities.filtersystem.client.FilterScreen;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

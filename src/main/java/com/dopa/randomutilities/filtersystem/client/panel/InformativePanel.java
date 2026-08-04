@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.filteritem.client.panel;
+package com.dopa.randomutilities.filtersystem.client.panel;
 
 import com.dopa.randomutilities.config.DevNullConfig;
 

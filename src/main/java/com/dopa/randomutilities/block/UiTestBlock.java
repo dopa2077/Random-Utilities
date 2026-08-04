@@ -2,9 +2,9 @@ package com.dopa.randomutilities.block;
 
 import com.dopa.randomutilities.blockentity.UiTestBlockEntity;
 import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.filteritem.FilterContents;
-import com.dopa.randomutilities.filteritem.FilterStorage;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.FilterContents;
+import com.dopa.randomutilities.filtersystem.FilterStorage;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;

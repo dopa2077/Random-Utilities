@@ -1,6 +1,6 @@
-package com.dopa.randomutilities.filteritem.client.panel;
+package com.dopa.randomutilities.filtersystem.client.panel;
 
-import com.dopa.randomutilities.filteritem.menu.UpgradeSlot;
+import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

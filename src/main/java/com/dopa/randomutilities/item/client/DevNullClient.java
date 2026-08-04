@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.item.client;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.client.FilterDecorator;
+import com.dopa.randomutilities.filtersystem.client.FilterDecorator;
 import com.dopa.randomutilities.registry.ModItems;
 
 import net.neoforged.api.distmarker.Dist;

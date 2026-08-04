@@ -66,10 +66,13 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     private boolean outputBlocked;
     private String activeRecipeId = "";
     private int activeRecipeTicks;
+    private int capacityBonusBank;
     private String displayResultId = "";
     private boolean outputLocked;
     private String lockedResultId = "";
     private String lockedRecipeId = "";
+    private String lastNonFreeRecipeId = "";
+    private String lastNonFreeResultId = "";
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private final BlockPos[] resourcePositions = new BlockPos[GeneratorRecipe.SIDE_COUNT];
     private final boolean[] hasResource = new boolean[GeneratorRecipe.SIDE_COUNT];
@@ -152,15 +155,28 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return;
         }
         outputLocked = locked;
+        cachedMatch = null;
+        rematchCooldown = 0;
         if (!locked) {
             lockedResultId = "";
             lockedRecipeId = "";
         } else {
-            if (!displayResultId.isEmpty()) {
-                lockedResultId = displayResultId;
-            }
-            if (!activeRecipeId.isEmpty()) {
-                lockedRecipeId = activeRecipeId;
+            lockedRecipeId = "";
+            lockedResultId = "";
+            GeneratorRecipe current = findRecipeById(activeRecipeId);
+            if (current != null && !current.isFreeRecipe()) {
+                lockedRecipeId = current.id();
+                if (!displayResultId.isEmpty()) {
+                    lockedResultId = displayResultId;
+                } else if (current.result() != null) {
+                    lockedResultId = blockId(current.result());
+                }
+            } else if (!lastNonFreeRecipeId.isEmpty()) {
+                lockedRecipeId = lastNonFreeRecipeId;
+                lockedResultId = lastNonFreeResultId;
+                if (!lockedResultId.isEmpty()) {
+                    displayResultId = lockedResultId;
+                }
             }
         }
         setChanged();
@@ -171,6 +187,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     public GeneratorRecipe displayRecipe() {
         if (outputLocked && !lockedRecipeId.isEmpty()) {
             return findRecipeById(lockedRecipeId);
+        }
+        if (outputLocked && !lastNonFreeRecipeId.isEmpty()) {
+            return findRecipeById(lastNonFreeRecipeId);
         }
         if (cachedMatch != null) {
             return cachedMatch.recipe();
@@ -246,7 +265,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return;
         }
 
-        int produceAmount = UpgradeConfig.boostedAmount(match.recipe().amount(), upgrades.capacityCount());
+        int baseAmount = match.recipe().amount();
+        int produceAmount = UpgradeConfig.peekBoostedAmount(baseAmount, upgrades.capacityCount(), capacityBonusBank);
         Block outputOverride = lockedOutputBlock(match.recipe());
 
         if (outputBlocked) {
@@ -300,6 +320,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 return;
             }
             setDisplayResult(displayBlockForFluid(fluid));
+            rememberNonFree(match.recipe(), displayBlockForFluid(fluid));
             pinLockFromCurrent(match.recipe());
         } else {
             Block result = outputOverride != null
@@ -313,18 +334,21 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 return;
             }
             setDisplayResult(result);
+            rememberNonFree(match.recipe(), result);
             pinLockFromCurrent(match.recipe());
         }
 
         if (produced >= produceAmount) {
             consumeResources(level, match);
+            capacityBonusBank = UpgradeConfig.advanceCapacityBank(
+                    baseAmount, upgrades.capacityCount(), capacityBonusBank);
         }
         tickProgress = 0;
         setChanged();
     }
 
     private void pinLockFromCurrent(GeneratorRecipe recipe) {
-        if (!outputLocked || !supportsLockOutput()) {
+        if (!outputLocked || !supportsLockOutput() || recipe.isFreeRecipe()) {
             return;
         }
         if (lockedResultId.isEmpty() && !displayResultId.isEmpty()) {
@@ -333,6 +357,25 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (lockedRecipeId.isEmpty()) {
             lockedRecipeId = recipe.id();
         }
+    }
+
+    private void rememberNonFree(GeneratorRecipe recipe, @Nullable Block result) {
+        if (recipe.isFreeRecipe()) {
+            return;
+        }
+        lastNonFreeRecipeId = recipe.id();
+        if (result != null) {
+            String id = blockId(result);
+            if (!id.isEmpty()) {
+                lastNonFreeResultId = id;
+            }
+        }
+    }
+
+    private static String blockId(Block block) {
+        return Optional.ofNullable(BuiltInRegistries.BLOCK.getKey(block))
+                .map(Identifier::toString)
+                .orElse("");
     }
 
     @Nullable
@@ -349,6 +392,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
     @Nullable
     private GeneratorRecipe findRecipeById(String id) {
+        if (id == null || id.isEmpty()) {
+            return null;
+        }
         for (GeneratorRecipe recipe : GeneratorRecipeConfig.getRecipes(type())) {
             if (recipe.id().equals(id)) {
                 return recipe;
@@ -360,10 +406,52 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     @Nullable
     private GeneratorRecipe.Match resolveMatch(ServerLevel level, GeneratorType type) {
         if (cachedMatch != null && rematchCooldown-- > 0) {
-            return cachedMatch;
+            if (!outputLocked
+                    || lockedRecipeId.isEmpty()
+                    || cachedMatch.recipe().id().equals(lockedRecipeId)) {
+                return cachedMatch;
+            }
         }
-        cachedMatch = GeneratorRecipe.findBestMatch(level, worldPosition, GeneratorRecipeConfig.getRecipes(type))
-                .orElse(null);
+
+        List<GeneratorRecipe> recipes = GeneratorRecipeConfig.getRecipes(type);
+        if (outputLocked && supportsLockOutput()) {
+            if (!lockedRecipeId.isEmpty()) {
+                GeneratorRecipe locked = findRecipeById(lockedRecipeId);
+                if (locked != null && locked.isFreeRecipe()) {
+                    lockedRecipeId = "";
+                    lockedResultId = "";
+                    cachedMatch = GeneratorRecipe.findBestMatch(level, worldPosition, recipes, true).orElse(null);
+                    if (cachedMatch != null) {
+                        GeneratorRecipe recipe = cachedMatch.recipe();
+                        lockedRecipeId = recipe.id();
+                        if (recipe.result() != null) {
+                            lockedResultId = blockId(recipe.result());
+                            setDisplayResult(recipe.result());
+                        }
+                        rememberNonFree(recipe, recipe.result());
+                        syncDisplay();
+                    }
+                } else {
+                    cachedMatch = locked == null
+                            ? null
+                            : GeneratorRecipe.tryMatchAt(level, worldPosition, locked).orElse(null);
+                }
+            } else {
+                cachedMatch = GeneratorRecipe.findBestMatch(level, worldPosition, recipes, true).orElse(null);
+                if (cachedMatch != null) {
+                    GeneratorRecipe recipe = cachedMatch.recipe();
+                    lockedRecipeId = recipe.id();
+                    if (recipe.result() != null) {
+                        lockedResultId = blockId(recipe.result());
+                        setDisplayResult(recipe.result());
+                    }
+                    rememberNonFree(recipe, recipe.result());
+                    syncDisplay();
+                }
+            }
+        } else {
+            cachedMatch = GeneratorRecipe.findBestMatch(level, worldPosition, recipes).orElse(null);
+        }
         rematchCooldown = REMATCH_INTERVAL;
         return cachedMatch;
     }
@@ -470,6 +558,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             hasResource[i] = matched != null;
             resourcePositions[i] = matched == null ? BlockPos.ZERO : matched.immutable();
         }
+        syncDisplay();
     }
 
     @Nullable
@@ -625,6 +714,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         rematchCooldown = 0;
         Arrays.fill(hasResource, false);
         Arrays.fill(resourcePositions, BlockPos.ZERO);
+        syncDisplay();
     }
 
     @Override
@@ -635,8 +725,12 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         outputLocked = input.getBooleanOr("OutputLocked", false);
         lockedResultId = input.getStringOr("LockedResultId", "");
         lockedRecipeId = input.getStringOr("LockedRecipeId", "");
+        lastNonFreeRecipeId = input.getStringOr("LastNonFreeRecipeId", "");
+        lastNonFreeResultId = input.getStringOr("LastNonFreeResultId", "");
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
+        activeRecipeId = input.getStringOr("ActiveRecipeId", "");
         activeRecipeTicks = input.getIntOr("ActiveRecipeTicks", 0);
+        capacityBonusBank = Math.max(0, input.getIntOr("CapacityBonusBank", 0));
         for (int i = 0; i < upgradeStacks.size(); i++) {
             upgradeStacks.set(i, input.read("Upgrade" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY));
         }
@@ -656,9 +750,21 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (!lockedRecipeId.isEmpty()) {
             output.putString("LockedRecipeId", lockedRecipeId);
         }
+        if (!lastNonFreeRecipeId.isEmpty()) {
+            output.putString("LastNonFreeRecipeId", lastNonFreeRecipeId);
+        }
+        if (!lastNonFreeResultId.isEmpty()) {
+            output.putString("LastNonFreeResultId", lastNonFreeResultId);
+        }
         output.putInt("RedstoneMode", redstoneMode.ordinal());
+        if (!activeRecipeId.isEmpty()) {
+            output.putString("ActiveRecipeId", activeRecipeId);
+        }
         if (activeRecipeTicks > 0) {
             output.putInt("ActiveRecipeTicks", activeRecipeTicks);
+        }
+        if (capacityBonusBank > 0) {
+            output.putInt("CapacityBonusBank", capacityBonusBank);
         }
         for (int i = 0; i < upgradeStacks.size(); i++) {
             ItemStack stack = upgradeStacks.get(i);
@@ -681,6 +787,15 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (!lockedResultId.isEmpty()) {
             tag.putString("LockedResultId", lockedResultId);
         }
+        if (!lastNonFreeRecipeId.isEmpty()) {
+            tag.putString("LastNonFreeRecipeId", lastNonFreeRecipeId);
+        }
+        if (!lastNonFreeResultId.isEmpty()) {
+            tag.putString("LastNonFreeResultId", lastNonFreeResultId);
+        }
+        if (!activeRecipeId.isEmpty()) {
+            tag.putString("ActiveRecipeId", activeRecipeId);
+        }
         return tag;
     }
 
@@ -690,6 +805,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         outputLocked = input.getBooleanOr("OutputLocked", false);
         lockedRecipeId = input.getStringOr("LockedRecipeId", "");
         lockedResultId = input.getStringOr("LockedResultId", "");
+        lastNonFreeRecipeId = input.getStringOr("LastNonFreeRecipeId", "");
+        lastNonFreeResultId = input.getStringOr("LastNonFreeResultId", "");
+        activeRecipeId = input.getStringOr("ActiveRecipeId", "");
     }
 
     @Override

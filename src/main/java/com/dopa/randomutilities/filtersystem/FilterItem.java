@@ -1,12 +1,12 @@
-package com.dopa.randomutilities.filteritem;
+package com.dopa.randomutilities.filtersystem;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import com.dopa.randomutilities.filteritem.client.CompactCountFormat;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.client.CompactCountFormat;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;

@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.item;
 
-import com.dopa.randomutilities.filteritem.FilterItem;
+import com.dopa.randomutilities.filtersystem.FilterItem;
 
 /** Advanced /dev/null — expandable slots, color tint, settings panel. Limits come from {@code devnull.json}. */
 public class AdvancedDevNullItem extends FilterItem {

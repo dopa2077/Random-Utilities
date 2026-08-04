@@ -3,6 +3,7 @@ package com.dopa.randomutilities.machine.generator.menu;
 import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.config.GeneratorType;
 import com.dopa.randomutilities.config.UpgradeConfig;
+import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
@@ -25,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ResourceGeneratorMenu extends AbstractContainerMenu {
-    public static final int TAB_Y_BIAS = -18;
+    public static final int TAB_Y_BIAS = 0;
 
     public static final int DATA_PROGRESS = 0;
     public static final int DATA_MAX_PROGRESS = 1;
@@ -57,8 +58,10 @@ public class ResourceGeneratorMenu extends AbstractContainerMenu {
         List<MachineUpgradeSlot> upgrades = new ArrayList<>();
         if (upgradesEnabled) {
             UpgradeInventory handler = be.upgrades();
+            // Upgrade panel is RIGHT_TOP; UpgradeSlot.gridOriginY assumes BELOW_TAB_Y.
+            int upgradeSlotYBias = TAB_Y_BIAS - UpgradeSlot.AttachedPanelLayout.TAB_SIZE;
             for (int i = 0; i < UpgradeConfig.UPGRADE_SLOT_COUNT; i++) {
-                MachineUpgradeSlot slot = new MachineUpgradeSlot(handler, i, TAB_Y_BIAS);
+                MachineUpgradeSlot slot = new MachineUpgradeSlot(handler, i, upgradeSlotYBias);
                 this.addSlot(slot);
                 upgrades.add(slot);
             }
@@ -119,6 +122,10 @@ public class ResourceGeneratorMenu extends AbstractContainerMenu {
 
     public float progressFraction() {
         int max = data.get(DATA_MAX_PROGRESS);
+        if (max <= 0) {
+            // Client data can lag; fall back to BE recipe ticks while matched.
+            max = be.effectiveTicks();
+        }
         if (max <= 0) {
             return 0.0F;
         }

@@ -3,11 +3,12 @@ package com.dopa.randomutilities.registry;
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterItem;
-import com.dopa.randomutilities.filteritem.FilterProfile;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
+import com.dopa.randomutilities.filtersystem.FilterItem;
+import com.dopa.randomutilities.filtersystem.FilterProfile;
+import com.dopa.randomutilities.filtersystem.FilterRegistry;
 import com.dopa.randomutilities.item.AdvancedDevNullItem;
 import com.dopa.randomutilities.item.DevNullItem;
+import com.dopa.randomutilities.item.MachineUpgradeItem;
 import com.dopa.randomutilities.item.UiTestBlockItem;
 import com.dopa.randomutilities.item.UiTestItem;
 
@@ -39,8 +40,14 @@ public final class ModItems {
     );
 
     public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
-    public static final DeferredItem<Item> CAPACITY_UPGRADE = ITEMS.registerItem("capacity_upgrade", Item::new);
-    public static final DeferredItem<Item> OVERCLOCK_UPGRADE = ITEMS.registerItem("overclock_upgrade", Item::new);
+    public static final DeferredItem<MachineUpgradeItem> CAPACITY_UPGRADE = ITEMS.registerItem(
+            "capacity_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.CAPACITY)
+    );
+    public static final DeferredItem<MachineUpgradeItem> OVERCLOCK_UPGRADE = ITEMS.registerItem(
+            "overclock_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.OVERCLOCK)
+    );
 
     private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
 

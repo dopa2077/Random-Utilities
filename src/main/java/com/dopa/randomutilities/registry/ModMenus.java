@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
 import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
 
 import net.minecraft.core.registries.Registries;

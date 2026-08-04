@@ -1,7 +1,7 @@
-package com.dopa.randomutilities.filteritem;
+package com.dopa.randomutilities.filtersystem;
 
-import com.dopa.randomutilities.filteritem.network.FilterSelectPayload;
-import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
+import com.dopa.randomutilities.filtersystem.network.FilterSelectPayload;
+import com.dopa.randomutilities.filtersystem.network.FilterSettingPayload;
 
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;

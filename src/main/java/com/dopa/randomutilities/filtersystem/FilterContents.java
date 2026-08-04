@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.filteritem;
+package com.dopa.randomutilities.filtersystem;
 
 import java.util.ArrayList;
 import java.util.List;

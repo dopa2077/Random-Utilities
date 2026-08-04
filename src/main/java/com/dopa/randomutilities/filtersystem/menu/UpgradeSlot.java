@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.filteritem.menu;
+package com.dopa.randomutilities.filtersystem.menu;
 
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;

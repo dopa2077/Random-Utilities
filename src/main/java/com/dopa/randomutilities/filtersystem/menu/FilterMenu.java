@@ -1,12 +1,12 @@
-package com.dopa.randomutilities.filteritem.menu;
+package com.dopa.randomutilities.filtersystem.menu;
 
 import com.dopa.randomutilities.blockentity.UiTestBlockEntity;
 import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.filteritem.FilterContents;
-import com.dopa.randomutilities.filteritem.FilterItem;
-import com.dopa.randomutilities.filteritem.FilterProfile;
-import com.dopa.randomutilities.filteritem.FilterRegistry;
-import com.dopa.randomutilities.filteritem.FilterStorage;
+import com.dopa.randomutilities.filtersystem.FilterContents;
+import com.dopa.randomutilities.filtersystem.FilterItem;
+import com.dopa.randomutilities.filtersystem.FilterProfile;
+import com.dopa.randomutilities.filtersystem.FilterRegistry;
+import com.dopa.randomutilities.filtersystem.FilterStorage;
 import com.dopa.randomutilities.registry.ModMenus;
 
 import net.minecraft.core.BlockPos;

@@ -78,6 +78,11 @@ public record GeneratorRecipe(
         return score;
     }
 
+    /** True when the recipe needs no sides and no block below (e.g. default cobble). */
+    public boolean isFreeRecipe() {
+        return requiredUnder == null && resourceCount() == 0;
+    }
+
     public record Neighbor(BlockPos pos, @Nullable Fluid fluid, Block block) {}
 
     public record Match(GeneratorRecipe recipe, BlockPos[] resourcePositions) {
@@ -103,18 +108,36 @@ public record GeneratorRecipe(
     }
 
     public static Optional<Match> findBestMatch(Level level, BlockPos generatorPos, List<GeneratorRecipe> recipes) {
+        return findBestMatch(level, generatorPos, recipes, false);
+    }
+
+    public static Optional<Match> findBestMatch(
+            Level level,
+            BlockPos generatorPos,
+            List<GeneratorRecipe> recipes,
+            boolean skipFree
+    ) {
         if (recipes.isEmpty()) {
             return Optional.empty();
         }
         List<Neighbor> neighbors = scanHorizontalNeighbors(level, generatorPos);
         Block underBlock = level.getBlockState(generatorPos.below()).getBlock();
         for (GeneratorRecipe recipe : recipes) {
+            if (skipFree && recipe.isFreeRecipe()) {
+                continue;
+            }
             Optional<Match> match = tryMatch(recipe, neighbors, underBlock);
             if (match.isPresent()) {
                 return match;
             }
         }
         return Optional.empty();
+    }
+
+    public static Optional<Match> tryMatchAt(Level level, BlockPos generatorPos, GeneratorRecipe recipe) {
+        List<Neighbor> neighbors = scanHorizontalNeighbors(level, generatorPos);
+        Block underBlock = level.getBlockState(generatorPos.below()).getBlock();
+        return tryMatch(recipe, neighbors, underBlock);
     }
 
     private static Optional<Match> tryMatch(GeneratorRecipe recipe, List<Neighbor> neighbors, Block underBlock) {

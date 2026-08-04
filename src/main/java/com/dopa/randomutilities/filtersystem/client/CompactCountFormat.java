@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.filteritem.client;
+package com.dopa.randomutilities.filtersystem.client;
 
 import java.util.Locale;
 

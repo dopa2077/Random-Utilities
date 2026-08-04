@@ -3,7 +3,7 @@ package com.dopa.randomutilities;
 import com.dopa.randomutilities.config.DevNullConfig;
 import com.dopa.randomutilities.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filteritem.FilterNetwork;
+import com.dopa.randomutilities.filtersystem.FilterNetwork;
 import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;

@@ -72,11 +72,41 @@ public final class UpgradeConfig {
         return maxPerType(type) > 0;
     }
 
-    public static int boostedAmount(int baseAmount, int capacityCount) {
-        if (baseAmount <= 0 || capacityCount <= 0) {
+    /**
+     * Peek produce amount for the current capacity bank without mutating it.
+     * Uses fractional carry: {@code bank + base * bonusPercent} percent-units.
+     */
+    public static int peekBoostedAmount(int baseAmount, int capacityCount, int bank) {
+        if (baseAmount <= 0) {
             return baseAmount;
         }
-        return Math.max(1, baseAmount * (100 + capacityBonusPercent * capacityCount) / 100);
+        int bonus = capacityBonusPercent * Math.max(0, capacityCount);
+        if (bonus <= 0) {
+            return baseAmount;
+        }
+        int safeBank = Math.max(0, bank);
+        return baseAmount + (safeBank + baseAmount * bonus) / 100;
+    }
+
+    /**
+     * Advance the capacity remainder bank after a successful craft.
+     * Returns the new bank (0–99 leftover percent-units typically, can be larger before mod).
+     */
+    public static int advanceCapacityBank(int baseAmount, int capacityCount, int bank) {
+        if (baseAmount <= 0) {
+            return Math.max(0, bank);
+        }
+        int bonus = capacityBonusPercent * Math.max(0, capacityCount);
+        if (bonus <= 0) {
+            return Math.max(0, bank);
+        }
+        return (Math.max(0, bank) + baseAmount * bonus) % 100;
+    }
+
+    /** Prefer {@link #peekBoostedAmount} with a remainder bank for amount-1 recipes. */
+    @Deprecated
+    public static int boostedAmount(int baseAmount, int capacityCount) {
+        return peekBoostedAmount(baseAmount, capacityCount, 0);
     }
 
     public static int effectiveTicks(int recipeTicks, int overclockCount) {

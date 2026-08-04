@@ -1,9 +1,9 @@
-package com.dopa.randomutilities.filteritem.client.panel;
+package com.dopa.randomutilities.filtersystem.client.panel;
 
 import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.filteritem.client.FilterScreen;
-import com.dopa.randomutilities.filteritem.menu.FilterMenu;
-import com.dopa.randomutilities.filteritem.network.FilterSettingPayload;
+import com.dopa.randomutilities.filtersystem.client.FilterScreen;
+import com.dopa.randomutilities.filtersystem.menu.FilterMenu;
+import com.dopa.randomutilities.filtersystem.network.FilterSettingPayload;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;

@@ -1,4 +1,4 @@
-package com.dopa.randomutilities.filteritem;
+package com.dopa.randomutilities.filtersystem;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 

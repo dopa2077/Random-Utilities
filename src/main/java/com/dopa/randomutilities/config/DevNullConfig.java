@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.config;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterContents;
-import com.dopa.randomutilities.filteritem.FilterProfile;
+import com.dopa.randomutilities.filtersystem.FilterContents;
+import com.dopa.randomutilities.filtersystem.FilterProfile;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
