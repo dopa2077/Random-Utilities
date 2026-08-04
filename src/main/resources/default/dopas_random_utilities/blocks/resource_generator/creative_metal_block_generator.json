@@ -4,7 +4,7 @@
     {
       "id": "random_storage",
       "result": "random",
-      "amount": 10000,
+      "amount": 1000,
       "ticks": 1
     }
   ]
