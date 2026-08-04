@@ -61,7 +61,8 @@
       "below": "minecraft:oak_leaves",
       "sides": [
         {
-          "id": "minecraft:water"
+          "id": "minecraft:water",
+          "consume": true
         }
       ],
       "amount": 1,
@@ -83,8 +84,12 @@
     {
       "id": "sand",
       "result": "minecraft:sand",
-      "below": "minecraft:sand",
+      "below": "minecraft:sandstone",
       "sides": [
+        {
+          "id": "minecraft:dead_bush",
+          "consume": true
+        },
         {
           "id": "minecraft:water"
         }
@@ -95,8 +100,12 @@
     {
       "id": "red_sand",
       "result": "minecraft:red_sand",
-      "below": "minecraft:red_sand",
+      "below": "minecraft:red_sandstone",
       "sides": [
+        {
+          "id": "minecraft:dead_bush",
+          "consume": true
+        },
         {
           "id": "minecraft:water"
         }
@@ -107,10 +116,11 @@
     {
       "id": "gravel",
       "result": "minecraft:gravel",
-      "below": "minecraft:gravel",
+      "below": "minecraft:stone",
       "sides": [
         {
-          "id": "minecraft:water"
+          "id": "minecraft:water",
+          "consume": true
         }
       ],
       "amount": 1,
@@ -119,10 +129,14 @@
     {
       "id": "clay",
       "result": "minecraft:clay",
-      "below": "minecraft:clay",
+      "below": "minecraft:dirt",
       "sides": [
         {
-          "id": "minecraft:water"
+          "id": "minecraft:sand"
+        },
+        {
+          "id": "minecraft:water",
+          "consume": true
         }
       ],
       "amount": 1,
@@ -134,7 +148,8 @@
       "below": "minecraft:moss_block",
       "sides": [
         {
-          "id": "minecraft:water"
+          "id": "minecraft:water",
+          "consume": true
         }
       ],
       "amount": 1,
@@ -146,7 +161,7 @@
       "below": "minecraft:sand",
       "sides": [
         {
-          "id": "minecraft:sand"
+          "id": "minecraft:clay"
         }
       ],
       "amount": 1,
@@ -158,7 +173,7 @@
       "below": "minecraft:red_sand",
       "sides": [
         {
-          "id": "minecraft:red_sand"
+          "id": "minecraft:clay"
         }
       ],
       "amount": 1,
