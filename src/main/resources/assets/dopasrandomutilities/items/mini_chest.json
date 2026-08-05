@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "dopasrandomutilities:item/mini_chest",
+    "model": {
+      "type": "dopasrandomutilities:mini_chest"
+    }
+  }
+}

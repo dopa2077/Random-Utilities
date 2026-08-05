@@ -1,7 +1,8 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.blockentity.UiTestBlockEntity;
-import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
+import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
+import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -31,6 +32,16 @@ public final class ModBlockEntities {
                             UiTestBlockEntity::new,
                             false,
                             ModBlocks.UI_TEST_BLOCK.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<MiniChestBlockEntity>> MINI_CHEST =
+            BLOCK_ENTITIES.register(
+                    "mini_chest",
+                    () -> new BlockEntityType<>(
+                            MiniChestBlockEntity::new,
+                            false,
+                            ModBlocks.MINI_CHEST.get()
                     )
             );
 

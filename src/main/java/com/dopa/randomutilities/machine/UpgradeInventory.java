@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.machine;
 
-import com.dopa.randomutilities.config.UpgradeConfig;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModItems;
 
 import net.minecraft.core.NonNullList;
@@ -36,8 +36,8 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         return total;
     }
 
-    public int capacityCount() {
-        return countOf(ModItems.CAPACITY_UPGRADE.get());
+    public int productivityCount() {
+        return countOf(ModItems.PRODUCTIVITY_UPGRADE.get());
     }
 
     public int overclockCount() {
@@ -46,12 +46,12 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
 
     public static boolean isUpgradeItem(ItemStack stack) {
         return !stack.isEmpty()
-                && (stack.is(ModItems.CAPACITY_UPGRADE.get()) || stack.is(ModItems.OVERCLOCK_UPGRADE.get()));
+                && (stack.is(ModItems.PRODUCTIVITY_UPGRADE.get()) || stack.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
 
     public static boolean isUpgradeItem(ItemResource resource) {
         return !resource.isEmpty()
-                && (resource.is(ModItems.CAPACITY_UPGRADE.get()) || resource.is(ModItems.OVERCLOCK_UPGRADE.get()));
+                && (resource.is(ModItems.PRODUCTIVITY_UPGRADE.get()) || resource.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
 
     @Override

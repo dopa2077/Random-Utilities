@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.machine.generator.client.panel;
 
-import com.dopa.randomutilities.filtersystem.client.panel.AttachedPanel;
-import com.dopa.randomutilities.filtersystem.client.panel.PanelAnchor;
+import com.dopa.randomutilities.client.gui.AttachedPanel;
+import com.dopa.randomutilities.client.gui.PanelAnchor;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

@@ -1,10 +1,10 @@
 package com.dopa.randomutilities.machine.generator.client;
 
-import com.dopa.randomutilities.config.GeneratorRecipePresence;
-import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filtersystem.client.panel.PanelAnchor;
-import com.dopa.randomutilities.filtersystem.client.panel.PanelHost;
-import com.dopa.randomutilities.item.MachineUpgradeItem;
+import com.dopa.randomutilities.machine.generator.config.GeneratorRecipePresence;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.client.gui.PanelHost;
+import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
 import com.dopa.randomutilities.machine.client.panel.MachineUpgradePanel;

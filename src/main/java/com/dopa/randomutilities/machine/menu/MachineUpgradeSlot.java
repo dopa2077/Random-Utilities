@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.machine.menu;
 
-import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
+import com.dopa.randomutilities.filter.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 
 import net.minecraft.world.entity.player.Player;

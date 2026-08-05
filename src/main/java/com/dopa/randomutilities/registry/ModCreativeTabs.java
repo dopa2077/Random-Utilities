@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.config.GeneratorType;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -21,6 +21,7 @@ public final class ModCreativeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.DEV_NULL.get());
                         output.accept(ModItems.ADVANCED_DEV_NULL.get());
+                        output.accept(ModItems.MINI_CHEST.get());
                         output.accept(ModItems.UI_TEST_ITEM.get());
                         output.accept(ModItems.UI_TEST_BLOCK_ITEM.get());
                         for (GeneratorType type : GeneratorType.values()) {
@@ -35,7 +36,7 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.UPGRADE_CASING.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.UPGRADE_CASING.get());
-                        output.accept(ModItems.CAPACITY_UPGRADE.get());
+                        output.accept(ModItems.PRODUCTIVITY_UPGRADE.get());
                         output.accept(ModItems.OVERCLOCK_UPGRADE.get());
                     })
                     .build());

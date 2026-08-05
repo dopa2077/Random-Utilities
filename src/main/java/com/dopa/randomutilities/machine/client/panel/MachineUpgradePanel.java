@@ -1,9 +1,11 @@
 package com.dopa.randomutilities.machine.client.panel;
 
-import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filtersystem.client.panel.AttachedPanel;
-import com.dopa.randomutilities.filtersystem.client.panel.PanelAnchor;
-import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
+import com.dopa.randomutilities.util.PanelLayout;
+
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.client.gui.AttachedPanel;
+import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.filter.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.registry.ModItems;
 
@@ -28,7 +30,7 @@ public final class MachineUpgradePanel extends AttachedPanel {
         super(
                 anchor,
                 UpgradeSlot.panelWidth(),
-                UpgradeSlot.AttachedPanelLayout.CONTENT_PAD * 2 + UpgradeSlot.TITLE_GAP + UpgradeSlot.ROWS * 18,
+                PanelLayout.CONTENT_PAD * 2 + UpgradeSlot.TITLE_GAP + UpgradeSlot.ROWS * 18,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.upgrades")
         );

@@ -3,8 +3,9 @@ package com.dopa.randomutilities;
 import java.util.Arrays;
 import java.util.List;
 
-import com.dopa.randomutilities.client.ResourceGeneratorRenderer;
-import com.dopa.randomutilities.config.GeneratorType;
+import com.dopa.randomutilities.minichest.client.MiniChestRenderer;
+import com.dopa.randomutilities.machine.generator.client.ResourceGeneratorRenderer;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 
@@ -31,6 +32,10 @@ public class dOPasRandomUtilitiesClient {
         event.registerBlockEntityRenderer(
                 ModBlockEntities.RESOURCE_GENERATOR.get(),
                 ResourceGeneratorRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                ModBlockEntities.MINI_CHEST.get(),
+                MiniChestRenderer::new
         );
     }
 

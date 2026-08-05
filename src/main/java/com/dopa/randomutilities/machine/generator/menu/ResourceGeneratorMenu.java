@@ -1,9 +1,11 @@
 package com.dopa.randomutilities.machine.generator.menu;
 
-import com.dopa.randomutilities.blockentity.ResourceGeneratorBlockEntity;
-import com.dopa.randomutilities.config.GeneratorType;
-import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filtersystem.menu.UpgradeSlot;
+import com.dopa.randomutilities.util.PanelLayout;
+
+import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.filter.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
@@ -59,7 +61,7 @@ public class ResourceGeneratorMenu extends AbstractContainerMenu {
         if (upgradesEnabled) {
             UpgradeInventory handler = be.upgrades();
             // Upgrade panel is RIGHT_TOP; UpgradeSlot.gridOriginY assumes BELOW_TAB_Y.
-            int upgradeSlotYBias = TAB_Y_BIAS - UpgradeSlot.AttachedPanelLayout.TAB_SIZE;
+            int upgradeSlotYBias = TAB_Y_BIAS - PanelLayout.TAB_SIZE;
             for (int i = 0; i < UpgradeConfig.UPGRADE_SLOT_COUNT; i++) {
                 MachineUpgradeSlot slot = new MachineUpgradeSlot(handler, i, upgradeSlotYBias);
                 this.addSlot(slot);

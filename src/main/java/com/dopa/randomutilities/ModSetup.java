@@ -1,9 +1,9 @@
 package com.dopa.randomutilities;
 
-import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.config.GeneratorRecipeConfig;
-import com.dopa.randomutilities.config.UpgradeConfig;
-import com.dopa.randomutilities.filtersystem.FilterNetwork;
+import com.dopa.randomutilities.filter.config.DevNullConfig;
+import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.filter.FilterNetwork;
 import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
@@ -17,6 +17,8 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
@@ -44,8 +46,17 @@ public final class ModSetup {
                     GeneratorRecipeConfig.load();
                 }));
         modEventBus.addListener(FilterNetwork::registerCapabilities);
+        modEventBus.addListener(ModSetup::registerCapabilities);
         modEventBus.addListener(FilterNetwork::registerPayloads);
         modEventBus.addListener(MachineNetwork::registerPayloads);
+    }
+
+    private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.MINI_CHEST.get(),
+                (be, side) -> be.itemHandler()
+        );
     }
 
     @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)

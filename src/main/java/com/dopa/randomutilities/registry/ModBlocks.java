@@ -1,8 +1,9 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.block.ResourceGeneratorBlock;
-import com.dopa.randomutilities.block.UiTestBlock;
-import com.dopa.randomutilities.config.GeneratorType;
+import com.dopa.randomutilities.minichest.MiniChestBlock;
+import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.filter.dev.UiTestBlock;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.world.level.block.Block;
@@ -22,6 +23,12 @@ public final class ModBlocks {
             "ui_test_block",
             UiTestBlock::new,
             props -> props.mapColor(MapColor.COLOR_PURPLE).strength(0.5F).sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<MiniChestBlock> MINI_CHEST = BLOCKS.registerBlock(
+            "mini_chest",
+            MiniChestBlock::new,
+            props -> props.mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)
     );
 
     static {

@@ -1,16 +1,16 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.config.DevNullConfig;
-import com.dopa.randomutilities.config.GeneratorType;
+import com.dopa.randomutilities.filter.config.DevNullConfig;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filtersystem.FilterItem;
-import com.dopa.randomutilities.filtersystem.FilterProfile;
-import com.dopa.randomutilities.filtersystem.FilterRegistry;
-import com.dopa.randomutilities.item.AdvancedDevNullItem;
-import com.dopa.randomutilities.item.DevNullItem;
-import com.dopa.randomutilities.item.MachineUpgradeItem;
-import com.dopa.randomutilities.item.UiTestBlockItem;
-import com.dopa.randomutilities.item.UiTestItem;
+import com.dopa.randomutilities.filter.FilterItem;
+import com.dopa.randomutilities.filter.FilterProfile;
+import com.dopa.randomutilities.filter.FilterRegistry;
+import com.dopa.randomutilities.filter.item.AdvancedDevNullItem;
+import com.dopa.randomutilities.filter.item.DevNullItem;
+import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
+import com.dopa.randomutilities.filter.dev.UiTestBlockItem;
+import com.dopa.randomutilities.filter.dev.UiTestItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -39,10 +39,12 @@ public final class ModItems {
             props -> new UiTestBlockItem(ModBlocks.UI_TEST_BLOCK.get(), props)
     );
 
+    public static final DeferredItem<BlockItem> MINI_CHEST = ITEMS.registerSimpleBlockItem(ModBlocks.MINI_CHEST);
+
     public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
-    public static final DeferredItem<MachineUpgradeItem> CAPACITY_UPGRADE = ITEMS.registerItem(
-            "capacity_upgrade",
-            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.CAPACITY)
+    public static final DeferredItem<MachineUpgradeItem> PRODUCTIVITY_UPGRADE = ITEMS.registerItem(
+            "productivity_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.PRODUCTIVITY)
     );
     public static final DeferredItem<MachineUpgradeItem> OVERCLOCK_UPGRADE = ITEMS.registerItem(
             "overclock_upgrade",

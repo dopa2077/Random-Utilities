@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:chest"
+  ],
+  "result": {
+    "count": 9,
+    "id": "dopasrandomutilities:mini_chest"
+  }
+}
