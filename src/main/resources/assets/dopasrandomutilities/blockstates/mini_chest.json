@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "dopasrandomutilities:block/mini_chest" },
+    "facing=east": { "model": "dopasrandomutilities:block/mini_chest" },
+    "facing=south": { "model": "dopasrandomutilities:block/mini_chest" },
+    "facing=west": { "model": "dopasrandomutilities:block/mini_chest" }
+  }
+}

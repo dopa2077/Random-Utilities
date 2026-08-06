@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filteritem.FilterContents;
+import com.dopa.randomutilities.filter.FilterContents;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;

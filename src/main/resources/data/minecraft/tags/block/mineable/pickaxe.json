@@ -10,6 +10,9 @@
     "dopasrandomutilities:random_ore_generator",
     "dopasrandomutilities:metal_block_generator",
     "dopasrandomutilities:creative_random_ore_generator",
-    "dopasrandomutilities:creative_metal_block_generator"
+    "dopasrandomutilities:creative_metal_block_generator",
+    "dopasrandomutilities:trash_can",
+    "dopasrandomutilities:basic_item_collector",
+    "dopasrandomutilities:advanced_item_collector"
   ]
 }

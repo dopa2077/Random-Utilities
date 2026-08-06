@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "dopasrandomutilities:upgrade_casing",
+    "G": "minecraft:gold_block",
+    "R": "minecraft:redstone_block",
+    "D": "minecraft:redstone"
+  },
+  "pattern": [
+    "CDC",
+    "RGR",
+    "CDC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:overclock_upgrade"
+  }
+}

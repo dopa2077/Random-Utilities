@@ -1,0 +1,32 @@
+{
+  "parent": "dopasrandomutilities:root",
+  "criteria": {
+    "nested": {
+      "trigger": "dopasrandomutilities:dev_null_nest"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.dopasrandomutilities.stack_overflow.description"
+    },
+    "frame": "challenge",
+    "hidden": true,
+    "icon": {
+      "id": "dopasrandomutilities:dev_null"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.dopasrandomutilities.stack_overflow.title"
+    }
+  },
+  "requirements": [
+    [
+      "nested"
+    ]
+  ],
+  "rewards": {
+    "experience": 85
+  },
+  "sends_telemetry_event": false
+}
