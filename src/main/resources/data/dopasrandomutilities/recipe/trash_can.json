@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "S": "minecraft:stone",
+    "O": "minecraft:cobblestone",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "SSS",
+    "OCO",
+    "OOO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:trash_can"
+  }
+}

@@ -262,7 +262,13 @@ public final class FilterStorage {
     }
 
     public static boolean canStore(ItemStack host, ItemStack candidate) {
-        return !candidate.isEmpty() && !FilterRegistry.isFilterItem(candidate);
+        if (candidate.isEmpty()) {
+            return false;
+        }
+        if (!FilterRegistry.isFilterItem(candidate)) {
+            return true;
+        }
+        return FilterNesting.canAcceptNested(host, candidate);
     }
 
     public static int absorb(ItemStack host, ItemStack incoming) {

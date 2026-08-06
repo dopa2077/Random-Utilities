@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -238,7 +239,7 @@ public final class GeneratorRecipeConfig {
         }
         JsonObject object = root.getAsJsonObject();
         int ticks = Math.max(1, object.has("ticks") ? object.get("ticks").getAsInt() : 40);
-        int amount = Math.max(1, object.has("amount") ? object.get("amount").getAsInt() : 1);
+        int amount = parseOutputAmount(object, false);
         GeneratorOutputMode outputMode = object.has("output")
                 ? GeneratorOutputMode.parse(object.get("output").getAsString())
                 : GeneratorOutputMode.PLACE;
@@ -381,7 +382,7 @@ public final class GeneratorRecipeConfig {
         }
 
         int ticks = Math.max(1, definition.has("ticks") ? definition.get("ticks").getAsInt() : 20);
-        int amount = Math.max(1, definition.has("amount") ? definition.get("amount").getAsInt() : 1);
+        int amount = parseOutputAmount(definition, resultFluid != null);
         GeneratorOutputMode outputMode = definition.has("output")
                 ? GeneratorOutputMode.parse(definition.get("output").getAsString())
                 : fileDefaultOutput;
@@ -390,6 +391,33 @@ public final class GeneratorRecipeConfig {
                 recipeId, resultBlock, resultFluid, resources, consume,
                 requiredUnder, ticks, amount, outputMode
         ));
+    }
+
+    /**
+     * Reads {@code amount} from JSON. Block recipes use whole items; fluid recipes use buckets
+     * (including fractions such as {@code 0.2}) and are stored as millibuckets.
+     */
+    private static int parseOutputAmount(JsonObject definition, boolean fluidResult) {
+        double raw = 1.0D;
+        if (definition.has("amount") && !definition.get("amount").isJsonNull()) {
+            try {
+                raw = definition.get("amount").getAsDouble();
+            } catch (NumberFormatException | UnsupportedOperationException | IllegalStateException ignored) {
+                raw = 1.0D;
+            }
+        }
+        if (fluidResult) {
+            long millibuckets = Math.round(raw * FluidType.BUCKET_VOLUME);
+            if (millibuckets > Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
+            return (int) Math.max(1L, millibuckets);
+        }
+        long items = Math.round(raw);
+        if (items > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) Math.max(1L, items);
     }
 
     private static boolean isRandomResultToken(String value) {

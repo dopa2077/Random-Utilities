@@ -22,6 +22,9 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.DEV_NULL.get());
                         output.accept(ModItems.ADVANCED_DEV_NULL.get());
                         output.accept(ModItems.MINI_CHEST.get());
+                        output.accept(ModItems.TRASH_CAN.get());
+                        output.accept(ModItems.BASIC_ITEM_COLLECTOR.get());
+                        output.accept(ModItems.ADVANCED_ITEM_COLLECTOR.get());
                         output.accept(ModItems.UI_TEST_ITEM.get());
                         output.accept(ModItems.UI_TEST_BLOCK_ITEM.get());
                         for (GeneratorType type : GeneratorType.values()) {

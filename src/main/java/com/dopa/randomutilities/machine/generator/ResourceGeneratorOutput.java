@@ -16,7 +16,6 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.item.ItemResource;
@@ -39,11 +38,12 @@ final class ResourceGeneratorOutput {
             int amount,
             @Nullable Block outputOverride
     ) {
-        if (outputOverride != null) {
-            return outputBlocks(level, pos, outputOverride, amount, recipe.outputMode(), true) > 0;
-        }
+        // Fluids always insert as fluid — never treat the GUI display proxy (ice/magma) as item output.
         if (recipe.isFluidResult()) {
             return insertFluid(level, pos, recipe.resultFluid(), amount, true) > 0;
+        }
+        if (outputOverride != null) {
+            return outputBlocks(level, pos, outputOverride, amount, recipe.outputMode(), true) > 0;
         }
         if (recipe.isRandomResult()) {
             if (poolFor(type).isEmpty()) {
@@ -94,22 +94,25 @@ final class ResourceGeneratorOutput {
         }
     }
 
-    static int insertFluid(ServerLevel level, BlockPos pos, @Nullable Fluid fluid, int amount, boolean simulate) {
+    /**
+     * Inserts fluid into the tank above. {@code millibuckets} is the requested volume
+     * (1000 = one bucket). Returns millibuckets actually inserted.
+     */
+    static int insertFluid(ServerLevel level, BlockPos pos, @Nullable Fluid fluid, int millibuckets, boolean simulate) {
         ResourceHandler<FluidResource> handler = getFluidOutputHandler(level, pos);
-        if (handler == null || fluid == null || fluid.isSame(Fluids.EMPTY) || amount <= 0) {
+        if (handler == null || fluid == null || fluid.isSame(Fluids.EMPTY) || millibuckets <= 0) {
             return 0;
         }
         FluidResource resource = FluidResource.of(fluid);
         if (resource.isEmpty()) {
             return 0;
         }
-        long millibuckets = Math.min((long) amount * FluidType.BUCKET_VOLUME, Integer.MAX_VALUE);
         try (Transaction tx = Transaction.open(null)) {
-            int insertedMb = handler.insert(resource, (int) millibuckets, tx);
+            int insertedMb = handler.insert(resource, millibuckets, tx);
             if (insertedMb > 0 && !simulate) {
                 tx.commit();
             }
-            return Math.max(0, insertedMb / FluidType.BUCKET_VOLUME);
+            return Math.max(0, insertedMb);
         }
     }
 

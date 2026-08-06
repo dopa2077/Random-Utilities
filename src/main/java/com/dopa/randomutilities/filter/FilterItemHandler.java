@@ -37,8 +37,15 @@ public class FilterItemHandler extends ItemAccessResourceHandler<ItemResource> {
     @Override
     @Nullable
     protected ItemResource update(ItemResource accessResource, int index, ItemResource newResource, int newAmount) {
-        if (!accessResource.is(validItem) || FilterRegistry.isFilterItem(newResource.toStack())) {
+        if (!accessResource.is(validItem)) {
             return ItemResource.EMPTY;
+        }
+        if (!newResource.isEmpty()) {
+            ItemStack host = accessResource.toStack();
+            ItemStack incoming = newResource.toStack();
+            if (FilterRegistry.isFilterItem(incoming) && !FilterNesting.canAcceptNested(host, incoming)) {
+                return ItemResource.EMPTY;
+            }
         }
         ItemStack stack = accessResource.toStack();
         FilterContents updated = contents(accessResource).withSlot(index, newResource, newAmount);
@@ -52,8 +59,17 @@ public class FilterItemHandler extends ItemAccessResourceHandler<ItemResource> {
 
     @Override
     public boolean isValid(int index, ItemResource resource) {
-        return itemAccess.getResource().is(validItem)
-                && (resource.isEmpty() || !FilterRegistry.isFilterItem(resource.toStack()));
+        if (!itemAccess.getResource().is(validItem)) {
+            return false;
+        }
+        if (resource.isEmpty()) {
+            return true;
+        }
+        ItemStack stack = resource.toStack();
+        if (!FilterRegistry.isFilterItem(stack)) {
+            return true;
+        }
+        return FilterNesting.canAcceptNested(itemAccess.getResource().toStack(), stack);
     }
 
     @Override

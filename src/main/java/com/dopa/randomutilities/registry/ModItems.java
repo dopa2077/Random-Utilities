@@ -41,6 +41,14 @@ public final class ModItems {
 
     public static final DeferredItem<BlockItem> MINI_CHEST = ITEMS.registerSimpleBlockItem(ModBlocks.MINI_CHEST);
 
+    public static final DeferredItem<BlockItem> TRASH_CAN = ITEMS.registerSimpleBlockItem(ModBlocks.TRASH_CAN);
+
+    public static final DeferredItem<BlockItem> BASIC_ITEM_COLLECTOR =
+            ITEMS.registerSimpleBlockItem(ModBlocks.BASIC_ITEM_COLLECTOR);
+
+    public static final DeferredItem<BlockItem> ADVANCED_ITEM_COLLECTOR =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ADVANCED_ITEM_COLLECTOR);
+
     public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
     public static final DeferredItem<MachineUpgradeItem> PRODUCTIVITY_UPGRADE = ITEMS.registerItem(
             "productivity_upgrade",

@@ -56,8 +56,21 @@ public record GeneratorJeiRecipe(GeneratorType type, GeneratorRecipe recipe) {
     }
 
     public int resultFluidMillibuckets() {
-        long millibuckets = (long) recipe.amount() * FluidType.BUCKET_VOLUME;
-        return millibuckets > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) millibuckets;
+        return recipe.isFluidResult() ? recipe.amount() : 0;
+    }
+
+    public String amountLabel() {
+        if (recipe.isFluidResult()) {
+            double buckets = recipe.amount() / (double) FluidType.BUCKET_VOLUME;
+            if (Math.abs(buckets - Math.rint(buckets)) < 1.0E-6D) {
+                return Integer.toString((int) Math.rint(buckets));
+            }
+            String formatted = String.format(java.util.Locale.ROOT, "%.4f", buckets)
+                    .replaceAll("0+$", "")
+                    .replaceAll("\\.$", "");
+            return formatted.isEmpty() ? "0" : formatted;
+        }
+        return Integer.toString(recipe.amount());
     }
 
     public List<ItemStack> resultStacks() {

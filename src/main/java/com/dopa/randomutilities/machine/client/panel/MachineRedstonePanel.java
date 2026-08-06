@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** Synced Ignore / Low / High redstone panel for world machines. */
@@ -57,6 +58,7 @@ public final class MachineRedstonePanel extends AttachedPanel {
     }
 
     private final Host host;
+    private final Consumer<RedstoneMode> modeSender;
     private final int tabYBias;
     private TextureIconButton ignoreButton;
     private TextureIconButton lowButton;
@@ -64,8 +66,13 @@ public final class MachineRedstonePanel extends AttachedPanel {
     private boolean widgetsCreated;
 
     public MachineRedstonePanel(Host host, PanelAnchor anchor, int tabYBias) {
+        this(host, anchor, tabYBias, mode -> ClientPacketDistributor.sendToServer(MachineSettingPayload.redstone(mode)));
+    }
+
+    public MachineRedstonePanel(Host host, PanelAnchor anchor, int tabYBias, Consumer<RedstoneMode> modeSender) {
         super(anchor, 136, 108, BG, Component.translatable("gui.dopasrandomutilities.panel.redstone"));
         this.host = host;
+        this.modeSender = modeSender;
         this.tabYBias = tabYBias;
     }
 
@@ -100,7 +107,7 @@ public final class MachineRedstonePanel extends AttachedPanel {
     }
 
     private void setMode(RedstoneMode next) {
-        ClientPacketDistributor.sendToServer(MachineSettingPayload.redstone(next));
+        modeSender.accept(next);
         refreshSelection(next);
     }
 

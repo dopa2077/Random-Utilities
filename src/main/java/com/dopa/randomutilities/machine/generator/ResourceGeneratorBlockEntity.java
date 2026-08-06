@@ -13,10 +13,10 @@ import com.dopa.randomutilities.registry.ModBlockEntities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -53,7 +54,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     private boolean outputBlocked;
     private String activeRecipeId = "";
     private int activeRecipeTicks;
-    private int capacityBonusBank;
+    private int productivityBonusBank;
     private String displayResultId = "";
     private boolean outputLocked;
     private String lockedResultId = "";
@@ -66,10 +67,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     @Nullable
     private GeneratorRecipe.Match cachedMatch;
 
-    private final NonNullList<ItemStack> upgradeStacks =
-            NonNullList.withSize(UpgradeConfig.UPGRADE_SLOT_COUNT, ItemStack.EMPTY);
     private final UpgradeInventory upgrades =
-            new UpgradeInventory(upgradeStacks, () -> UpgradeConfig.maxPerType(type()));
+            new UpgradeInventory(UpgradeConfig.UPGRADE_SLOT_COUNT, () -> UpgradeConfig.maxPerType(type()));
 
     public ResourceGeneratorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.RESOURCE_GENERATOR.get(), pos, state);
@@ -153,16 +152,23 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             GeneratorRecipe current = findRecipeById(activeRecipeId);
             if (current != null && !current.isFreeRecipe()) {
                 lockedRecipeId = current.id();
-                if (!displayResultId.isEmpty()) {
-                    lockedResultId = displayResultId;
-                } else if (current.result() != null) {
+                // Fluid recipes are pinned by recipe id only — display uses ice/magma proxies, not real outputs.
+                if (current.result() != null) {
                     lockedResultId = blockId(current.result());
+                } else if (!current.isFluidResult() && !displayResultId.isEmpty()) {
+                    lockedResultId = displayResultId;
                 }
             } else if (!lastNonFreeRecipeId.isEmpty()) {
                 lockedRecipeId = lastNonFreeRecipeId;
-                lockedResultId = lastNonFreeResultId;
-                if (!lockedResultId.isEmpty()) {
-                    displayResultId = lockedResultId;
+                GeneratorRecipe last = findRecipeById(lastNonFreeRecipeId);
+                if (last != null && last.isFluidResult()) {
+                    lockedResultId = "";
+                    setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(last.resultFluid()));
+                } else {
+                    lockedResultId = lastNonFreeResultId;
+                    if (!lockedResultId.isEmpty()) {
+                        displayResultId = lockedResultId;
+                    }
                 }
             }
         }
@@ -219,19 +225,26 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     }
 
     public void dropUpgrades(Level level, BlockPos pos) {
-        for (ItemStack stack : upgradeStacks) {
+        for (int i = 0; i < upgrades.size(); i++) {
+            ItemStack stack = upgrades.stackInSlot(i);
             if (!stack.isEmpty()) {
-                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack.copy());
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
             }
         }
-        for (int i = 0; i < upgradeStacks.size(); i++) {
-            upgradeStacks.set(i, ItemStack.EMPTY);
+        upgrades.clearContents();
+    }
+
+    /** Shift-right-click insert: consumes from {@code stack} into upgrade slots. */
+    public int insertUpgrade(ItemStack stack) {
+        if (!UpgradeConfig.upgradesEnabled(type())) {
+            return 0;
         }
+        return upgrades.insertFrom(stack);
     }
 
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
-        if (level != null) {
+        if (level != null && !level.isClientSide()) {
             dropUpgrades(level, pos);
         }
         super.preRemoveSideEffects(pos, state);
@@ -253,7 +266,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         }
 
         int baseAmount = match.recipe().amount();
-        int produceAmount = UpgradeConfig.peekBoostedAmount(baseAmount, upgrades.productivityCount(), capacityBonusBank);
+        int produceAmount = UpgradeConfig.peekBoostedAmount(baseAmount, upgrades.productivityCount(), productivityBonusBank);
         Block outputOverride = lockedOutputBlock(match.recipe());
 
         if (outputBlocked) {
@@ -297,7 +310,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         }
 
         int produced;
-        if (match.recipe().isFluidResult() && outputOverride == null) {
+        if (match.recipe().isFluidResult()) {
             Fluid fluid = match.recipe().resultFluid();
             produced = ResourceGeneratorOutput.insertFluid(level, worldPosition, fluid, produceAmount, false);
             if (fluid == null || produced <= 0) {
@@ -307,7 +320,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 return;
             }
             setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(fluid));
-            rememberNonFree(match.recipe(), ResourceGeneratorOutput.displayBlockForFluid(fluid));
+            rememberNonFree(match.recipe(), null);
             pinLockFromCurrent(match.recipe());
         } else {
             Block result = outputOverride != null
@@ -327,8 +340,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
         if (produced >= produceAmount) {
             consumeResources(level, match);
-            capacityBonusBank = UpgradeConfig.advanceCapacityBank(
-                    baseAmount, upgrades.productivityCount(), capacityBonusBank);
+            productivityBonusBank = UpgradeConfig.advanceProductivityBank(
+                    baseAmount, upgrades.productivityCount(), productivityBonusBank);
         }
         tickProgress = 0;
         setChanged();
@@ -338,11 +351,15 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (!outputLocked || !supportsLockOutput() || recipe.isFreeRecipe()) {
             return;
         }
-        if (lockedResultId.isEmpty() && !displayResultId.isEmpty()) {
-            lockedResultId = displayResultId;
-        }
         if (lockedRecipeId.isEmpty()) {
             lockedRecipeId = recipe.id();
+        }
+        if (recipe.isFluidResult()) {
+            // Keep lock on the recipe; never pin ice/magma display proxies as the output block.
+            return;
+        }
+        if (lockedResultId.isEmpty() && !displayResultId.isEmpty()) {
+            lockedResultId = displayResultId;
         }
     }
 
@@ -351,6 +368,10 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return;
         }
         lastNonFreeRecipeId = recipe.id();
+        if (recipe.isFluidResult()) {
+            lastNonFreeResultId = "";
+            return;
+        }
         if (result != null) {
             String id = blockId(result);
             if (!id.isEmpty()) {
@@ -367,6 +388,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
     @Nullable
     private Block lockedOutputBlock(GeneratorRecipe matchedRecipe) {
+        if (matchedRecipe.isFluidResult()) {
+            return null;
+        }
         if (!outputLocked || !supportsLockOutput() || lockedResultId.isEmpty()) {
             return null;
         }
@@ -411,11 +435,15 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                     if (cachedMatch != null) {
                         GeneratorRecipe recipe = cachedMatch.recipe();
                         lockedRecipeId = recipe.id();
-                        if (recipe.result() != null) {
+                        if (recipe.isFluidResult()) {
+                            lockedResultId = "";
+                            setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(recipe.resultFluid()));
+                            rememberNonFree(recipe, null);
+                        } else if (recipe.result() != null) {
                             lockedResultId = blockId(recipe.result());
                             setDisplayResult(recipe.result());
+                            rememberNonFree(recipe, recipe.result());
                         }
-                        rememberNonFree(recipe, recipe.result());
                         syncDisplay();
                     }
                 } else {
@@ -428,11 +456,15 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 if (cachedMatch != null) {
                     GeneratorRecipe recipe = cachedMatch.recipe();
                     lockedRecipeId = recipe.id();
-                    if (recipe.result() != null) {
+                    if (recipe.isFluidResult()) {
+                        lockedResultId = "";
+                        setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(recipe.resultFluid()));
+                        rememberNonFree(recipe, null);
+                    } else if (recipe.result() != null) {
                         lockedResultId = blockId(recipe.result());
                         setDisplayResult(recipe.result());
+                        rememberNonFree(recipe, recipe.result());
                     }
-                    rememberNonFree(recipe, recipe.result());
                     syncDisplay();
                 }
             }
@@ -561,9 +593,17 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
         activeRecipeId = input.getStringOr("ActiveRecipeId", "");
         activeRecipeTicks = input.getIntOr("ActiveRecipeTicks", 0);
-        capacityBonusBank = Math.max(0, input.getIntOr("CapacityBonusBank", 0));
-        for (int i = 0; i < upgradeStacks.size(); i++) {
-            upgradeStacks.set(i, input.read("Upgrade" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        productivityBonusBank = Math.max(0, input.getIntOr(
+                "ProductivityBonusBank",
+                input.getIntOr("CapacityBonusBank", 0)
+        ));
+        for (int i = 0; i < upgrades.size(); i++) {
+            ItemStack stack = input.read("Upgrade" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY);
+            if (stack.isEmpty()) {
+                upgrades.set(i, ItemResource.EMPTY, 0);
+            } else {
+                upgrades.set(i, ItemResource.of(stack), stack.getCount());
+            }
         }
     }
 
@@ -594,11 +634,11 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (activeRecipeTicks > 0) {
             output.putInt("ActiveRecipeTicks", activeRecipeTicks);
         }
-        if (capacityBonusBank > 0) {
-            output.putInt("CapacityBonusBank", capacityBonusBank);
+        if (productivityBonusBank > 0) {
+            output.putInt("ProductivityBonusBank", productivityBonusBank);
         }
-        for (int i = 0; i < upgradeStacks.size(); i++) {
-            ItemStack stack = upgradeStacks.get(i);
+        for (int i = 0; i < upgrades.size(); i++) {
+            ItemStack stack = upgrades.stackInSlot(i);
             if (!stack.isEmpty()) {
                 output.store("Upgrade" + i, ItemStack.CODEC, stack);
             }
@@ -632,6 +672,20 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
     @Override
     public void handleUpdateTag(ValueInput input) {
+        applyClientSync(input);
+    }
+
+    /**
+     * NeoForge's default {@code onDataPacket} calls {@code loadWithComponents}, which would run
+     * {@link #loadAdditional} with the sparse update tag and wipe client-side upgrade stacks
+     * (menu slots read those stacks via {@code StackCopySlot}).
+     */
+    @Override
+    public void onDataPacket(Connection net, ValueInput valueInput) {
+        applyClientSync(valueInput);
+    }
+
+    private void applyClientSync(ValueInput input) {
         displayResultId = input.getStringOr("DisplayResultId", "");
         outputLocked = input.getBooleanOr("OutputLocked", false);
         lockedRecipeId = input.getStringOr("LockedRecipeId", "");

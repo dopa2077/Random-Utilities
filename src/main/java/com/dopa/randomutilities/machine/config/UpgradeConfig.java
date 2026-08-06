@@ -26,7 +26,7 @@ public final class UpgradeConfig {
     private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/upgrade.json";
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/upgrade.json";
 
-    private static int capacityBonusPercent = 10;
+    private static int productivityBonusPercent = 10;
     private static int overclockSpeedPercent = 7;
     private static final Map<GeneratorType, Integer> maxPerType = new EnumMap<>(GeneratorType.class);
 
@@ -57,8 +57,8 @@ public final class UpgradeConfig {
         load();
     }
 
-    public static int capacityBonusPercent() {
-        return capacityBonusPercent;
+    public static int productivityBonusPercent() {
+        return productivityBonusPercent;
     }
 
     public static int overclockSpeedPercent() {
@@ -74,14 +74,14 @@ public final class UpgradeConfig {
     }
 
     /**
-     * Peek produce amount for the current capacity bank without mutating it.
+     * Peek produce amount for the current productivity bank without mutating it.
      * Uses fractional carry: {@code bank + base * bonusPercent} percent-units.
      */
-    public static int peekBoostedAmount(int baseAmount, int capacityCount, int bank) {
+    public static int peekBoostedAmount(int baseAmount, int productivityCount, int bank) {
         if (baseAmount <= 0) {
             return baseAmount;
         }
-        int bonus = capacityBonusPercent * Math.max(0, capacityCount);
+        int bonus = productivityBonusPercent * Math.max(0, productivityCount);
         if (bonus <= 0) {
             return baseAmount;
         }
@@ -90,14 +90,14 @@ public final class UpgradeConfig {
     }
 
     /**
-     * Advance the capacity remainder bank after a successful craft.
+     * Advance the productivity remainder bank after a successful craft.
      * Returns the new bank (0–99 leftover percent-units typically, can be larger before mod).
      */
-    public static int advanceCapacityBank(int baseAmount, int capacityCount, int bank) {
+    public static int advanceProductivityBank(int baseAmount, int productivityCount, int bank) {
         if (baseAmount <= 0) {
             return Math.max(0, bank);
         }
-        int bonus = capacityBonusPercent * Math.max(0, capacityCount);
+        int bonus = productivityBonusPercent * Math.max(0, productivityCount);
         if (bonus <= 0) {
             return Math.max(0, bank);
         }
@@ -106,8 +106,8 @@ public final class UpgradeConfig {
 
     /** Prefer {@link #peekBoostedAmount} with a remainder bank for amount-1 recipes. */
     @Deprecated
-    public static int boostedAmount(int baseAmount, int capacityCount) {
-        return peekBoostedAmount(baseAmount, capacityCount, 0);
+    public static int boostedAmount(int baseAmount, int productivityCount) {
+        return peekBoostedAmount(baseAmount, productivityCount, 0);
     }
 
     public static int effectiveTicks(int recipeTicks, int overclockCount) {
@@ -144,7 +144,7 @@ public final class UpgradeConfig {
     }
 
     private static void applyBuiltInDefaults() {
-        capacityBonusPercent = 10;
+        productivityBonusPercent = 10;
         overclockSpeedPercent = 7;
         maxPerType.clear();
         maxPerType.put(GeneratorType.BASIC_STONE, 3);
@@ -161,8 +161,11 @@ public final class UpgradeConfig {
 
     private static void applyJson(JsonObject root) {
         applyBuiltInDefaults();
-        if (root.has("capacity_bonus_percent_per_upgrade")) {
-            capacityBonusPercent = Math.max(0, root.get("capacity_bonus_percent_per_upgrade").getAsInt());
+        if (root.has("productivity_bonus_percent_per_upgrade")) {
+            productivityBonusPercent = Math.max(0, root.get("productivity_bonus_percent_per_upgrade").getAsInt());
+        } else if (root.has("capacity_bonus_percent_per_upgrade")) {
+            // Legacy key from before productivity rename
+            productivityBonusPercent = Math.max(0, root.get("capacity_bonus_percent_per_upgrade").getAsInt());
         }
         if (root.has("overclock_speed_percent_per_upgrade")) {
             overclockSpeedPercent = Math.max(0, root.get("overclock_speed_percent_per_upgrade").getAsInt());

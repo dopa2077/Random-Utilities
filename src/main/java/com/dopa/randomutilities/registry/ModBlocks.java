@@ -1,9 +1,12 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.minichest.MiniChestBlock;
+import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
+import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
 import com.dopa.randomutilities.filter.dev.UiTestBlock;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.trashcan.TrashCanBlock;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.world.level.block.Block;
@@ -29,6 +32,24 @@ public final class ModBlocks {
             "mini_chest",
             MiniChestBlock::new,
             props -> props.mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)
+    );
+
+    public static final DeferredBlock<TrashCanBlock> TRASH_CAN = BLOCKS.registerBlock(
+            "trash_can",
+            TrashCanBlock::new,
+            props -> props.mapColor(MapColor.METAL).strength(3.0F, 6.0F).sound(SoundType.METAL).noOcclusion()
+    );
+
+    public static final DeferredBlock<ItemCollectorBlock> BASIC_ITEM_COLLECTOR = BLOCKS.registerBlock(
+            "basic_item_collector",
+            props -> new ItemCollectorBlock(props, ItemCollectorType.BASIC),
+            props -> props.mapColor(MapColor.COLOR_BLACK).strength(3.0F, 6.0F).sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<ItemCollectorBlock> ADVANCED_ITEM_COLLECTOR = BLOCKS.registerBlock(
+            "advanced_item_collector",
+            props -> new ItemCollectorBlock(props, ItemCollectorType.ADVANCED),
+            props -> props.mapColor(MapColor.COLOR_BLACK).strength(3.0F, 6.0F).sound(SoundType.STONE)
     );
 
     static {

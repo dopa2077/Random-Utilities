@@ -4,10 +4,12 @@ import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.filter.FilterContents;
 import com.dopa.randomutilities.filter.FilterItem;
+import com.dopa.randomutilities.filter.FilterNesting;
 import com.dopa.randomutilities.filter.FilterProfile;
 import com.dopa.randomutilities.filter.FilterRegistry;
 import com.dopa.randomutilities.filter.FilterStorage;
 import com.dopa.randomutilities.registry.ModMenus;
+import com.dopa.randomutilities.registry.ModTriggers;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
@@ -103,7 +105,7 @@ public class FilterMenu extends AbstractContainerMenu {
             NonNullList<ItemStack> stacks = NonNullList.withSize(1, ItemStack.EMPTY);
             stacks.set(0, contents.stackInSlot(0));
             int maxStack = DevNullConfig.basicMaxStackSize();
-            this.handler = new FilterStacksHandler(stacks, DevNullConfig::basicMaxStackSize, true);
+            this.handler = new FilterStacksHandler(stacks, DevNullConfig::basicMaxStackSize, true, this::host);
             this.handler.setOnChanged(this::saveBasic);
             this.addSlot(new FilterSlot(handler, 0, BASIC_SLOT_X, BASIC_SLOT_Y, true, maxStack));
             this.addStandardInventorySlots(playerInv, 8, BASIC_PLAYER_INV_Y);
@@ -127,7 +129,7 @@ public class FilterMenu extends AbstractContainerMenu {
             stacks.set(i, contents.stackInSlot(start + i));
         }
 
-        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(host()).maxStackSize(), false);
+        this.handler = new FilterStacksHandler(stacks, () -> FilterStorage.get(host()).maxStackSize(), false, this::host);
         this.handler.setOnChanged(this::savePage);
         for (int i = 0; i < pageSlotCount; i++) {
             this.addSlot(new FilterSlot(handler, i, FilterPageLayout.slotX(i), FilterPageLayout.slotY(i), false, 0));
@@ -209,6 +211,17 @@ public class FilterMenu extends AbstractContainerMenu {
         FilterStorage.set(host, contents.withSlotStack(0, stack));
         markHostDirty();
         syncData();
+        maybeAwardNestAdvancement(host);
+    }
+
+    private void maybeAwardNestAdvancement(ItemStack host) {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        if (FilterNesting.nestingDepth(host) < FilterNesting.ADVANCEMENT_DEPTH) {
+            return;
+        }
+        ModTriggers.DEV_NULL_NEST.get().trigger(serverPlayer);
     }
 
     private void savePage() {

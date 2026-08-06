@@ -1,8 +1,10 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
+import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
 import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.trashcan.TrashCanBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -42,6 +44,27 @@ public final class ModBlockEntities {
                             MiniChestBlockEntity::new,
                             false,
                             ModBlocks.MINI_CHEST.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<TrashCanBlockEntity>> TRASH_CAN =
+            BLOCK_ENTITIES.register(
+                    "trash_can",
+                    () -> new BlockEntityType<>(
+                            TrashCanBlockEntity::new,
+                            false,
+                            ModBlocks.TRASH_CAN.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<ItemCollectorBlockEntity>> ITEM_COLLECTOR =
+            BLOCK_ENTITIES.register(
+                    "item_collector",
+                    () -> new BlockEntityType<>(
+                            ItemCollectorBlockEntity::new,
+                            false,
+                            ModBlocks.BASIC_ITEM_COLLECTOR.get(),
+                            ModBlocks.ADVANCED_ITEM_COLLECTOR.get()
                     )
             );
 

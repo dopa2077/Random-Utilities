@@ -217,6 +217,16 @@ public abstract class AttachedPanel {
         return new TrayBounds(trayX, trayY, trayW, trayH);
     }
 
+    /** Tray whose content group starts at {@code groupX}/{@code groupY} (not centered). */
+    protected static TrayBounds trayBoundsAt(int groupX, int groupY, int groupWidth, int groupHeight, int trayPad) {
+        return new TrayBounds(
+                groupX - trayPad,
+                groupY - trayPad,
+                groupWidth + trayPad * 2,
+                groupHeight + trayPad * 2
+        );
+    }
+
     protected void renderTray(GuiGraphicsExtractor graphics, TrayBounds tray, int bgColor) {
         graphics.fill(tray.x(), tray.y(), tray.x() + tray.width(), tray.y() + tray.height(), darken(bgColor, 40));
     }

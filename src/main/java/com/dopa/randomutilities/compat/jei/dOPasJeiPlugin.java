@@ -4,6 +4,7 @@ import com.dopa.randomutilities.compat.jei.generator.GeneratorJeiRecipe;
 import com.dopa.randomutilities.compat.jei.generator.ResourceGeneratorRecipeCategory;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.client.FilterScreen;
+import com.dopa.randomutilities.itemcollector.client.ItemCollectorScreen;
 import com.dopa.randomutilities.machine.generator.client.ResourceGeneratorScreen;
 import com.dopa.randomutilities.machine.generator.config.GeneratorRecipe;
 import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
@@ -70,6 +71,17 @@ public class dOPasJeiPlugin implements IModPlugin {
                 );
             }
         });
+        registration.addGuiContainerHandler(ItemCollectorScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(ItemCollectorScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
+        registration.addGhostIngredientHandler(ItemCollectorScreen.class, new ItemCollectorJeiHandler());
     }
 
     @Override

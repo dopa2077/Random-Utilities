@@ -24,6 +24,10 @@ public record GeneratorRecipe(
         boolean[] consume,
         @Nullable Block requiredUnder,
         int ticks,
+        /**
+         * Output quantity: item count for block results, millibuckets for fluid results
+         * ({@code 1000} = one bucket). JSON {@code amount} is buckets for fluids (e.g. {@code 0.2}).
+         */
         int amount,
         GeneratorOutputMode outputMode
 ) {
@@ -41,8 +45,9 @@ public record GeneratorRecipe(
         }
         resources = Collections.unmodifiableList(new ArrayList<>(resources));
         consume = consume.clone();
-        amount = Math.max(1, amount);
         ticks = Math.max(1, ticks);
+        // Block recipes: item count. Fluid recipes: millibuckets (1000 = one bucket).
+        amount = Math.max(1, amount);
         if (outputMode == null) {
             outputMode = GeneratorOutputMode.INSERT;
         }

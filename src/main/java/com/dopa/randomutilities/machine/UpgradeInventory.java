@@ -3,11 +3,11 @@ package com.dopa.randomutilities.machine;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModItems;
 
-import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 
 import java.util.function.IntSupplier;
 
@@ -16,8 +16,8 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
     private final IntSupplier maxPerType;
     private Runnable onChanged = () -> {};
 
-    public UpgradeInventory(NonNullList<ItemStack> stacks, IntSupplier maxPerType) {
-        super(stacks);
+    public UpgradeInventory(int size, IntSupplier maxPerType) {
+        super(size);
         this.maxPerType = maxPerType;
     }
 
@@ -52,6 +52,37 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
     public static boolean isUpgradeItem(ItemResource resource) {
         return !resource.isEmpty()
                 && (resource.is(ModItems.PRODUCTIVITY_UPGRADE.get()) || resource.is(ModItems.OVERCLOCK_UPGRADE.get()));
+    }
+
+    public ItemStack stackInSlot(int index) {
+        ItemResource resource = getResource(index);
+        if (resource.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        return resource.toStack(getAmountAsInt(index));
+    }
+
+    /** Inserts as many upgrades from {@code stack} as the type cap allows. Returns amount taken. */
+    public int insertFrom(ItemStack stack) {
+        if (!isUpgradeItem(stack)) {
+            return 0;
+        }
+        ItemResource resource = ItemResource.of(stack);
+        try (Transaction tx = Transaction.open(null)) {
+            int inserted = insert(resource, stack.getCount(), tx);
+            if (inserted > 0) {
+                tx.commit();
+            }
+            return Math.max(0, inserted);
+        }
+    }
+
+    public void clearContents() {
+        for (int i = 0; i < size(); i++) {
+            if (!getResource(i).isEmpty()) {
+                set(i, ItemResource.EMPTY, 0);
+            }
+        }
     }
 
     @Override

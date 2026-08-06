@@ -11,6 +11,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class GeneratorInformativePanel extends AttachedPanel {
@@ -19,6 +20,12 @@ public final class GeneratorInformativePanel extends AttachedPanel {
     private static final int SCROLLBAR_TRACK = 0x66000000;
     private static final int SCROLLBAR_THUMB = 0xFFC0C0C0;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
+
+    private static final String[] PARAGRAPH_KEYS = {
+            "gui.dopasrandomutilities.panel.info.generator.visual",
+            "gui.dopasrandomutilities.panel.info.generator.howto",
+            "gui.dopasrandomutilities.panel.info.generator.lock"
+    };
 
     private final int tabYBias;
     private int scrollPixels;
@@ -58,14 +65,13 @@ public final class GeneratorInformativePanel extends AttachedPanel {
         int viewHeight = Math.max(0, viewBottom - viewTop);
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
-        List<FormattedCharSequence> lines = font.split(
-                Component.translatable("gui.dopasrandomutilities.panel.info.generator"), maxWidth);
+        List<FormattedCharSequence> lines = buildLines(font, maxWidth);
         int contentHeight = lines.size() * lineStep;
         int maxScroll = Math.max(0, contentHeight - viewHeight);
         scrollPixels = Mth.clamp(scrollPixels, 0, maxScroll);
         int textY = viewTop - scrollPixels;
         for (FormattedCharSequence line : lines) {
-            if (textY + font.lineHeight > viewTop && textY < viewBottom) {
+            if (line != null && textY + font.lineHeight > viewTop && textY < viewBottom) {
                 graphics.text(font, line, textX, textY, BODY_TEXT, false);
             }
             textY += lineStep;
@@ -89,13 +95,24 @@ public final class GeneratorInformativePanel extends AttachedPanel {
         int viewHeight = Math.max(0, panelHeight - TITLE_ROW_HEIGHT - 2 - CONTENT_PAD);
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
-        int contentHeight = font.split(
-                Component.translatable("gui.dopasrandomutilities.panel.info.generator"), maxWidth).size() * lineStep;
+        int contentHeight = buildLines(font, maxWidth).size() * lineStep;
         int maxScroll = Math.max(0, contentHeight - viewHeight);
         if (maxScroll <= 0) {
             return false;
         }
         scrollPixels = Mth.clamp(scrollPixels - (int) Math.round(scrollY * lineStep), 0, maxScroll);
         return true;
+    }
+
+    /** Wrapped paragraphs with a blank line ({@code null} entry) between each. */
+    private static List<FormattedCharSequence> buildLines(Font font, int maxWidth) {
+        List<FormattedCharSequence> lines = new ArrayList<>();
+        for (int i = 0; i < PARAGRAPH_KEYS.length; i++) {
+            if (i > 0) {
+                lines.add(null);
+            }
+            lines.addAll(font.split(Component.translatable(PARAGRAPH_KEYS[i]), maxWidth));
+        }
+        return lines;
     }
 }

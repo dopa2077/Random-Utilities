@@ -175,7 +175,7 @@ public final class ResourceGeneratorRecipeCategory extends AbstractRecipeCategor
             }
             output.addRichTooltipCallback((slotView, tooltip) -> {
                 tooltip.add(Component.translatable("jei.dopasrandomutilities.tooltip.output_insert_fluid"));
-                tooltip.add(rateLine(data.amount(), data.ticks()));
+                tooltip.add(rateLine(recipe.amountLabel(), data.ticks()));
             });
         } else {
             List<ItemStack> results = recipe.resultStacks();
@@ -189,7 +189,7 @@ public final class ResourceGeneratorRecipeCategory extends AbstractRecipeCategor
                             : "jei.dopasrandomutilities.tooltip.output_drop";
             output.addRichTooltipCallback((slotView, tooltip) -> {
                 tooltip.add(Component.translatable(outputTooltipKey));
-                tooltip.add(rateLine(data.amount(), data.ticks()));
+                tooltip.add(rateLine(recipe.amountLabel(), data.ticks()));
             });
         }
     }
@@ -276,8 +276,8 @@ public final class ResourceGeneratorRecipeCategory extends AbstractRecipeCategor
                 .append(Component.translatable(emphasisKey).withColor(TextColor.fromRgb(emphasisColor)));
     }
 
-    private static MutableComponent rateLine(int amount, int ticks) {
-        return Component.translatable("jei.dopasrandomutilities.tooltip.output_rate", amount, ticks)
+    private static MutableComponent rateLine(String amountLabel, int ticks) {
+        return Component.translatable("jei.dopasrandomutilities.tooltip.output_rate", amountLabel, ticks)
                 .withColor(TextColor.fromRgb(COLOR_RATE));
     }
 

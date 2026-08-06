@@ -1,14 +1,18 @@
 package com.dopa.randomutilities.machine.item;
 
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.LevelReader;
 
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
@@ -18,7 +22,7 @@ public class MachineUpgradeItem extends Item {
     public enum Kind {
         PRODUCTIVITY(
                 "item.dopasrandomutilities.productivity_upgrade.tooltip",
-                UpgradeConfig::capacityBonusPercent
+                UpgradeConfig::productivityBonusPercent
         ),
         OVERCLOCK(
                 "item.dopasrandomutilities.overclock_upgrade.tooltip",
@@ -51,6 +55,15 @@ public class MachineUpgradeItem extends Item {
 
     public Kind kind() {
         return kind;
+    }
+
+    /**
+     * Allow shift-right-click to reach the generator block (vanilla otherwise suppresses
+     * block use while sneaking with an item in hand).
+     */
+    @Override
+    public boolean doesSneakBypassUse(ItemStack stack, LevelReader level, BlockPos pos, Player player) {
+        return level.getBlockState(pos).getBlock() instanceof ResourceGeneratorBlock;
     }
 
     @Override

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "minecraft:ender_pearl",
+    "R": "minecraft:redstone",
+    "H": "minecraft:hopper",
+    "O": "minecraft:obsidian"
+  },
+  "pattern": [
+    " E ",
+    "RHR",
+    "OOO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:basic_item_collector"
+  }
+}
