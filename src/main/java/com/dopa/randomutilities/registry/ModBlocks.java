@@ -43,13 +43,13 @@ public final class ModBlocks {
     public static final DeferredBlock<ItemCollectorBlock> BASIC_ITEM_COLLECTOR = BLOCKS.registerBlock(
             "basic_item_collector",
             props -> new ItemCollectorBlock(props, ItemCollectorType.BASIC),
-            props -> props.mapColor(MapColor.COLOR_BLACK).strength(3.0F, 6.0F).sound(SoundType.STONE)
+            props -> props.mapColor(MapColor.COLOR_BLACK).strength(2.0F, 6.0F).sound(SoundType.STONE).noOcclusion()
     );
 
     public static final DeferredBlock<ItemCollectorBlock> ADVANCED_ITEM_COLLECTOR = BLOCKS.registerBlock(
             "advanced_item_collector",
             props -> new ItemCollectorBlock(props, ItemCollectorType.ADVANCED),
-            props -> props.mapColor(MapColor.COLOR_BLACK).strength(3.0F, 6.0F).sound(SoundType.STONE)
+            props -> props.mapColor(MapColor.COLOR_BLACK).strength(2.0F, 6.0F).sound(SoundType.STONE).noOcclusion()
     );
 
     static {

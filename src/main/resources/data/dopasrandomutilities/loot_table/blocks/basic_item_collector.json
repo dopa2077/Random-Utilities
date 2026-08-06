@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [{ "condition": "minecraft:survives_explosion" }],
+      "entries": [{ "type": "minecraft:item", "name": "dopasrandomutilities:basic_item_collector" }],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "dopasrandomutilities:blocks/basic_item_collector"
+}
