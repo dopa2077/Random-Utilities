@@ -3,7 +3,7 @@
 **A collection of random, useful items and blocks for Minecraft.**  
 No theme, no fluff. Just quality-of-life stuff that makes your world a little better.
 
-**The mod it's not available on CurseForge:** https://www.curseforge.com/minecraft/mc-mods/dopas-random-utilities
+**The mod it's now available on CurseForge:** https://www.curseforge.com/minecraft/mc-mods/dopas-random-utilities
 
 > Currently this mod is still in the `paper stage`. I will break and re-do the whole mod if I don't like it. More random utilities will be added over time! (check the `Projects` tab for more information on what my plans.)
 
