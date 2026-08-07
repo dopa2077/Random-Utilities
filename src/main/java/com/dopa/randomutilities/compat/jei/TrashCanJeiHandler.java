@@ -1,9 +1,9 @@
 package com.dopa.randomutilities.compat.jei;
 
 import com.dopa.randomutilities.client.gui.JeiGhostDragState;
-import com.dopa.randomutilities.itemcollector.client.ItemCollectorScreen;
-import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
-import com.dopa.randomutilities.itemcollector.network.ItemCollectorFilterPayload;
+import com.dopa.randomutilities.trashcan.TrashCanMenu;
+import com.dopa.randomutilities.trashcan.client.TrashCanScreen;
+import com.dopa.randomutilities.trashcan.network.TrashCanFilterPayload;
 
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
@@ -15,9 +15,9 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ItemCollectorJeiHandler implements IGhostIngredientHandler<ItemCollectorScreen> {
+public final class TrashCanJeiHandler implements IGhostIngredientHandler<TrashCanScreen> {
     @Override
-    public <I> List<Target<I>> getTargetsTyped(ItemCollectorScreen gui, ITypedIngredient<I> ingredient, boolean doStart) {
+    public <I> List<Target<I>> getTargetsTyped(TrashCanScreen gui, ITypedIngredient<I> ingredient, boolean doStart) {
         if (!ingredient.getType().equals(VanillaTypes.ITEM_STACK)) {
             return List.of();
         }
@@ -28,13 +28,11 @@ public final class ItemCollectorJeiHandler implements IGhostIngredientHandler<It
         if (doStart) {
             JeiGhostDragState.beginDrag();
         }
-        int slotCount = gui.getMenu().collectorType().filterSlotCount();
-        int slotX = ItemCollectorMenu.filterSlotX(gui.getMenu().collectorType());
-        List<Target<I>> targets = new ArrayList<>(slotCount);
-        for (int i = 0; i < slotCount; i++) {
+        List<Target<I>> targets = new ArrayList<>(TrashCanMenu.FILTER_SLOT_COUNT);
+        for (int i = 0; i < TrashCanMenu.FILTER_SLOT_COUNT; i++) {
             int slotIndex = i;
-            int x = gui.leftPos() + slotX + i * 18;
-            int y = gui.topPos() + ItemCollectorMenu.FILTER_SLOT_Y;
+            int x = gui.leftPos() + TrashCanMenu.FILTER_SLOT_X + i * 18;
+            int y = gui.topPos() + TrashCanMenu.FILTER_SLOT_Y;
             targets.add(new Target<>() {
                 @Override
                 public Rect2i getArea() {
@@ -44,7 +42,7 @@ public final class ItemCollectorJeiHandler implements IGhostIngredientHandler<It
                 @Override
                 public void accept(I ingredient) {
                     if (ingredient instanceof ItemStack itemStack && !itemStack.isEmpty()) {
-                        ClientPacketDistributor.sendToServer(new ItemCollectorFilterPayload(
+                        ClientPacketDistributor.sendToServer(new TrashCanFilterPayload(
                                 slotIndex,
                                 itemStack.copyWithCount(1)
                         ));

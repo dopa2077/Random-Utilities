@@ -131,7 +131,7 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
         this.configPanel = null;
         this.redstonePanel = null;
 
-        this.panelHost.add(new GeneratorInformativePanel(tabYBias));
+        this.panelHost.add(new GeneratorInformativePanel(tabYBias, this.menu.generatorType().mode()));
 
         if (this.menu.supportsLockOutput()) {
             this.configPanel = new GeneratorConfigPanel(this, tabYBias);

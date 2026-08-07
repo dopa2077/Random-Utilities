@@ -6,16 +6,20 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
 
+import java.util.function.Predicate;
+
 /**
  * Slot that clamps to normal stack size (voiding excess on set) and reports inflated
  * capacity so same-type overflow inserts can void like basic /dev/null.
  */
 final class TrashCanSlot extends ResourceHandlerSlot {
     private final ItemStacksResourceHandler handler;
+    private final Predicate<ItemStack> allowPlace;
 
-    TrashCanSlot(ItemStacksResourceHandler handler, int x, int y) {
-        super(handler, handler::set, 0, x, y);
-        this.handler = handler;
+    TrashCanSlot(TrashCanBlockEntity blockEntity, int x, int y, Predicate<ItemStack> allowPlace) {
+        super(blockEntity.itemHandler(), blockEntity.itemHandler()::set, 0, x, y);
+        this.handler = blockEntity.itemHandler();
+        this.allowPlace = allowPlace;
     }
 
     private int realCapacity(ItemStack stack) {
@@ -30,6 +34,9 @@ final class TrashCanSlot extends ResourceHandlerSlot {
     protected void setStackCopy(ItemStack stack) {
         if (stack.isEmpty()) {
             handler.set(0, ItemResource.EMPTY, 0);
+            return;
+        }
+        if (!allowPlace.test(stack)) {
             return;
         }
         int cap = realCapacity(stack);
@@ -59,7 +66,7 @@ final class TrashCanSlot extends ResourceHandlerSlot {
 
     @Override
     public boolean mayPlace(ItemStack stack) {
-        return !stack.isEmpty();
+        return !stack.isEmpty() && allowPlace.test(stack);
     }
 
     @Override

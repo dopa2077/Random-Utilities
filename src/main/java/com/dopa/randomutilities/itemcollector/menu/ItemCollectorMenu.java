@@ -265,6 +265,15 @@ public class ItemCollectorMenu extends AbstractContainerMenu {
     }
 
     @Override
+    public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
+        // Ghost filter slots must not participate in double-click gather.
+        if (slot.isFake()) {
+            return false;
+        }
+        return super.canTakeItemForPickAll(stack, slot);
+    }
+
+    @Override
     public void removed(Player player) {
         super.removed(player);
         saveFilters();

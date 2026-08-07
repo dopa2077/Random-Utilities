@@ -5,6 +5,7 @@ import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
 import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.trashcan.TrashCanBlockEntity;
+import com.dopa.randomutilities.redstoneclock.RedstoneClockBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -54,6 +55,16 @@ public final class ModBlockEntities {
                             TrashCanBlockEntity::new,
                             false,
                             ModBlocks.TRASH_CAN.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<RedstoneClockBlockEntity>> REDSTONE_CLOCK =
+            BLOCK_ENTITIES.register(
+                    "redstone_clock",
+                    () -> new BlockEntityType<>(
+                            RedstoneClockBlockEntity::new,
+                            false,
+                            ModBlocks.REDSTONE_CLOCK.get()
                     )
             );
 

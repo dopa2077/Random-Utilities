@@ -43,6 +43,9 @@ public final class ModItems {
 
     public static final DeferredItem<BlockItem> TRASH_CAN = ITEMS.registerSimpleBlockItem(ModBlocks.TRASH_CAN);
 
+    public static final DeferredItem<BlockItem> REDSTONE_CLOCK =
+            ITEMS.registerSimpleBlockItem(ModBlocks.REDSTONE_CLOCK);
+
     public static final DeferredItem<BlockItem> BASIC_ITEM_COLLECTOR =
             ITEMS.registerSimpleBlockItem(ModBlocks.BASIC_ITEM_COLLECTOR);
 

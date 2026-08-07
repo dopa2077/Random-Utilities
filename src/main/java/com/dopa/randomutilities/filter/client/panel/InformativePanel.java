@@ -21,6 +21,7 @@ import java.util.List;
 public final class InformativePanel extends AttachedPanel {
     private static final int BG = 0xFF3A3A3A;
     private static final int BODY_TEXT = 0xFFFFFFFF;
+    private static final int DASH_COLOR = 0xFFFFFFFF;
     private static final int SCROLLBAR_TRACK = 0x66000000;
     private static final int SCROLLBAR_THUMB = 0xFFC0C0C0;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
@@ -121,14 +122,20 @@ public final class InformativePanel extends AttachedPanel {
                             .withStyle(ChatFormatting.BLACK)
             );
             appendWrapped(lines, font, paragraph, maxWidth, BODY_TEXT);
+            lines.add(ContentLine.blankLine());
+            appendWrapped(lines, font,
+                    Component.translatable("gui.dopasrandomutilities.panel.info.basic.manual"),
+                    maxWidth, BODY_TEXT);
             return lines;
         }
 
-        Component intro = Component.translatable(
-                "gui.dopasrandomutilities.panel.info.advanced.intro",
-                Component.literal("/dev/null").withStyle(ChatFormatting.BOLD)
-        );
-        appendWrapped(lines, font, intro, maxWidth, BODY_TEXT);
+        appendWrapped(lines, font,
+                Component.translatable("gui.dopasrandomutilities.panel.info.advanced.intro"),
+                maxWidth, BODY_TEXT);
+        lines.add(ContentLine.blankLine());
+        appendWrapped(lines, font,
+                Component.translatable("gui.dopasrandomutilities.panel.info.advanced.features"),
+                maxWidth, BODY_TEXT);
         lines.add(ContentLine.blankLine());
         appendWrapped(lines, font,
                 Component.translatable("gui.dopasrandomutilities.panel.info.advanced.limits_header"),
@@ -150,7 +157,7 @@ public final class InformativePanel extends AttachedPanel {
 
     private static ContentLine limitLine(String labelKey, int value) {
         return ContentLine.limit(
-                Component.literal("- ").append(Component.translatable(labelKey)),
+                Component.translatable(labelKey),
                 Component.literal(Integer.toString(value))
         );
     }
@@ -160,8 +167,10 @@ public final class InformativePanel extends AttachedPanel {
             return;
         }
         if (line.label() != null) {
-            graphics.text(font, line.label(), x, y, LABEL_COLOR, false);
-            int valueX = x + font.width(line.label()) + 4;
+            graphics.text(font, Component.literal("-"), x, y, DASH_COLOR, false);
+            int labelX = x + font.width("- ");
+            graphics.text(font, line.label(), labelX, y, LABEL_COLOR, false);
+            int valueX = labelX + font.width(line.label()) + 4;
             graphics.text(font, line.value(), valueX, y, VALUE_COLOR, false);
             return;
         }
