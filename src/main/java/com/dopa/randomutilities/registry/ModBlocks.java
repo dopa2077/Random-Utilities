@@ -7,6 +7,7 @@ import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
 import com.dopa.randomutilities.filter.dev.UiTestBlock;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.trashcan.TrashCanBlock;
+import com.dopa.randomutilities.redstoneclock.RedstoneClockBlock;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.world.level.block.Block;
@@ -38,6 +39,14 @@ public final class ModBlocks {
             "trash_can",
             TrashCanBlock::new,
             props -> props.mapColor(MapColor.METAL).strength(3.0F, 6.0F).sound(SoundType.METAL).noOcclusion()
+    );
+
+    public static final DeferredBlock<RedstoneClockBlock> REDSTONE_CLOCK = BLOCKS.registerBlock(
+            "redstone_clock",
+            RedstoneClockBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.0F, 6.0F).sound(SoundType.STONE)
+                    .requiresCorrectToolForDrops()
+                    .isRedstoneConductor((state, level, pos) -> false)
     );
 
     public static final DeferredBlock<ItemCollectorBlock> BASIC_ITEM_COLLECTOR = BLOCKS.registerBlock(

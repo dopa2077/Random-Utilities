@@ -24,6 +24,8 @@ import java.util.Set;
 @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID, value = Dist.CLIENT)
 public final class ItemCollectorRangeRenderer {
     private static final int FACE_ALPHA = 0x55;
+    /** Push faces slightly off the block grid so they do not z-fight adjacent solids. */
+    private static final float Z_FIGHT_EPS = 0.0025F;
 
     private ItemCollectorRangeRenderer() {}
 
@@ -52,12 +54,12 @@ public final class ItemCollectorRangeRenderer {
             stillPresent.add(pos.immutable());
 
             AABB worldBox = collector.scanBox();
-            float minX = (float) (worldBox.minX - pos.getX());
-            float minY = (float) (worldBox.minY - pos.getY());
-            float minZ = (float) (worldBox.minZ - pos.getZ());
-            float maxX = (float) (worldBox.maxX - pos.getX());
-            float maxY = (float) (worldBox.maxY - pos.getY());
-            float maxZ = (float) (worldBox.maxZ - pos.getZ());
+            float minX = (float) (worldBox.minX - pos.getX()) - Z_FIGHT_EPS;
+            float minY = (float) (worldBox.minY - pos.getY()) - Z_FIGHT_EPS;
+            float minZ = (float) (worldBox.minZ - pos.getZ()) - Z_FIGHT_EPS;
+            float maxX = (float) (worldBox.maxX - pos.getX()) + Z_FIGHT_EPS;
+            float maxY = (float) (worldBox.maxY - pos.getY()) + Z_FIGHT_EPS;
+            float maxZ = (float) (worldBox.maxZ - pos.getZ()) + Z_FIGHT_EPS;
             int color = ARGB.color(FACE_ALPHA, collector.overlayColor());
 
             poseStack.pushPose();

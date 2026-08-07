@@ -217,6 +217,11 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
         int swatchY = bodyY + RED_Y;
         graphics.fill(swatchX - 1, swatchY - 1, swatchX + 11, swatchY + SWATCH_H + 1, 0xFF000000);
         graphics.fill(swatchX, swatchY, swatchX + 10, swatchY + SWATCH_H, 0xFF000000 | pendingColor);
+        if (isMouseOverRect(mouseX, mouseY, swatchX, swatchY, 10, SWATCH_H)) {
+            graphics.setTooltipForNextFrame(font,
+                    Component.translatable("gui.dopasrandomutilities.item_collector.cosmetic.swatch.tooltip"),
+                    mouseX, mouseY);
+        }
 
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.item_collector.particles"),
                 bodyX, bodyY + PARTICLES_LABEL_Y);

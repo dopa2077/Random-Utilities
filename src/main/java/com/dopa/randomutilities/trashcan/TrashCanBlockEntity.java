@@ -1,8 +1,10 @@
 package com.dopa.randomutilities.trashcan;
 
 import com.dopa.randomutilities.registry.ModBlockEntities;
+import com.dopa.randomutilities.util.GhostItemFilter;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
@@ -19,6 +21,11 @@ import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 /** Single-slot trash can: stacks normally, voids overflow and previous stack on type change. */
 public class TrashCanBlockEntity extends BlockEntity {
     public static final int SLOT_COUNT = 1;
+    /** Same count/layout as advanced item collector filter row. */
+    public static final int FILTER_SLOT_COUNT = 8;
+
+    private final NonNullList<ItemStack> filterSlots = NonNullList.withSize(FILTER_SLOT_COUNT, ItemStack.EMPTY);
+    private boolean whitelistMode;
 
     private final ItemStacksResourceHandler itemHandler = new ItemStacksResourceHandler(SLOT_COUNT) {
         @Override
@@ -39,9 +46,15 @@ public class TrashCanBlockEntity extends BlockEntity {
          * Hoppers bail out via {@code ResourceHandlerUtil.isFull} when amount >= capacity for the
          * current resource. Always report at least one free unit so automation keeps inserting;
          * {@link #insert} still only stores up to the real stack limit and voids the rest / old type.
+         * <p>
+         * Forbidden (filtered-out) non-empty resources report capacity == amount so hoppers skip them.
+         * Empty resource probes must not use that path — otherwise an empty can looks full.
          */
         @Override
         public long getCapacityAsLong(int index, ItemResource resource) {
+            if (!resource.isEmpty() && !allows(resource)) {
+                return getAmountAsLong(index);
+            }
             long real = super.getCapacityAsLong(index, resource);
             long amount = getAmountAsLong(index);
             return Math.max(real, amount + 1L);
@@ -50,6 +63,9 @@ public class TrashCanBlockEntity extends BlockEntity {
         @Override
         public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
             TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
+            if (!allows(resource)) {
+                return 0;
+            }
             ItemResource current = getResource(index);
             int currentAmount = getAmountAsInt(index);
 
@@ -72,8 +88,44 @@ public class TrashCanBlockEntity extends BlockEntity {
         super(ModBlockEntities.TRASH_CAN.get(), pos, state);
     }
 
+    private boolean allows(ItemResource resource) {
+        if (resource.isEmpty()) {
+            return false;
+        }
+        return GhostItemFilter.allows(resource.toStack(), filterSlots, whitelistMode);
+    }
+
+    public boolean allowsItem(ItemStack stack) {
+        return GhostItemFilter.allows(stack, filterSlots, whitelistMode);
+    }
+
     public ItemStacksResourceHandler itemHandler() {
         return itemHandler;
+    }
+
+    public NonNullList<ItemStack> filterSlots() {
+        return filterSlots;
+    }
+
+    public boolean whitelistMode() {
+        return whitelistMode;
+    }
+
+    public void setWhitelistMode(boolean whitelistMode) {
+        this.whitelistMode = whitelistMode;
+        setChanged();
+    }
+
+    public void setFilterSlot(int index, ItemStack stack) {
+        if (index < 0 || index >= FILTER_SLOT_COUNT) {
+            return;
+        }
+        if (stack.isEmpty()) {
+            filterSlots.set(index, ItemStack.EMPTY);
+        } else {
+            filterSlots.set(index, stack.copyWithCount(1));
+        }
+        setChanged();
     }
 
     public Component getDisplayName() {
@@ -98,6 +150,9 @@ public class TrashCanBlockEntity extends BlockEntity {
             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
         }
         itemHandler.set(0, ItemResource.EMPTY, 0);
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            filterSlots.set(i, ItemStack.EMPTY);
+        }
     }
 
     @Override
@@ -117,6 +172,10 @@ public class TrashCanBlockEntity extends BlockEntity {
         } else {
             itemHandler.set(0, ItemResource.of(stack), stack.getCount());
         }
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            filterSlots.set(i, input.read("Filter" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        }
+        whitelistMode = input.getBooleanOr("WhitelistMode", false);
     }
 
     @Override
@@ -126,5 +185,12 @@ public class TrashCanBlockEntity extends BlockEntity {
         if (!stack.isEmpty()) {
             output.store("Item", ItemStack.CODEC, stack);
         }
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            ItemStack filter = filterSlots.get(i);
+            if (!filter.isEmpty()) {
+                output.store("Filter" + i, ItemStack.CODEC, filter);
+            }
+        }
+        output.putBoolean("WhitelistMode", whitelistMode);
     }
 }

@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.itemcollector.client;
 
+import com.dopa.randomutilities.client.gui.JeiGhostDragState;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
 import com.dopa.randomutilities.client.gui.PanelHost;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
@@ -46,7 +47,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     private static final Identifier WHITELIST_ICON =
             Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/whitelist_icon.png");
     private static final Identifier RANGE_OVERLAY_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/gather.png");
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/hitbox.png");
 
     private static final int TEXTURE_SIZE = 256;
     private static final int BODY_COLOR = 0xFFC6C6C6;
@@ -229,7 +230,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
 
     @Override
     public void onClose() {
-        ItemCollectorJeiDragState.endDrag();
+        JeiGhostDragState.endDrag();
         if (configPanel != null) {
             configPanel.onScreenClose();
         }
@@ -239,6 +240,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
         int xo = leftPos;
@@ -260,7 +262,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         super.extractContents(graphics, mouseX, mouseY, partialTick);
         renderGhostSlotTints(graphics);
         renderFilterModeIcon(graphics, mouseX, mouseY);
-        ItemCollectorJeiDragState.renderLine(graphics, mouseX, mouseY);
+        JeiGhostDragState.renderLine(graphics, mouseX, mouseY);
         Component tabTooltip = panelHost.hoveredTabTooltip(mouseX, mouseY, leftPos, topPos, imageWidth);
         if (tabTooltip != null) {
             graphics.setTooltipForNextFrame(font, tabTooltip, mouseX, mouseY);
@@ -315,7 +317,9 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         boolean overConfigControl = configPanel != null
                 && configPanel.contentsInteractive()
                 && configPanel.isMouseOverInteractiveWidget(event.x(), event.y());
-        if (overTab) {
+        // Closed sibling tabs sit on the attachment edge and can overlap config widgets;
+        // prefer the widget when the cursor is on one.
+        if (overTab && !overConfigControl) {
             return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
         }
         if (overBody || overConfigControl) {
@@ -367,7 +371,6 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         }
         return false;
     }
-
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         GuiEventListener focused = getFocused();

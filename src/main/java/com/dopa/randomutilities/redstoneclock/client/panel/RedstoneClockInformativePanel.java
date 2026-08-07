@@ -1,8 +1,7 @@
-package com.dopa.randomutilities.machine.generator.client.panel;
+package com.dopa.randomutilities.redstoneclock.client.panel;
 
 import com.dopa.randomutilities.client.gui.AttachedPanel;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -15,42 +14,29 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class GeneratorInformativePanel extends AttachedPanel {
+public final class RedstoneClockInformativePanel extends AttachedPanel {
     private static final int BG = 0xFF3A3A3A;
     private static final int BODY_TEXT = 0xFFFFFFFF;
     private static final int SCROLLBAR_TRACK = 0x66000000;
     private static final int SCROLLBAR_THUMB = 0xFFC0C0C0;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
 
-    private static final String[] RECIPE_PARAGRAPH_KEYS = {
-            "gui.dopasrandomutilities.panel.info.generator.visual",
-            "gui.dopasrandomutilities.panel.info.generator.howto",
-            "gui.dopasrandomutilities.panel.info.generator.lock"
-    };
-    private static final String[] RANDOM_ORE_PARAGRAPH_KEYS = {
-            "gui.dopasrandomutilities.panel.info.generator.visual",
-            "gui.dopasrandomutilities.panel.info.generator.random_ore.howto",
-            "gui.dopasrandomutilities.panel.info.generator.random_ore.limit"
-    };
-    private static final String[] METAL_BLOCK_PARAGRAPH_KEYS = {
-            "gui.dopasrandomutilities.panel.info.generator.visual",
-            "gui.dopasrandomutilities.panel.info.generator.metal_block.howto",
-            "gui.dopasrandomutilities.panel.info.generator.metal_block.limit"
+    private static final String[] PARAGRAPH_KEYS = {
+            "gui.dopasrandomutilities.panel.info.redstone_clock.intro",
+            "gui.dopasrandomutilities.panel.info.redstone_clock.timing",
+            "gui.dopasrandomutilities.panel.info.redstone_clock.cosmetic"
     };
 
-    private final int tabYBias;
-    private final GeneratorType.Mode mode;
     private int scrollPixels;
 
-    public GeneratorInformativePanel(int tabYBias, GeneratorType.Mode mode) {
-        super(PanelAnchor.LEFT_TOP, 122, 90, BG, Component.translatable("gui.dopasrandomutilities.panel.info"));
-        this.tabYBias = tabYBias;
-        this.mode = mode;
-    }
-
-    @Override
-    public int tabOffsetY() {
-        return super.tabOffsetY() + tabYBias;
+    public RedstoneClockInformativePanel() {
+        super(
+                PanelAnchor.LEFT_TOP,
+                122,
+                90,
+                BG,
+                Component.translatable("gui.dopasrandomutilities.panel.info")
+        );
     }
 
     @Override
@@ -117,23 +103,14 @@ public final class GeneratorInformativePanel extends AttachedPanel {
         return true;
     }
 
-    private String[] paragraphKeys() {
-        return switch (mode) {
-            case RANDOM_ORE -> RANDOM_ORE_PARAGRAPH_KEYS;
-            case METAL_BLOCK -> METAL_BLOCK_PARAGRAPH_KEYS;
-            case RECIPE -> RECIPE_PARAGRAPH_KEYS;
-        };
-    }
-
     /** Wrapped paragraphs with a blank line ({@code null} entry) between each. */
-    private List<FormattedCharSequence> buildLines(Font font, int maxWidth) {
-        String[] keys = paragraphKeys();
+    private static List<FormattedCharSequence> buildLines(Font font, int maxWidth) {
         List<FormattedCharSequence> lines = new ArrayList<>();
-        for (int i = 0; i < keys.length; i++) {
+        for (int i = 0; i < PARAGRAPH_KEYS.length; i++) {
             if (i > 0) {
                 lines.add(null);
             }
-            lines.addAll(font.split(Component.translatable(keys[i]), maxWidth));
+            lines.addAll(font.split(Component.translatable(PARAGRAPH_KEYS[i]), maxWidth));
         }
         return lines;
     }

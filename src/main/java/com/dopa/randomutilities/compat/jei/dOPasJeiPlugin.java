@@ -10,6 +10,8 @@ import com.dopa.randomutilities.machine.generator.config.GeneratorRecipe;
 import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.registry.ModItems;
+import com.dopa.randomutilities.trashcan.client.TrashCanScreen;
+import com.dopa.randomutilities.redstoneclock.client.RedstoneClockScreen;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -81,7 +83,18 @@ public class dOPasJeiPlugin implements IModPlugin {
                 );
             }
         });
+        registration.addGuiContainerHandler(RedstoneClockScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(RedstoneClockScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
         registration.addGhostIngredientHandler(ItemCollectorScreen.class, new ItemCollectorJeiHandler());
+        registration.addGhostIngredientHandler(TrashCanScreen.class, new TrashCanJeiHandler());
     }
 
     @Override

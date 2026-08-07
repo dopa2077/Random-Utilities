@@ -2,25 +2,45 @@ package com.dopa.randomutilities.trashcan;
 
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModMenus;
+import com.dopa.randomutilities.util.GhostItemFilter;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
+import net.neoforged.neoforge.world.inventory.StackCopySlot;
+
+import java.util.Optional;
 
 public class TrashCanMenu extends AbstractContainerMenu {
+    public static final int DATA_WHITELIST_MODE = 0;
+    public static final int DATA_SIZE = 1;
+
+    public static final int IMAGE_WIDTH = 176;
     public static final int CHEST_SLOT_X = 80;
     public static final int CHEST_SLOT_Y = 18;
-    public static final int PLAYER_INV_Y = 49;
+    /** Advanced collector layout: icon @ 8, filters @ 26, under the trash slot. */
+    public static final int FILTER_ICON_X = 8;
+    public static final int FILTER_SLOT_X = 26;
+    public static final int FILTER_SLOT_Y = 40;
+    public static final int FILTER_SLOT_COUNT = TrashCanBlockEntity.FILTER_SLOT_COUNT;
+    public static final int PLAYER_INV_Y = 71;
 
     private final TrashCanBlockEntity trashCan;
     private final ContainerLevelAccess access;
+    private final FilterStacksHandler filterHandler;
+    private final ContainerData data;
 
     public TrashCanMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
         this(containerId, playerInv, resolveBlockEntity(playerInv, buf.readBlockPos()));
@@ -30,8 +50,28 @@ public class TrashCanMenu extends AbstractContainerMenu {
         super(ModMenus.TRASH_CAN.get(), containerId);
         this.trashCan = trashCan;
         this.access = ContainerLevelAccess.create(trashCan.getLevel(), trashCan.getBlockPos());
-        this.addSlot(new TrashCanSlot(trashCan.itemHandler(), CHEST_SLOT_X, CHEST_SLOT_Y));
+
+        NonNullList<ItemStack> stacks = NonNullList.withSize(FILTER_SLOT_COUNT, ItemStack.EMPTY);
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            stacks.set(i, trashCan.filterSlots().get(i));
+        }
+        this.filterHandler = new FilterStacksHandler(stacks);
+        this.filterHandler.setOnChanged(() -> {
+            saveFilters();
+            trashCan.setChanged();
+        });
+
+        this.data = new SimpleContainerData(DATA_SIZE);
+        syncData();
+
+        // Use menu-synced filters/mode so client mayPlace matches the server (BE filters are not synced).
+        this.addSlot(new TrashCanSlot(trashCan, CHEST_SLOT_X, CHEST_SLOT_Y, this::allowsInsert));
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            this.addSlot(new FilterSlot(filterHandler, i, FILTER_SLOT_X + i * 18, FILTER_SLOT_Y));
+        }
+
         this.addStandardInventorySlots(playerInv, 8, PLAYER_INV_Y);
+        this.addDataSlots(data);
     }
 
     private static TrashCanBlockEntity resolveBlockEntity(Inventory playerInv, BlockPos pos) {
@@ -42,8 +82,52 @@ public class TrashCanMenu extends AbstractContainerMenu {
         throw new IllegalStateException("Missing trash can at " + pos);
     }
 
+    private void saveFilters() {
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            trashCan.setFilterSlot(i, filterHandler.getResource(i).toStack(filterHandler.getAmountAsInt(i)));
+        }
+    }
+
+    private void syncData() {
+        data.set(DATA_WHITELIST_MODE, trashCan.whitelistMode() ? 1 : 0);
+    }
+
+    /** Menu-local filter check (ghost slots + ContainerData), valid on client and server. */
+    boolean allowsInsert(ItemStack stack) {
+        NonNullList<ItemStack> filters = NonNullList.withSize(FILTER_SLOT_COUNT, ItemStack.EMPTY);
+        for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
+            ItemResource resource = filterHandler.getResource(i);
+            if (!resource.isEmpty()) {
+                filters.set(i, resource.toStack(1));
+            }
+        }
+        return GhostItemFilter.allows(stack, filters, isWhitelistMode());
+    }
+
     public TrashCanBlockEntity blockEntity() {
         return trashCan;
+    }
+
+    public boolean isWhitelistMode() {
+        return data.get(DATA_WHITELIST_MODE) != 0;
+    }
+
+    public void setWhitelistMode(boolean whitelist) {
+        trashCan.setWhitelistMode(whitelist);
+        syncData();
+        broadcastChanges();
+    }
+
+    public void setFilterSlot(int index, ItemStack stack) {
+        trashCan.setFilterSlot(index, stack);
+        if (index >= 0 && index < FILTER_SLOT_COUNT) {
+            if (stack.isEmpty()) {
+                filterHandler.set(index, ItemResource.EMPTY, 0);
+            } else {
+                filterHandler.set(index, ItemResource.of(stack), 1);
+            }
+        }
+        broadcastChanges();
     }
 
     @Override
@@ -92,19 +176,27 @@ public class TrashCanMenu extends AbstractContainerMenu {
         }
         ItemStack stack = slot.getItem();
         result = stack.copy();
+        int filterEnd = 1 + FILTER_SLOT_COUNT;
         if (index == 0) {
-            if (!this.moveItemStackTo(stack, 1, this.slots.size(), true)) {
+            if (!this.moveItemStackTo(stack, filterEnd, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
+        } else if (index >= 1 && index < filterEnd) {
+            // Ghost clear — do not move into player inventory.
+            slot.setByPlayer(ItemStack.EMPTY);
+            return ItemStack.EMPTY;
         } else {
+            // Shift-click always targets the trash slot; filters are set manually / via JEI.
             ItemStack toInsert = stack.copy();
             Slot trashSlot = this.slots.getFirst();
+            if (!trashSlot.mayPlace(toInsert)) {
+                return ItemStack.EMPTY;
+            }
             ItemStack before = trashSlot.getItem().copy();
             int countBefore = toInsert.getCount();
             trashSlot.safeInsert(toInsert, toInsert.getCount());
             int moved = countBefore - toInsert.getCount();
             if (moved <= 0 && ItemStack.matches(before, trashSlot.getItem())) {
-                // Type change void-replace path for shift-click
                 if (!before.isEmpty() && !ItemStack.isSameItemSameComponents(before, stack)) {
                     trashSlot.setByPlayer(ItemStack.EMPTY);
                     trashSlot.safeInsert(toInsert, toInsert.getCount());
@@ -122,5 +214,104 @@ public class TrashCanMenu extends AbstractContainerMenu {
             slot.setChanged();
         }
         return result;
+    }
+
+    @Override
+    public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
+        // Ghost filter slots must not participate in double-click gather.
+        if (slot.isFake()) {
+            return false;
+        }
+        return super.canTakeItemForPickAll(stack, slot);
+    }
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        saveFilters();
+    }
+
+    private static final class FilterStacksHandler extends ItemStacksResourceHandler {
+        private Runnable onChanged = () -> {};
+
+        FilterStacksHandler(NonNullList<ItemStack> stacks) {
+            super(stacks);
+        }
+
+        void setOnChanged(Runnable onChanged) {
+            this.onChanged = onChanged;
+        }
+
+        @Override
+        protected int getCapacity(int index, ItemResource resource) {
+            return 1;
+        }
+
+        @Override
+        protected void onContentsChanged(int index, ItemStack previousContents) {
+            onChanged.run();
+        }
+    }
+
+    private static final class FilterSlot extends StackCopySlot {
+        private final FilterStacksHandler handler;
+        private final int handlerIndex;
+
+        FilterSlot(FilterStacksHandler handler, int handlerIndex, int x, int y) {
+            super(handlerIndex, x, y);
+            this.handler = handler;
+            this.handlerIndex = handlerIndex;
+        }
+
+        @Override
+        protected ItemStack getStackCopy() {
+            return handler.getResource(handlerIndex).toStack(handler.getAmountAsInt(handlerIndex));
+        }
+
+        @Override
+        protected void setStackCopy(ItemStack stack) {
+            if (stack.isEmpty()) {
+                handler.set(handlerIndex, ItemResource.EMPTY, 0);
+            } else {
+                handler.set(handlerIndex, ItemResource.of(stack), 1);
+            }
+        }
+
+        @Override
+        public boolean isFake() {
+            return true;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return !stack.isEmpty();
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return !getItem().isEmpty();
+        }
+
+        @Override
+        public ItemStack safeInsert(ItemStack inputStack, int inputAmount) {
+            if (!inputStack.isEmpty() && mayPlace(inputStack)) {
+                set(inputStack.copyWithCount(1));
+            }
+            return inputStack;
+        }
+
+        @Override
+        public Optional<ItemStack> tryRemove(int amount, int maxAmount, Player player) {
+            if (!mayPickup(player)) {
+                return Optional.empty();
+            }
+            set(ItemStack.EMPTY);
+            return Optional.empty();
+        }
+
+        @Override
+        public int getMaxStackSize(ItemStack stack) {
+            return 1;
+        }
     }
 }

@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "running=false": { "model": "dopasrandomutilities:block/redstone_clock_off" },
+    "running=true": { "model": "dopasrandomutilities:block/redstone_clock_on" }
+  }
+}

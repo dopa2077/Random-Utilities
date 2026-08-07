@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "R": "minecraft:redstone",
+    "C": "minecraft:clock",
+    "S": "minecraft:stone"
+  },
+  "pattern": [
+    "SRS",
+    "RCR",
+    "SRS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:redstone_clock"
+  }
+}

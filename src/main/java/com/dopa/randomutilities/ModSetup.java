@@ -7,6 +7,8 @@ import com.dopa.randomutilities.itemcollector.config.ItemCollectorConfig;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.MachineNetwork;
+import com.dopa.randomutilities.trashcan.TrashCanNetwork;
+import com.dopa.randomutilities.redstoneclock.RedstoneClockNetwork;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -57,6 +59,8 @@ public final class ModSetup {
         modEventBus.addListener(FilterNetwork::registerPayloads);
         modEventBus.addListener(MachineNetwork::registerPayloads);
         modEventBus.addListener(ItemCollectorNetwork::registerPayloads);
+        modEventBus.addListener(TrashCanNetwork::registerPayloads);
+        modEventBus.addListener(RedstoneClockNetwork::registerPayloads);
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
