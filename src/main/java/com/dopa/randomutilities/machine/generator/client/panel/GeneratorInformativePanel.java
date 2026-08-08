@@ -2,13 +2,13 @@ package com.dopa.randomutilities.machine.generator.client.panel;
 
 import com.dopa.randomutilities.client.gui.AttachedPanel;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.client.gui.PanelTextScrollbar;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -18,8 +18,6 @@ import java.util.List;
 public final class GeneratorInformativePanel extends AttachedPanel {
     private static final int BG = 0xFF3A3A3A;
     private static final int BODY_TEXT = 0xFFFFFFFF;
-    private static final int SCROLLBAR_TRACK = 0x66000000;
-    private static final int SCROLLBAR_THUMB = 0xFFC0C0C0;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
 
     private static final String[] RECIPE_PARAGRAPH_KEYS = {
@@ -40,7 +38,7 @@ public final class GeneratorInformativePanel extends AttachedPanel {
 
     private final int tabYBias;
     private final GeneratorType.Mode mode;
-    private int scrollPixels;
+    private final PanelTextScrollbar scrollbar = new PanelTextScrollbar();
 
     public GeneratorInformativePanel(int tabYBias, GeneratorType.Mode mode) {
         super(PanelAnchor.LEFT_TOP, 122, 90, BG, Component.translatable("gui.dopasrandomutilities.panel.info"));
@@ -55,12 +53,12 @@ public final class GeneratorInformativePanel extends AttachedPanel {
 
     @Override
     protected void onOpened() {
-        scrollPixels = 0;
+        scrollbar.reset();
     }
 
     @Override
     protected void onClosed() {
-        scrollPixels = 0;
+        scrollbar.reset();
     }
 
     @Override
@@ -80,8 +78,7 @@ public final class GeneratorInformativePanel extends AttachedPanel {
         int lineStep = font.lineHeight + 1;
         List<FormattedCharSequence> lines = buildLines(font, maxWidth);
         int contentHeight = lines.size() * lineStep;
-        int maxScroll = Math.max(0, contentHeight - viewHeight);
-        scrollPixels = Mth.clamp(scrollPixels, 0, maxScroll);
+        int scrollPixels = scrollbar.begin(contentHeight, viewHeight);
         int textY = viewTop - scrollPixels;
         for (FormattedCharSequence line : lines) {
             if (line != null && textY + font.lineHeight > viewTop && textY < viewBottom) {
@@ -89,14 +86,27 @@ public final class GeneratorInformativePanel extends AttachedPanel {
             }
             textY += lineStep;
         }
-        if (maxScroll > 0) {
-            int trackX = bodyX + panelWidth - CONTENT_PAD + 1;
-            graphics.fill(trackX, viewTop, trackX + 2, viewBottom, SCROLLBAR_TRACK);
-            int thumbHeight = Math.max(6, Math.round(viewHeight * (viewHeight / (float) contentHeight)));
-            int thumbTravel = viewHeight - thumbHeight;
-            int thumbY = viewTop + Math.round(thumbTravel * (scrollPixels / (float) maxScroll));
-            graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, SCROLLBAR_THUMB);
-        }
+        scrollbar.render(graphics, bodyX, panelWidth, viewTop, viewBottom);
+    }
+
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        return scrollbar.isMouseOver(mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY) {
+        return contentsInteractive() && scrollbar.mouseClicked(mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY) {
+        return scrollbar.mouseDragged(mouseY);
+    }
+
+    @Override
+    public boolean mouseReleased() {
+        return scrollbar.mouseReleased();
     }
 
     @Override
@@ -109,12 +119,8 @@ public final class GeneratorInformativePanel extends AttachedPanel {
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
         int contentHeight = buildLines(font, maxWidth).size() * lineStep;
-        int maxScroll = Math.max(0, contentHeight - viewHeight);
-        if (maxScroll <= 0) {
-            return false;
-        }
-        scrollPixels = Mth.clamp(scrollPixels - (int) Math.round(scrollY * lineStep), 0, maxScroll);
-        return true;
+        scrollbar.begin(contentHeight, viewHeight);
+        return scrollbar.mouseScrolled(scrollY * lineStep);
     }
 
     private String[] paragraphKeys() {

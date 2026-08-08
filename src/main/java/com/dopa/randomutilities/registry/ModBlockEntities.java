@@ -4,6 +4,8 @@ import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
 import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlockEntity;
+import com.dopa.randomutilities.fishnet.FishnetBlockEntity;
 import com.dopa.randomutilities.trashcan.TrashCanBlockEntity;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
@@ -76,6 +78,26 @@ public final class ModBlockEntities {
                             false,
                             ModBlocks.BASIC_ITEM_COLLECTOR.get(),
                             ModBlocks.ADVANCED_ITEM_COLLECTOR.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<SolarFurnaceBlockEntity>> SOLAR_FURNACE =
+            BLOCK_ENTITIES.register(
+                    "solar_furnace",
+                    () -> new BlockEntityType<>(
+                            SolarFurnaceBlockEntity::new,
+                            false,
+                            ModBlocks.SOLAR_FURNACE.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<FishnetBlockEntity>> FISHNET =
+            BLOCK_ENTITIES.register(
+                    "fishnet",
+                    () -> new BlockEntityType<>(
+                            FishnetBlockEntity::new,
+                            false,
+                            ModBlocks.FISHNET.get()
                     )
             );
 

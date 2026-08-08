@@ -69,10 +69,11 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
 
     private static final int OUTPUT_X = 134;
     private static final int OUTPUT_Y = GEN_Y;
-    private static final int ARROW_W = 24;
-    private static final int ARROW_H = 17;
-    private static final int ARROW_X = RIGHT_X + SLOT + 9;
-    private static final int ARROW_Y = GEN_Y + (SLOT - ARROW_H) / 2;
+    /** Progress arrow; also the JEI recipe click area. */
+    public static final int ARROW_W = 24;
+    public static final int ARROW_H = 17;
+    public static final int ARROW_X = RIGHT_X + SLOT + 9;
+    public static final int ARROW_Y = GEN_Y + (SLOT - ARROW_H) / 2;
     private static final float ARROW_EMPTY_U = 79.0F;
     private static final float ARROW_EMPTY_V = 34.0F;
     private static final float ARROW_FILL_U = 176.0F;
@@ -341,9 +342,7 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
         var occupying = this.panelHost.openPanel();
         boolean overBody = occupying != null
                 && occupying.isMouseOverBody(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
-        if (overTab) {
-            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
-        }
+        // Open body covers sibling tabs at the attachment edge — handle body/scrollbar first.
         if (overBody) {
             for (int i = this.children().size() - 1; i >= 0; i--) {
                 GuiEventListener child = this.children().get(i);
@@ -364,6 +363,12 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
             if (slotUnder != null && this.menu.isUpgradeSlotIndex(slotUnder.index)) {
                 return super.mouseClicked(event, doubleClick);
             }
+            if (this.panelHost.mouseClicked(event.x(), event.y())) {
+                return true;
+            }
+            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+        }
+        if (overTab) {
             return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
         }
         boolean handled = super.mouseClicked(event, doubleClick);
@@ -372,6 +377,21 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
             return true;
         }
         return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (this.panelHost.mouseDragged(event.x(), event.y())) {
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        boolean panelHandled = this.panelHost.mouseReleased();
+        boolean handled = super.mouseReleased(event);
+        return panelHandled || handled;
     }
 
     @Override

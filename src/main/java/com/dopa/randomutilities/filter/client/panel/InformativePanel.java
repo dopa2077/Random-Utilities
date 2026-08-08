@@ -1,9 +1,8 @@
 package com.dopa.randomutilities.filter.client.panel;
 
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-
 import com.dopa.randomutilities.client.gui.AttachedPanel;
-
+import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.client.gui.PanelTextScrollbar;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 
 import net.minecraft.ChatFormatting;
@@ -11,7 +10,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -22,12 +20,10 @@ public final class InformativePanel extends AttachedPanel {
     private static final int BG = 0xFF3A3A3A;
     private static final int BODY_TEXT = 0xFFFFFFFF;
     private static final int DASH_COLOR = 0xFFFFFFFF;
-    private static final int SCROLLBAR_TRACK = 0x66000000;
-    private static final int SCROLLBAR_THUMB = 0xFFC0C0C0;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
 
     private final boolean basic;
-    private int scrollPixels;
+    private final PanelTextScrollbar scrollbar = new PanelTextScrollbar();
 
     public InformativePanel(boolean basic) {
         super(
@@ -42,12 +38,12 @@ public final class InformativePanel extends AttachedPanel {
 
     @Override
     protected void onOpened() {
-        scrollPixels = 0;
+        scrollbar.reset();
     }
 
     @Override
     protected void onClosed() {
-        scrollPixels = 0;
+        scrollbar.reset();
     }
 
     @Override
@@ -69,8 +65,7 @@ public final class InformativePanel extends AttachedPanel {
 
         List<ContentLine> lines = buildContent(font, maxWidth);
         int contentHeight = lines.isEmpty() ? 0 : lines.size() * lineStep;
-        int maxScroll = Math.max(0, contentHeight - viewHeight);
-        scrollPixels = Mth.clamp(scrollPixels, 0, maxScroll);
+        int scrollPixels = scrollbar.begin(contentHeight, viewHeight);
 
         int textY = viewTop - scrollPixels;
         for (ContentLine line : lines) {
@@ -81,19 +76,29 @@ public final class InformativePanel extends AttachedPanel {
             textY += lineStep;
         }
 
-        if (maxScroll > 0) {
-            int trackX = bodyX + panelWidth - CONTENT_PAD + 1;
-            graphics.fill(trackX, viewTop, trackX + 2, viewBottom, SCROLLBAR_TRACK);
-            int thumbHeight = Math.max(6, Math.round(viewHeight * (viewHeight / (float) contentHeight)));
-            int thumbTravel = viewHeight - thumbHeight;
-            int thumbY = viewTop + (maxScroll == 0 ? 0 : Math.round(thumbTravel * (scrollPixels / (float) maxScroll)));
-            graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, SCROLLBAR_THUMB);
-        }
+        scrollbar.render(graphics, bodyX, panelWidth, viewTop, viewBottom);
     }
 
-    /**
-     * @return true if the scroll was consumed
-     */
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        return scrollbar.isMouseOver(mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY) {
+        return contentsInteractive() && scrollbar.mouseClicked(mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY) {
+        return scrollbar.mouseDragged(mouseY);
+    }
+
+    @Override
+    public boolean mouseReleased() {
+        return scrollbar.mouseReleased();
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY,
                                  int leftPos, int topPos, int imageWidth, Font font) {
@@ -104,12 +109,8 @@ public final class InformativePanel extends AttachedPanel {
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
         int contentHeight = buildContent(font, maxWidth).size() * lineStep;
-        int maxScroll = Math.max(0, contentHeight - viewHeight);
-        if (maxScroll <= 0) {
-            return false;
-        }
-        scrollPixels = Mth.clamp(scrollPixels - (int) Math.round(scrollY * lineStep), 0, maxScroll);
-        return true;
+        scrollbar.begin(contentHeight, viewHeight);
+        return scrollbar.mouseScrolled(scrollY * lineStep);
     }
 
     private List<ContentLine> buildContent(Font font, int maxWidth) {

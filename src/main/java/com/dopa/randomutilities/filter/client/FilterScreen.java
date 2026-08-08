@@ -466,9 +466,8 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
         var occupying = this.panelHost.openPanel();
         boolean overBody = occupying != null
                 && occupying.isMouseOverBody(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
-        if (overTab) {
-            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
-        }
+        // Open body covers sibling tabs at the attachment edge (e.g. info scrollbar sits on top of
+        // closed LEFT_BELOW tabs) — handle body/scrollbar before any tab click.
         if (overBody) {
             // Widgets first (Screen children), then empty-body close — skip container outside-click.
             for (int i = this.children().size() - 1; i >= 0; i--) {
@@ -507,6 +506,12 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                 }
                 return true;
             }
+            if (this.panelHost.mouseClicked(event.x(), event.y())) {
+                return true;
+            }
+            return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
+        }
+        if (overTab) {
             return this.panelHost.handleTabClick(event.x(), event.y(), this.leftPos, this.topPos, this.imageWidth);
         }
         boolean handled = super.mouseClicked(event, doubleClick);
@@ -532,13 +537,22 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         // Outside-GUI release can skip focused overlay widgets; deliver release first so sliders commit.
+        boolean panelHandled = this.panelHost.mouseReleased();
         GuiEventListener focused = this.getFocused();
         boolean handled = focused != null && focused.mouseReleased(event);
         this.setDragging(false);
-        if (handled) {
+        if (panelHandled || handled) {
             return true;
         }
         return super.mouseReleased(event);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (this.panelHost.mouseDragged(event.x(), event.y())) {
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
     }
 
     @Override

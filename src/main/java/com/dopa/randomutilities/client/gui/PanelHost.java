@@ -176,6 +176,21 @@ public final class PanelHost {
         return occupying.mouseScrolled(mouseX, mouseY, scrollY, leftPos, topPos, imageWidth, font);
     }
 
+    public boolean mouseClicked(double mouseX, double mouseY) {
+        AttachedPanel occupying = openPanel();
+        return occupying != null && occupying.mouseClicked(mouseX, mouseY);
+    }
+
+    public boolean mouseDragged(double mouseX, double mouseY) {
+        AttachedPanel occupying = openPanel();
+        return occupying != null && occupying.mouseDragged(mouseX, mouseY);
+    }
+
+    public boolean mouseReleased() {
+        AttachedPanel occupying = openPanel();
+        return occupying != null && occupying.mouseReleased();
+    }
+
     public void requestOpen(AttachedPanel panel) {
         AttachedPanel current = openPanel();
         if (current == null) {

@@ -29,7 +29,7 @@ public final class RedstonePanel extends AttachedPanel {
     private static final int BUTTON_H = 18;
     private static final int BUTTON_W = 20;
     private static final int BUTTON_GAP = 4;
-    private static final int TRAY_PAD = 6;
+    private static final int TRAY_PAD = 5;
     private static final int SELECTOR_Y = 28;
     private static final int STATUS_Y = 58;
     private static final int SIGNAL_Y = 80;

@@ -553,4 +553,19 @@ public abstract class AttachedPanel {
                                  int leftPos, int topPos, int imageWidth, Font font) {
         return false;
     }
+
+    /** Optional click handling (e.g. info scrollbar) before empty-body close. */
+    public boolean mouseClicked(double mouseX, double mouseY) {
+        return false;
+    }
+
+    /** Optional drag handling while a panel-owned interaction is active. */
+    public boolean mouseDragged(double mouseX, double mouseY) {
+        return false;
+    }
+
+    /** Optional release handling for panel-owned drag interactions. */
+    public boolean mouseReleased() {
+        return false;
+    }
 }

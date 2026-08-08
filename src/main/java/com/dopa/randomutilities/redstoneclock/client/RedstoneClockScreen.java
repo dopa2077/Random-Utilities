@@ -257,9 +257,7 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
         var occupying = panelHost.openPanel();
         boolean overBody = occupying != null
                 && occupying.isMouseOverBody(event.x(), event.y(), leftPos, topPos, imageWidth);
-        if (overTab) {
-            return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
-        }
+        // Open body covers sibling tabs at the attachment edge — handle body/scrollbar first.
         if (overBody) {
             for (int i = children().size() - 1; i >= 0; i--) {
                 GuiEventListener child = children().get(i);
@@ -268,12 +266,33 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
                     return true;
                 }
             }
+            if (panelHost.mouseClicked(event.x(), event.y())) {
+                return true;
+            }
+            return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
+        }
+        if (overTab) {
             return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
         }
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
         return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (panelHost.mouseDragged(event.x(), event.y())) {
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        boolean panelHandled = panelHost.mouseReleased();
+        boolean handled = super.mouseReleased(event);
+        return panelHandled || handled;
     }
 
     @Override

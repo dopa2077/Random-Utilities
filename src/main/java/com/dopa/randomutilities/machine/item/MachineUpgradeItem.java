@@ -1,7 +1,9 @@
 package com.dopa.randomutilities.machine.item;
 
+import com.dopa.randomutilities.fishnet.FishnetBlock;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlock;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -63,7 +65,10 @@ public class MachineUpgradeItem extends Item {
      */
     @Override
     public boolean doesSneakBypassUse(ItemStack stack, LevelReader level, BlockPos pos, Player player) {
-        return level.getBlockState(pos).getBlock() instanceof ResourceGeneratorBlock;
+        var block = level.getBlockState(pos).getBlock();
+        return block instanceof ResourceGeneratorBlock
+                || block instanceof SolarFurnaceBlock
+                || block instanceof FishnetBlock;
     }
 
     @Override

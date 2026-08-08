@@ -317,11 +317,8 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         boolean overConfigControl = configPanel != null
                 && configPanel.contentsInteractive()
                 && configPanel.isMouseOverInteractiveWidget(event.x(), event.y());
-        // Closed sibling tabs sit on the attachment edge and can overlap config widgets;
-        // prefer the widget when the cursor is on one.
-        if (overTab && !overConfigControl) {
-            return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
-        }
+        // Open body covers sibling tabs at the attachment edge — handle body/scrollbar first.
+        // Closed sibling tabs can still overlap config widgets; prefer the widget when on one.
         if (overBody || overConfigControl) {
             for (int i = children().size() - 1; i >= 0; i--) {
                 GuiEventListener child = children().get(i);
@@ -349,9 +346,15 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
                 }
             }
             if (overBody) {
+                if (panelHost.mouseClicked(event.x(), event.y())) {
+                    return true;
+                }
                 return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
             }
             return false;
+        }
+        if (overTab) {
+            return panelHost.handleTabClick(event.x(), event.y(), leftPos, topPos, imageWidth);
         }
         boolean handled = super.mouseClicked(event, doubleClick);
         if (handled) {
@@ -373,13 +376,22 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     }
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        boolean panelHandled = panelHost.mouseReleased();
         GuiEventListener focused = getFocused();
         boolean handled = focused != null && focused.mouseReleased(event);
         setDragging(false);
-        if (handled) {
+        if (panelHandled || handled) {
             return true;
         }
         return super.mouseReleased(event);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (panelHost.mouseDragged(event.x(), event.y())) {
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
     }
 
     @Override

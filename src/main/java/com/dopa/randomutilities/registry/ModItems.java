@@ -52,6 +52,12 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> ADVANCED_ITEM_COLLECTOR =
             ITEMS.registerSimpleBlockItem(ModBlocks.ADVANCED_ITEM_COLLECTOR);
 
+    public static final DeferredItem<BlockItem> SOLAR_FURNACE =
+            ITEMS.registerSimpleBlockItem(ModBlocks.SOLAR_FURNACE);
+
+    public static final DeferredItem<BlockItem> FISHNET =
+            ITEMS.registerSimpleBlockItem(ModBlocks.FISHNET);
+
     public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
     public static final DeferredItem<MachineUpgradeItem> PRODUCTIVITY_UPGRADE = ITEMS.registerItem(
             "productivity_upgrade",

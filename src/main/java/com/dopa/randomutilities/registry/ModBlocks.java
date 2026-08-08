@@ -4,6 +4,8 @@ import com.dopa.randomutilities.minichest.MiniChestBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.fishnet.FishnetBlock;
 import com.dopa.randomutilities.filter.dev.UiTestBlock;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.trashcan.TrashCanBlock;
@@ -59,6 +61,19 @@ public final class ModBlocks {
             "advanced_item_collector",
             props -> new ItemCollectorBlock(props, ItemCollectorType.ADVANCED),
             props -> props.mapColor(MapColor.COLOR_BLACK).strength(2.0F, 6.0F).sound(SoundType.STONE).noOcclusion()
+    );
+
+    public static final DeferredBlock<SolarFurnaceBlock> SOLAR_FURNACE = BLOCKS.registerBlock(
+            "solar_furnace",
+            SolarFurnaceBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+                    .lightLevel(state -> state.getValue(SolarFurnaceBlock.LIT) ? 13 : 0)
+    );
+
+    public static final DeferredBlock<FishnetBlock> FISHNET = BLOCKS.registerBlock(
+            "fishnet",
+            FishnetBlock::new,
+            props -> props.mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD).noOcclusion()
     );
 
     static {
