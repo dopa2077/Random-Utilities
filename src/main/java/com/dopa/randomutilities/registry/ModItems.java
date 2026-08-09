@@ -67,6 +67,14 @@ public final class ModItems {
             "overclock_upgrade",
             props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.OVERCLOCK)
     );
+    public static final DeferredItem<MachineUpgradeItem> FORTUNE_MESH_UPGRADE = ITEMS.registerItem(
+            "fortune_mesh_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.FORTUNE_MESH)
+    );
+    public static final DeferredItem<MachineUpgradeItem> TREASURE_MESH_UPGRADE = ITEMS.registerItem(
+            "treasure_mesh_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.TREASURE_MESH)
+    );
 
     private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
 

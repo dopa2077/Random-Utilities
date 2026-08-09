@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:block/cube_column_horizontal",
-  "textures": {
-    "end": "dopasrandomutilities:block/fishnet_top",
-    "side": "dopasrandomutilities:block/fishnet_side"
-  }
-}

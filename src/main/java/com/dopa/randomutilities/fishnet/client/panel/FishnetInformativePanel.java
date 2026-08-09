@@ -20,8 +20,7 @@ public final class FishnetInformativePanel extends AttachedPanel {
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
 
     private static final String[] PARAGRAPH_KEYS = {
-            "gui.dopasrandomutilities.panel.info.fishnet.intro",
-            "gui.dopasrandomutilities.panel.info.fishnet.upgrades"
+            "gui.dopasrandomutilities.panel.info.fishnet.intro"
     };
 
     private final int tabYBias;

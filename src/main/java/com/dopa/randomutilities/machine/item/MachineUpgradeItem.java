@@ -19,24 +19,40 @@ import net.minecraft.world.level.LevelReader;
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 
-/** Productivity / overclock upgrade with a config-driven tooltip. */
+/** Machine / fishnet upgrade with a config-driven tooltip. */
 public class MachineUpgradeItem extends Item {
     public enum Kind {
         PRODUCTIVITY(
                 "item.dopasrandomutilities.productivity_upgrade.tooltip",
-                UpgradeConfig::productivityBonusPercent
+                UpgradeConfig::productivityBonusPercent,
+                true
         ),
         OVERCLOCK(
                 "item.dopasrandomutilities.overclock_upgrade.tooltip",
-                UpgradeConfig::overclockSpeedPercent
+                UpgradeConfig::overclockSpeedPercent,
+                true
+        ),
+        /** Fishnet-only; each upgrade adds config % chance to force treasure in open water. */
+        FORTUNE_MESH(
+                "item.dopasrandomutilities.fortune_mesh_upgrade.tooltip",
+                UpgradeConfig::fortuneMeshTreasurePercent,
+                true
+        ),
+        /** Fishnet-only; rolls custom treasure_loot.json instead of fishing loot. */
+        TREASURE_MESH(
+                "item.dopasrandomutilities.treasure_mesh_upgrade.tooltip",
+                () -> 0,
+                false
         );
 
         private final String tooltipKey;
         private final IntSupplier percent;
+        private final boolean showsPercent;
 
-        Kind(String tooltipKey, IntSupplier percent) {
+        Kind(String tooltipKey, IntSupplier percent, boolean showsPercent) {
             this.tooltipKey = tooltipKey;
             this.percent = percent;
+            this.showsPercent = showsPercent;
         }
 
         public String tooltipKey() {
@@ -45,6 +61,10 @@ public class MachineUpgradeItem extends Item {
 
         public int percent() {
             return percent.getAsInt();
+        }
+
+        public boolean showsPercent() {
+            return showsPercent;
         }
     }
 
@@ -80,7 +100,9 @@ public class MachineUpgradeItem extends Item {
             TooltipFlag flag
     ) {
         MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
-        line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        if (kind.showsPercent()) {
+            line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        }
         tooltip.accept(line);
     }
 }

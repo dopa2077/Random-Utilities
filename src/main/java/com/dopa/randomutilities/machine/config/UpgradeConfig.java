@@ -28,6 +28,9 @@ public final class UpgradeConfig {
 
     private static int productivityBonusPercent = 10;
     private static int overclockSpeedPercent = 7;
+    private static int fortuneMeshTreasurePercent = 10;
+    private static int maxFortuneMeshFishnet = 10;
+    private static int maxTreasureMeshFishnet = 1;
     private static final Map<GeneratorType, Integer> maxPerType = new EnumMap<>(GeneratorType.class);
 
     static {
@@ -63,6 +66,18 @@ public final class UpgradeConfig {
 
     public static int overclockSpeedPercent() {
         return overclockSpeedPercent;
+    }
+
+    public static int fortuneMeshTreasurePercent() {
+        return fortuneMeshTreasurePercent;
+    }
+
+    public static int maxFortuneMeshFishnet() {
+        return Math.max(0, maxFortuneMeshFishnet);
+    }
+
+    public static int maxTreasureMeshFishnet() {
+        return Math.max(0, maxTreasureMeshFishnet);
     }
 
     public static int maxPerType(GeneratorType type) {
@@ -146,6 +161,9 @@ public final class UpgradeConfig {
     private static void applyBuiltInDefaults() {
         productivityBonusPercent = 10;
         overclockSpeedPercent = 7;
+        fortuneMeshTreasurePercent = 10;
+        maxFortuneMeshFishnet = 10;
+        maxTreasureMeshFishnet = 1;
         maxPerType.clear();
         maxPerType.put(GeneratorType.BASIC_STONE, 3);
         maxPerType.put(GeneratorType.INTERMEDIATE_STONE, 5);
@@ -170,6 +188,22 @@ public final class UpgradeConfig {
         if (root.has("overclock_speed_percent_per_upgrade")) {
             overclockSpeedPercent = Math.max(0, root.get("overclock_speed_percent_per_upgrade").getAsInt());
         }
+        JsonObject fortuneMesh = root.getAsJsonObject("fortune_mesh_upgrade");
+        if (fortuneMesh != null) {
+            if (fortuneMesh.has("treasure_percent_per_upgrade")) {
+                fortuneMeshTreasurePercent = Math.max(0, fortuneMesh.get("treasure_percent_per_upgrade").getAsInt());
+            }
+            if (fortuneMesh.has("max_per_fishnet")) {
+                maxFortuneMeshFishnet = Math.max(0, fortuneMesh.get("max_per_fishnet").getAsInt());
+            }
+        } else if (root.has("fortune_mesh_treasure_percent_per_upgrade")) {
+            // Legacy flat key from before fortune_mesh_upgrade section
+            fortuneMeshTreasurePercent = Math.max(0, root.get("fortune_mesh_treasure_percent_per_upgrade").getAsInt());
+        }
+        JsonObject treasureMesh = root.getAsJsonObject("treasure_mesh_upgrade");
+        if (treasureMesh != null && treasureMesh.has("max_per_fishnet")) {
+            maxTreasureMeshFishnet = Math.max(0, treasureMesh.get("max_per_fishnet").getAsInt());
+        }
         JsonObject caps = root.getAsJsonObject("max_upgrades_per_type");
         if (caps == null) {
             return;
@@ -179,6 +213,10 @@ public final class UpgradeConfig {
             if (element != null && element.isJsonPrimitive()) {
                 maxPerType.put(type, Math.max(0, element.getAsInt()));
             }
+        }
+        // Legacy: fishnet cap lived under max_upgrades_per_type before fortune_mesh_upgrade section
+        if (fortuneMesh == null && caps.has("fishnet") && caps.get("fishnet").isJsonPrimitive()) {
+            maxFortuneMeshFishnet = Math.max(0, caps.get("fishnet").getAsInt());
         }
     }
 }

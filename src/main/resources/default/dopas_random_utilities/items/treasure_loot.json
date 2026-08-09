@@ -1,0 +1,12 @@
+{
+  "minecraft:air": 0.35,
+  "minecraft:heart_of_the_sea": 0.015,
+  "minecraft:conduit": 0.025,
+  "minecraft:nautilus_shell": 0.25,
+  "minecraft:prismarine_crystals": 0.4,
+  "minecraft:prismarine_shard": 0.4,
+  "minecraft:nether_star": 0.001,
+  "minecraft:echo_shard": 0.07,
+  "minecraft:diamond": 0.1,
+  "minecraft:emerald": 0.09
+}

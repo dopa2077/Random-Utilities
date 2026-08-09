@@ -1,5 +1,7 @@
 package com.dopa.randomutilities.fishnet;
 
+import com.dopa.randomutilities.fishnet.config.FishnetConfig;
+import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
 import com.dopa.randomutilities.fishnet.network.FishnetCatchPayload;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
@@ -8,16 +10,25 @@ import com.dopa.randomutilities.registry.ModBlockEntities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
@@ -34,13 +45,38 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
-    public static final int SLOT_COUNT = 9;
+    public static final int CATCH_SLOT_COUNT = 9;
     public static final int BASE_CATCH_TICKS = 600;
 
-    private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(SLOT_COUNT) {
+    public static final int DATA_PROGRESS = 0;
+    public static final int DATA_TOTAL = 1;
+    public static final int DATA_REDSTONE = 2;
+    public static final int DATA_UNDERWATER = 3;
+    public static final int DATA_HAS_ROD = 4;
+    public static final int DATA_PARTICLES = 5;
+    public static final int DATA_SOUND = 6;
+    public static final int DATA_COUNT = 7;
+
+    /** Vanilla hooked approach lasts ~20–80 ticks; only then are fishing ripples shown. */
+    private static final int HOOKED_PHASE_TICKS = 60;
+
+    private final ItemStacksResourceHandler rod = new ItemStacksResourceHandler(1) {
+        @Override
+        protected void onContentsChanged(int index, ItemStack previousContents) {
+            setChanged();
+        }
+
+        @Override
+        public boolean isValid(int index, ItemResource resource) {
+            return isFishingRod(resource.toStack(1));
+        }
+    };
+
+    private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(CATCH_SLOT_COUNT) {
         @Override
         protected void onContentsChanged(int index, ItemStack previousContents) {
             setChanged();
@@ -61,6 +97,11 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     private int catchTotal = BASE_CATCH_TICKS;
     private int productivityBonusBank;
     private boolean underwater;
+    private float fishAngle;
+    private boolean particlesEnabled = true;
+    private boolean soundEnabled = true;
+    /** Catch that could not fit; fishing stays paused until these can be stored. */
+    private final List<ItemStack> pendingCatch = new ArrayList<>();
 
     public FishnetBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FISHNET.get(), pos, state);
@@ -73,6 +114,14 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         }
     }
 
+    public static boolean isFishingRod(ItemStack stack) {
+        return !stack.isEmpty() && stack.is(Items.FISHING_ROD);
+    }
+
+    public ItemStacksResourceHandler rod() {
+        return rod;
+    }
+
     public ItemStacksResourceHandler items() {
         return items;
     }
@@ -81,8 +130,31 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         return upgrades;
     }
 
+    /**
+     * Automation IO: top/sides expose the fishing-rod slot (insert rods);
+     * bottom exposes catch slots (extract loot; inserts blocked via {@code isValid}).
+     */
     public ResourceHandler<ItemResource> itemHandler(@Nullable Direction side) {
-        return items;
+        if (side == Direction.DOWN) {
+            return items;
+        }
+        return rod;
+    }
+
+    public ItemStack rodStack() {
+        ItemResource resource = rod.getResource(0);
+        if (resource.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        return resource.toStack(rod.getAmountAsInt(0));
+    }
+
+    public void setRodStack(ItemStack stack) {
+        if (stack.isEmpty()) {
+            rod.set(0, ItemResource.EMPTY, 0);
+        } else {
+            rod.set(0, ItemResource.of(stack), stack.getCount());
+        }
     }
 
     public int catchProgress() {
@@ -97,6 +169,10 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         return underwater;
     }
 
+    public boolean hasRod() {
+        return isFishingRod(rodStack());
+    }
+
     @Override
     public RedstoneMode redstoneMode() {
         return redstoneMode;
@@ -106,6 +182,28 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     public void setRedstoneMode(RedstoneMode mode) {
         if (this.redstoneMode != mode) {
             this.redstoneMode = mode == null ? RedstoneMode.IGNORE : mode;
+            setChanged();
+        }
+    }
+
+    public boolean particlesEnabled() {
+        return particlesEnabled;
+    }
+
+    public void setParticlesEnabled(boolean enabled) {
+        if (this.particlesEnabled != enabled) {
+            this.particlesEnabled = enabled;
+            setChanged();
+        }
+    }
+
+    public boolean soundEnabled() {
+        return soundEnabled;
+    }
+
+    public void setSoundEnabled(boolean enabled) {
+        if (this.soundEnabled != enabled) {
+            this.soundEnabled = enabled;
             setChanged();
         }
     }
@@ -122,10 +220,13 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         return resource.toStack(items.getAmountAsInt(slot));
     }
 
-    public static boolean hasWaterSourcesOnAllSides(Level level, BlockPos pos) {
-        for (Direction direction : Direction.values()) {
-            if (!level.getFluidState(pos.relative(direction)).is(FluidTags.WATER)
-                    || !level.getFluidState(pos.relative(direction)).isSource()) {
+    public static boolean canCatchHere(Level level, BlockPos pos, BlockState state) {
+        if (!(state.getBlock() instanceof FishnetBlock) || !state.getValue(FishnetBlock.WATERLOGGED)) {
+            return false;
+        }
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            FluidState fluid = level.getFluidState(pos.relative(direction));
+            if (!fluid.is(FluidTags.WATER) || !fluid.isSource()) {
                 return false;
             }
         }
@@ -133,15 +234,39 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     }
 
     private void tick(ServerLevel level, BlockPos pos) {
-        underwater = hasWaterSourcesOnAllSides(level, pos);
-        int needed = UpgradeConfig.effectiveTicks(BASE_CATCH_TICKS, upgrades.overclockCount());
+        BlockState state = level.getBlockState(pos);
+        underwater = canCatchHere(level, pos, state);
+
+        FakePlayer fisher = FakePlayerFactory.getMinecraft(level);
+        ItemStack rodStack = rodStack();
+        int lureBonus = 0;
+        if (isFishingRod(rodStack)) {
+            lureBonus = (int) (EnchantmentHelper.getFishingTimeReduction(level, rodStack, fisher) * 20.0F);
+        }
+        int needed = Math.max(40, UpgradeConfig.effectiveTicks(BASE_CATCH_TICKS, upgrades.overclockCount()) - lureBonus);
         if (catchTotal != needed) {
             catchTotal = needed;
             catchProgress = Math.min(catchProgress, catchTotal);
             setChanged();
         }
 
-        if (!underwater || !redstoneMode.allowsOperation(level.getBestNeighborSignal(pos))) {
+        boolean powered = redstoneMode.allowsOperation(level.getBestNeighborSignal(pos));
+
+        // Wait for room for the held catch — do not start another fishing cycle.
+        if (!pendingCatch.isEmpty()) {
+            if (catchProgress > 0) {
+                catchProgress = 0;
+                setChanged();
+            }
+            if (underwater && isFishingRod(rodStack) && powered) {
+                tryFlushPendingCatch(level, pos, fisher, rodStack);
+            }
+            return;
+        }
+
+        boolean canRun = underwater && isFishingRod(rodStack) && powered;
+
+        if (!canRun) {
             if (catchProgress > 0) {
                 catchProgress = 0;
                 setChanged();
@@ -150,52 +275,239 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         }
 
         catchProgress++;
+        int remaining = catchTotal - catchProgress;
+        if (remaining > 0 && remaining <= HOOKED_PHASE_TICKS) {
+            // About to catch: spiral fishing ripples inward (FishingHook timeUntilHooked).
+            spawnHookedApproachParticles(level, pos, remaining);
+        } else if (remaining > HOOKED_PHASE_TICKS) {
+            // Waiting: rare far splash teases (FishingHook timeUntilLured).
+            spawnLureTeaseSplash(level, pos);
+        }
         if (catchProgress < catchTotal) {
             setChanged();
             return;
         }
+
         catchProgress = 0;
-        attemptCatch(level, pos);
+        completeCatch(level, pos, fisher, rodStack);
         setChanged();
     }
 
-    private void attemptCatch(ServerLevel level, BlockPos pos) {
-        Vec3 origin = Vec3.atCenterOf(pos);
-        Player player = level.getNearestPlayer(origin.x, origin.y, origin.z, 32.0, false);
-        if (player == null) {
-            player = FakePlayerFactory.getMinecraft(level);
+    /** Occasional distant splash while waiting — same idea as vanilla lure teases. */
+    private void spawnLureTeaseSplash(ServerLevel level, BlockPos pos) {
+        if (!particlesEnabled) {
+            return;
         }
+        float teaseChance = 0.015F;
+        int remaining = catchTotal - catchProgress;
+        if (remaining < catchTotal / 4) {
+            teaseChance += 0.02F;
+        }
+        if (level.getRandom().nextFloat() >= teaseChance) {
+            return;
+        }
+        float angle = Mth.nextFloat(level.getRandom(), 0.0F, 360.0F) * ((float) Math.PI / 180.0F);
+        float dist = Mth.nextFloat(level.getRandom(), 2.5F, 6.0F);
+        double fishX = pos.getX() + 0.5 + Mth.sin(angle) * dist;
+        double fishY = pos.getY() + 1.0;
+        double fishZ = pos.getZ() + 0.5 + Mth.cos(angle) * dist;
+        BlockPos splashPos = BlockPos.containing(fishX, fishY - 1.0, fishZ);
+        if (level.getBlockState(splashPos).is(Blocks.WATER) || level.getFluidState(splashPos).is(FluidTags.WATER)) {
+            level.sendParticles(ParticleTypes.SPLASH, fishX, fishY, fishZ, 2 + level.getRandom().nextInt(2), 0.1F, 0.0, 0.1F, 0.0);
+        }
+    }
 
-        ItemStack rod = new ItemStack(Items.FISHING_ROD);
-        LootParams params = new LootParams.Builder(level)
-                .withParameter(LootContextParams.ORIGIN, origin)
-                .withParameter(LootContextParams.TOOL, rod)
-                .withParameter(LootContextParams.THIS_ENTITY, player)
-                .withParameter(LootContextParams.ATTACKING_ENTITY, player)
-                .withLuck(player.getLuck())
-                .create(LootContextParamSets.FISHING);
-
-        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING);
-        List<ItemStack> drops = lootTable.getRandomItems(params);
-        if (drops.isEmpty()) {
+    /**
+     * Same particle math as {@code FishingHook} while {@code timeUntilHooked} counts down:
+     * ripples start far out and close in during the final catch window.
+     */
+    private void spawnHookedApproachParticles(ServerLevel level, BlockPos pos, int timeUntilHooked) {
+        if (!particlesEnabled) {
+            return;
+        }
+        fishAngle += (float) level.getRandom().triangle(0.0, 9.188);
+        float angle = fishAngle * ((float) Math.PI / 180.0F);
+        float angleSin = Mth.sin(angle);
+        float angleCos = Mth.cos(angle);
+        double cx = pos.getX() + 0.5;
+        double cy = pos.getY() + 1.0;
+        double cz = pos.getZ() + 0.5;
+        double fishX = cx + angleSin * timeUntilHooked * 0.1F;
+        double fishZ = cz + angleCos * timeUntilHooked * 0.1F;
+        BlockPos splashPos = BlockPos.containing(fishX, cy - 1.0, fishZ);
+        if (!level.getBlockState(splashPos).is(Blocks.WATER)
+                && !level.getFluidState(splashPos).is(FluidTags.WATER)) {
             return;
         }
 
-        ItemStack display = ItemStack.EMPTY;
-        boolean anyInserted = false;
+        if (level.getRandom().nextFloat() < 0.15F) {
+            level.sendParticles(ParticleTypes.BUBBLE, fishX, cy - 0.1F, fishZ, 1, angleSin, 0.1, angleCos, 0.0);
+        }
+        float particleXMovement = angleSin * 0.04F;
+        float particleZMovement = angleCos * 0.04F;
+        level.sendParticles(
+                ParticleTypes.FISHING, fishX, cy, fishZ, 0, particleZMovement, 0.01, -particleXMovement, 1.0);
+        level.sendParticles(
+                ParticleTypes.FISHING, fishX, cy, fishZ, 0, -particleZMovement, 0.01, particleXMovement, 1.0);
+    }
+
+    private void completeCatch(ServerLevel level, BlockPos pos, FakePlayer fisher, ItemStack rodStack) {
+        int luck = EnchantmentHelper.getFishingLuckBonus(level, rodStack, fisher);
+        Vec3 origin = Vec3.atCenterOf(pos);
+        boolean openWater = FishnetOpenWater.calculateOpenWater(level, pos);
+        boolean treasureAllowed = openWater && !FishnetConfig.preventRareLoot();
+        // Treasure pool requires THIS_ENTITY to be a FishingHook with in_open_water
+        // matching vanilla FishingHook#calculateOpenWater (not a small 3×3 pond).
+        FishingHook bobber = new FishingHook(fisher, level, luck, 0);
+        bobber.setPos(origin.x, origin.y, origin.z);
+        FishnetOpenWater.applyToBobber(bobber, treasureAllowed);
+        LootParams params = new LootParams.Builder(level)
+                .withParameter(LootContextParams.ORIGIN, origin)
+                .withParameter(LootContextParams.TOOL, rodStack)
+                .withParameter(LootContextParams.THIS_ENTITY, bobber)
+                .withParameter(LootContextParams.ATTACKING_ENTITY, fisher)
+                .withLuck(luck + fisher.getLuck())
+                .create(LootContextParamSets.FISHING);
+
+        List<ItemStack> drops = rollCatchLoot(level, params, treasureAllowed);
+        bobber.discard();
+
+        List<ItemStack> toStore = new ArrayList<>();
+        boolean caughtFish = false;
         for (ItemStack drop : drops) {
             if (drop.isEmpty()) {
                 continue;
             }
-            ItemStack toInsert = applyProductivity(drop);
-            if (tryStore(toInsert)) {
-                anyInserted = true;
-                if (display.isEmpty()) {
-                    display = toInsert.copy();
-                }
+            if (drop.is(ItemTags.FISHES)) {
+                caughtFish = true;
+            }
+            toStore.add(applyProductivity(drop));
+        }
+        if (toStore.isEmpty()) {
+            return;
+        }
+
+        if (!canFullyStoreAll(toStore)) {
+            pendingCatch.clear();
+            for (ItemStack stack : toStore) {
+                pendingCatch.add(stack.copy());
+            }
+            setChanged();
+            return;
+        }
+
+        commitCatch(level, pos, fisher, rodStack, toStore, caughtFish);
+    }
+
+    /**
+     * Treasure Mesh replaces the catch with {@code treasure_loot.json}.
+     * Otherwise Fortune Mesh may force vanilla fishing treasure in open water.
+     */
+    private List<ItemStack> rollCatchLoot(ServerLevel level, LootParams params, boolean treasureAllowed) {
+        if (upgrades.treasureMeshCount() > 0 && FishnetUpgradeInventory.maxTreasureMesh() > 0) {
+            ItemStack custom = TreasureLootConfig.roll(level.getRandom());
+            return custom.isEmpty() ? List.of() : List.of(custom);
+        }
+        return rollFishingLoot(level, params, treasureAllowed);
+    }
+
+    /**
+     * Fortune Mesh only amplifies treasure when open water is valid and rare loot is allowed.
+     * Each upgrade adds a config % chance to roll the treasure table (100% when chance reaches 100).
+     */
+    private List<ItemStack> rollFishingLoot(ServerLevel level, LootParams params, boolean treasureAllowed) {
+        int maxMesh = FishnetUpgradeInventory.maxFortuneMesh();
+        int mesh = Math.min(maxMesh, upgrades.fortuneMeshCount());
+        int percentPer = UpgradeConfig.fortuneMeshTreasurePercent();
+        float forceChance = maxMesh <= 0 || percentPer <= 0
+                ? 0.0F
+                : Math.min(1.0F, mesh * percentPer / 100.0F);
+        boolean forceTreasure = treasureAllowed
+                && mesh > 0
+                && forceChance > 0.0F
+                && (forceChance >= 1.0F || level.getRandom().nextFloat() < forceChance);
+        var tableKey = forceTreasure ? BuiltInLootTables.FISHING_TREASURE : BuiltInLootTables.FISHING;
+        LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(tableKey);
+        return lootTable.getRandomItems(params);
+    }
+
+    private void tryFlushPendingCatch(ServerLevel level, BlockPos pos, FakePlayer fisher, ItemStack rodStack) {
+        if (pendingCatch.isEmpty() || !canFullyStoreAll(pendingCatch)) {
+            return;
+        }
+        boolean caughtFish = false;
+        for (ItemStack stack : pendingCatch) {
+            if (stack.is(ItemTags.FISHES)) {
+                caughtFish = true;
+                break;
             }
         }
-        if (anyInserted) {
+        List<ItemStack> toStore = new ArrayList<>(pendingCatch.size());
+        for (ItemStack stack : pendingCatch) {
+            toStore.add(stack.copy());
+        }
+        pendingCatch.clear();
+        commitCatch(level, pos, fisher, rodStack, toStore, caughtFish);
+        setChanged();
+    }
+
+    private void commitCatch(
+            ServerLevel level,
+            BlockPos pos,
+            FakePlayer fisher,
+            ItemStack rodStack,
+            List<ItemStack> toStore,
+            boolean caughtFish
+    ) {
+        double y = pos.getY() + 0.5;
+        if (soundEnabled) {
+            level.playSound(
+                    null,
+                    pos,
+                    SoundEvents.FISHING_BOBBER_SPLASH,
+                    SoundSource.BLOCKS,
+                    0.35F,
+                    1.0F + (level.getRandom().nextFloat() - level.getRandom().nextFloat()) * 0.4F
+            );
+        }
+        if (particlesEnabled) {
+            level.sendParticles(
+                    ParticleTypes.BUBBLE,
+                    pos.getX() + 0.5,
+                    y,
+                    pos.getZ() + 0.5,
+                    12,
+                    0.35,
+                    0.0,
+                    0.35,
+                    0.2
+            );
+            level.sendParticles(
+                    ParticleTypes.FISHING,
+                    pos.getX() + 0.5,
+                    y,
+                    pos.getZ() + 0.5,
+                    12,
+                    0.35,
+                    0.0,
+                    0.35,
+                    0.2
+            );
+        }
+
+        ItemStack display = ItemStack.EMPTY;
+        for (ItemStack stack : toStore) {
+            if (display.isEmpty()) {
+                display = stack.copy();
+            }
+            storeFully(stack);
+        }
+
+        ItemStack damagedRod = rodStack.copy();
+        damagedRod.hurtAndBreak(1, level, fisher, broken -> {});
+        setRodStack(damagedRod);
+
+        if (particlesEnabled) {
             PacketDistributor.sendToPlayersNear(
                     level,
                     null,
@@ -203,9 +515,17 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
                     pos.getY() + 0.5,
                     pos.getZ() + 0.5,
                     48.0,
-                    new FishnetCatchPayload(pos, display.isEmpty() ? Items.COD.getDefaultInstance() : display)
+                    new FishnetCatchPayload(
+                            pos,
+                            display.isEmpty() ? Items.COD.getDefaultInstance() : display
+                    )
             );
-            if (player instanceof ServerPlayer serverPlayer && !(player instanceof FakePlayer)) {
+        }
+
+        if (caughtFish) {
+            Player nearest = level.getNearestPlayer(
+                    pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 32.0, false);
+            if (nearest instanceof ServerPlayer serverPlayer) {
                 serverPlayer.awardStat(net.minecraft.stats.Stats.FISH_CAUGHT, 1);
             }
         }
@@ -224,20 +544,62 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         return result;
     }
 
-    /** Stores as much as possible into catch slots. Returns true if any amount was stored. */
-    private boolean tryStore(ItemStack stack) {
+    private boolean canFullyStoreAll(List<ItemStack> stacks) {
+        ItemStack[] simulated = new ItemStack[CATCH_SLOT_COUNT];
+        for (int i = 0; i < CATCH_SLOT_COUNT; i++) {
+            simulated[i] = stackInSlot(i).copy();
+        }
+        for (ItemStack stack : stacks) {
+            if (!simulateStore(simulated, stack)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean simulateStore(ItemStack[] slots, ItemStack stack) {
         if (stack.isEmpty()) {
-            return false;
+            return true;
+        }
+        int remaining = stack.getCount();
+        for (int i = 0; i < slots.length && remaining > 0; i++) {
+            ItemStack existing = slots[i];
+            if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, stack)) {
+                continue;
+            }
+            int room = existing.getMaxStackSize() - existing.getCount();
+            if (room <= 0) {
+                continue;
+            }
+            int move = Math.min(room, remaining);
+            existing.grow(move);
+            remaining -= move;
+        }
+        for (int i = 0; i < slots.length && remaining > 0; i++) {
+            if (!slots[i].isEmpty()) {
+                continue;
+            }
+            int move = Math.min(stack.getMaxStackSize(), remaining);
+            ItemStack placed = stack.copy();
+            placed.setCount(move);
+            slots[i] = placed;
+            remaining -= move;
+        }
+        return remaining <= 0;
+    }
+
+    /** Caller must only invoke after {@link #canFullyStoreAll}. */
+    private void storeFully(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return;
         }
         ItemStack remaining = stack.copy();
-        // Merge into existing stacks first.
-        for (int i = 0; i < SLOT_COUNT && !remaining.isEmpty(); i++) {
+        for (int i = 0; i < CATCH_SLOT_COUNT && !remaining.isEmpty(); i++) {
             ItemStack existing = stackInSlot(i);
             if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, remaining)) {
                 continue;
             }
-            int max = Math.min(existing.getMaxStackSize(), items.getCapacityAsInt(i, ItemResource.of(remaining)));
-            int room = max - existing.getCount();
+            int room = existing.getMaxStackSize() - existing.getCount();
             if (room <= 0) {
                 continue;
             }
@@ -245,31 +607,37 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
             items.set(i, ItemResource.of(existing), existing.getCount() + move);
             remaining.shrink(move);
         }
-        for (int i = 0; i < SLOT_COUNT && !remaining.isEmpty(); i++) {
+        for (int i = 0; i < CATCH_SLOT_COUNT && !remaining.isEmpty(); i++) {
             if (!stackInSlot(i).isEmpty()) {
                 continue;
             }
-            int max = Math.min(remaining.getMaxStackSize(), items.getCapacityAsInt(i, ItemResource.of(remaining)));
-            int move = Math.min(max, remaining.getCount());
-            if (move <= 0) {
-                continue;
-            }
+            int move = Math.min(remaining.getMaxStackSize(), remaining.getCount());
             ItemStack placed = remaining.copy();
             placed.setCount(move);
             items.set(i, ItemResource.of(placed), move);
             remaining.shrink(move);
         }
-        return remaining.getCount() < stack.getCount();
     }
 
     public void dropContents(Level level, BlockPos pos) {
-        for (int i = 0; i < SLOT_COUNT; i++) {
+        ItemStack rodStack = rodStack();
+        if (!rodStack.isEmpty()) {
+            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), rodStack);
+            setRodStack(ItemStack.EMPTY);
+        }
+        for (int i = 0; i < CATCH_SLOT_COUNT; i++) {
             ItemStack stack = stackInSlot(i);
             if (!stack.isEmpty()) {
                 Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
             }
             items.set(i, ItemResource.EMPTY, 0);
         }
+        for (ItemStack stack : pendingCatch) {
+            if (!stack.isEmpty()) {
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+            }
+        }
+        pendingCatch.clear();
         for (int i = 0; i < upgrades.size(); i++) {
             ItemStack stack = upgrades.stackInSlot(i);
             if (!stack.isEmpty()) {
@@ -290,7 +658,8 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        for (int i = 0; i < SLOT_COUNT; i++) {
+        setRodStack(input.read("Rod", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        for (int i = 0; i < CATCH_SLOT_COUNT; i++) {
             ItemStack stack = input.read("Item" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY);
             if (stack.isEmpty()) {
                 items.set(i, ItemResource.EMPTY, 0);
@@ -306,16 +675,30 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
                 upgrades.set(i, ItemResource.of(stack), stack.getCount());
             }
         }
+        pendingCatch.clear();
+        int pendingCount = Math.max(0, input.getIntOr("PendingCount", 0));
+        for (int i = 0; i < pendingCount; i++) {
+            ItemStack stack = input.read("Pending" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY);
+            if (!stack.isEmpty()) {
+                pendingCatch.add(stack);
+            }
+        }
         catchProgress = input.getIntOr("CatchProgress", 0);
         catchTotal = input.getIntOr("CatchTotal", BASE_CATCH_TICKS);
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
         productivityBonusBank = Math.max(0, input.getIntOr("ProductivityBonusBank", 0));
+        particlesEnabled = input.getBooleanOr("ParticlesEnabled", true);
+        soundEnabled = input.getBooleanOr("SoundEnabled", true);
     }
 
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
-        for (int i = 0; i < SLOT_COUNT; i++) {
+        ItemStack rodStack = rodStack();
+        if (!rodStack.isEmpty()) {
+            output.store("Rod", ItemStack.CODEC, rodStack);
+        }
+        for (int i = 0; i < CATCH_SLOT_COUNT; i++) {
             ItemStack stack = stackInSlot(i);
             if (!stack.isEmpty()) {
                 output.store("Item" + i, ItemStack.CODEC, stack);
@@ -327,6 +710,15 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
                 output.store("Upgrade" + i, ItemStack.CODEC, stack);
             }
         }
+        if (!pendingCatch.isEmpty()) {
+            output.putInt("PendingCount", pendingCatch.size());
+            for (int i = 0; i < pendingCatch.size(); i++) {
+                ItemStack stack = pendingCatch.get(i);
+                if (!stack.isEmpty()) {
+                    output.store("Pending" + i, ItemStack.CODEC, stack);
+                }
+            }
+        }
         if (catchProgress > 0) {
             output.putInt("CatchProgress", catchProgress);
         }
@@ -334,6 +726,12 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         output.putInt("RedstoneMode", redstoneMode.ordinal());
         if (productivityBonusBank > 0) {
             output.putInt("ProductivityBonusBank", productivityBonusBank);
+        }
+        if (!particlesEnabled) {
+            output.putBoolean("ParticlesEnabled", false);
+        }
+        if (!soundEnabled) {
+            output.putBoolean("SoundEnabled", false);
         }
     }
 }

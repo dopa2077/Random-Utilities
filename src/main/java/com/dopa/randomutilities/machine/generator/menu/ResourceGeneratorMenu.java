@@ -202,7 +202,7 @@ public class ResourceGeneratorMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else if (upgradesEnabled) {
-            if (!UpgradeInventory.isUpgradeItem(stack)
+            if (!UpgradeInventory.isSharedMachineUpgrade(stack)
                     || !this.moveItemStackTo(stack, 0, playerInvStart, false)) {
                 return ItemStack.EMPTY;
             }

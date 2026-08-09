@@ -101,7 +101,7 @@ public class ResourceGeneratorBlock extends BaseEntityBlock {
             InteractionHand hand,
             BlockHitResult hit
     ) {
-        if (!player.isShiftKeyDown() || !UpgradeInventory.isUpgradeItem(stack)) {
+        if (!player.isShiftKeyDown() || !UpgradeInventory.isSharedMachineUpgrade(stack)) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
         if (level.isClientSide()) {

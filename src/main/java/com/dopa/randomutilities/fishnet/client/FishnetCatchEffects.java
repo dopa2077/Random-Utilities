@@ -19,7 +19,7 @@ import java.util.List;
 
 /** Client-only swim-into-net effect for a successful fishnet catch. */
 public final class FishnetCatchEffects {
-    private static final int LIFETIME_TICKS = 28;
+    private static final int LIFETIME_TICKS = 20;
     private static final List<ActiveCatch> ACTIVE = new ArrayList<>();
 
     private FishnetCatchEffects() {}

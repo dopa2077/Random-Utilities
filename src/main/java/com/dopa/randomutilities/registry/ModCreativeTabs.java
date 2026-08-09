@@ -44,6 +44,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.UPGRADE_CASING.get());
                         output.accept(ModItems.PRODUCTIVITY_UPGRADE.get());
                         output.accept(ModItems.OVERCLOCK_UPGRADE.get());
+                        output.accept(ModItems.FORTUNE_MESH_UPGRADE.get());
+                        output.accept(ModItems.TREASURE_MESH_UPGRADE.get());
                     })
                     .build());
 

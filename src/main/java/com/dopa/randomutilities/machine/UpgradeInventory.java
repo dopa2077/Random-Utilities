@@ -44,12 +44,37 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         return countOf(ModItems.OVERCLOCK_UPGRADE.get());
     }
 
+    public int fortuneMeshCount() {
+        return countOf(ModItems.FORTUNE_MESH_UPGRADE.get());
+    }
+
+    public int treasureMeshCount() {
+        return countOf(ModItems.TREASURE_MESH_UPGRADE.get());
+    }
+
     public static boolean isUpgradeItem(ItemStack stack) {
+        return !stack.isEmpty()
+                && (stack.is(ModItems.PRODUCTIVITY_UPGRADE.get())
+                        || stack.is(ModItems.OVERCLOCK_UPGRADE.get())
+                        || stack.is(ModItems.FORTUNE_MESH_UPGRADE.get())
+                        || stack.is(ModItems.TREASURE_MESH_UPGRADE.get()));
+    }
+
+    public static boolean isUpgradeItem(ItemResource resource) {
+        return !resource.isEmpty()
+                && (resource.is(ModItems.PRODUCTIVITY_UPGRADE.get())
+                        || resource.is(ModItems.OVERCLOCK_UPGRADE.get())
+                        || resource.is(ModItems.FORTUNE_MESH_UPGRADE.get())
+                        || resource.is(ModItems.TREASURE_MESH_UPGRADE.get()));
+    }
+
+    /** Shared machine upgrades (generators / solar furnace). Fortune Mesh is fishnet-only. */
+    public static boolean isSharedMachineUpgrade(ItemStack stack) {
         return !stack.isEmpty()
                 && (stack.is(ModItems.PRODUCTIVITY_UPGRADE.get()) || stack.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
 
-    public static boolean isUpgradeItem(ItemResource resource) {
+    public static boolean isSharedMachineUpgrade(ItemResource resource) {
         return !resource.isEmpty()
                 && (resource.is(ModItems.PRODUCTIVITY_UPGRADE.get()) || resource.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
@@ -90,7 +115,7 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         if (resource.isEmpty()) {
             return true;
         }
-        if (!isUpgradeItem(resource)) {
+        if (!isSharedMachineUpgrade(resource)) {
             return false;
         }
         Item item = resource.getItem();
@@ -112,7 +137,7 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         if (effective.isEmpty()) {
             return max;
         }
-        if (!isUpgradeItem(effective)) {
+        if (!isSharedMachineUpgrade(effective)) {
             return 0;
         }
         Item item = effective.getItem();

@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.fishnet;
 
 import com.dopa.randomutilities.fishnet.network.FishnetCatchPayload;
+import com.dopa.randomutilities.fishnet.network.FishnetSettingPayload;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -19,6 +20,11 @@ public final class FishnetNetwork {
                 FishnetCatchPayload.TYPE,
                 FishnetCatchPayload.STREAM_CODEC,
                 (payload, context) -> context.enqueueWork(() -> clientCatchHandler.accept(payload))
+        );
+        registrar.playToServer(
+                FishnetSettingPayload.TYPE,
+                FishnetSettingPayload.STREAM_CODEC,
+                FishnetSettingPayload::handle
         );
     }
 }

@@ -3,6 +3,7 @@ package com.dopa.randomutilities.fishnet.client;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
 import com.dopa.randomutilities.client.gui.PanelHost;
 import com.dopa.randomutilities.fishnet.FishnetUpgradeInventory;
+import com.dopa.randomutilities.fishnet.client.panel.FishnetCosmeticPanel;
 import com.dopa.randomutilities.fishnet.client.panel.FishnetInformativePanel;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
@@ -22,6 +23,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
@@ -35,9 +37,11 @@ import java.util.function.Supplier;
 public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implements MachineRedstonePanel.Host {
     private static final Identifier CHEST_BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
+    private static final Identifier FURNACE_TEXTURE =
+            Identifier.withDefaultNamespace("textures/gui/container/furnace.png");
     private static final Identifier BURN_PROGRESS_SPRITE =
             Identifier.withDefaultNamespace("container/furnace/burn_progress");
+    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
     private static final int TEXTURE_SIZE = 256;
     private static final int LABEL_COLOR = 0xFF404040;
     private static final int BODY_COLOR = 0xFFC6C6C6;
@@ -46,14 +50,16 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
 
     private static final int ARROW_W = 24;
     private static final int ARROW_H = 16;
-    private static final int ARROW_X = 116;
-    private static final int ARROW_Y = 35;
+    private static final float ARROW_EMPTY_U = 79.0F;
+    private static final float ARROW_EMPTY_V = 34.0F;
 
     private final PanelHost panelHost = new PanelHost();
     private final int tabYBias = FishnetMenu.TAB_Y_BIAS;
 
     @Nullable
     private MachineRedstonePanel redstonePanel;
+    @Nullable
+    private FishnetCosmeticPanel cosmeticPanel;
 
     public FishnetScreen(FishnetMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 176, 166);
@@ -94,8 +100,12 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         super.init();
         panelHost.clear();
         redstonePanel = null;
+        cosmeticPanel = null;
 
         panelHost.add(new FishnetInformativePanel(tabYBias));
+        cosmeticPanel = new FishnetCosmeticPanel(this, tabYBias);
+        panelHost.add(cosmeticPanel);
+        cosmeticPanel.initWidgets();
         panelHost.add(new MachineUpgradePanel(menu.getUpgradeSlots(), PanelAnchor.RIGHT_TOP, tabYBias));
         redstonePanel = new MachineRedstonePanel(this, PanelAnchor.RIGHT_BELOW, tabYBias);
         panelHost.add(redstonePanel);
@@ -113,7 +123,6 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        // Tick every frame so panel open/close eases match other machine UIs (not 20 TPS only).
         panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
@@ -125,6 +134,14 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + MACHINE_FOOTER_Y,
                 0.0F, 126.0F, imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
 
+        graphics.blitSprite(
+                RenderPipelines.GUI_TEXTURED,
+                SLOT_SPRITE,
+                xo + FishnetMenu.ROD_X - 1,
+                yo + FishnetMenu.ROD_Y - 1,
+                18,
+                18
+        );
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
                 int slotX = xo + FishnetMenu.GRID_LEFT + col * 18 - 1;
@@ -133,9 +150,23 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
             }
         }
 
+        // Empty arrow from furnace GUI atlas; white fill uses the 26.2 burn_progress sprite
+        // (the old furnace.png UV strip no longer contains the animated arrow).
+        graphics.blit(
+                RenderPipelines.GUI_TEXTURED,
+                FURNACE_TEXTURE,
+                xo + FishnetMenu.ARROW_X,
+                yo + FishnetMenu.ARROW_Y,
+                ARROW_EMPTY_U,
+                ARROW_EMPTY_V,
+                ARROW_W,
+                ARROW_H,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE
+        );
         float progress = menu.progressFraction();
-        if (progress > 0.0F && menu.isUnderwater()) {
-            int filled = Math.max(1, Math.round(ARROW_W * progress));
+        int filled = Mth.ceil(progress * ARROW_W);
+        if (filled > 0) {
             graphics.blitSprite(
                     RenderPipelines.GUI_TEXTURED,
                     BURN_PROGRESS_SPRITE,
@@ -143,8 +174,8 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
                     ARROW_H,
                     0,
                     0,
-                    xo + ARROW_X,
-                    yo + ARROW_Y,
+                    xo + FishnetMenu.ARROW_X,
+                    yo + FishnetMenu.ARROW_Y,
                     filled,
                     ARROW_H
             );
@@ -157,6 +188,17 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         Component tabTooltip = panelHost.hoveredTabTooltip(mouseX, mouseY, leftPos, topPos, imageWidth);
         if (tabTooltip != null) {
             graphics.setTooltipForNextFrame(font, tabTooltip, mouseX, mouseY);
+            return;
+        }
+        if (hoveredSlot != null
+                && menu.isRodSlotIndex(hoveredSlot.index)
+                && !hoveredSlot.hasItem()) {
+            graphics.setTooltipForNextFrame(
+                    font,
+                    Component.translatable("gui.dopasrandomutilities.fishnet.need_rod"),
+                    mouseX,
+                    mouseY
+            );
             return;
         }
         if (hoveredSlot != null
@@ -177,16 +219,20 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         int used = menu.blockEntity().upgrades().countOf(item);
         int max = maxForUpgrade(item);
         if (item instanceof MachineUpgradeItem upgrade) {
-            int perUpgrade = upgrade.kind().percent();
-            MutableComponent boost = Component.translatable(upgrade.kind().tooltipKey())
-                    .withStyle(ChatFormatting.GRAY);
-            boost.append(Component.literal(perUpgrade + "%").withStyle(ChatFormatting.GREEN));
-            lines.add(boost);
-            lines.add(Component.empty());
-            MutableComponent total = Component.translatable("gui.dopasrandomutilities.upgrade.total_boost")
-                    .withStyle(ChatFormatting.GRAY);
-            total.append(Component.literal((used * perUpgrade) + "%").withStyle(ChatFormatting.GREEN));
-            lines.add(total);
+            if (upgrade.kind().showsPercent()) {
+                int perUpgrade = upgrade.kind().percent();
+                MutableComponent boost = Component.translatable(upgrade.kind().tooltipKey())
+                        .withStyle(ChatFormatting.GRAY);
+                boost.append(Component.literal(perUpgrade + "%").withStyle(ChatFormatting.GREEN));
+                lines.add(boost);
+                lines.add(Component.empty());
+                MutableComponent total = Component.translatable("gui.dopasrandomutilities.upgrade.total_boost")
+                        .withStyle(ChatFormatting.GRAY);
+                total.append(Component.literal((used * perUpgrade) + "%").withStyle(ChatFormatting.GREEN));
+                lines.add(total);
+            } else {
+                lines.add(Component.translatable(upgrade.kind().tooltipKey()).withStyle(ChatFormatting.GRAY));
+            }
         }
         ChatFormatting color = used >= max ? ChatFormatting.RED : ChatFormatting.GREEN;
         lines.add(Component.translatable(
@@ -203,6 +249,12 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         }
         if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
             return FishnetUpgradeInventory.MAX_OVERCLOCK;
+        }
+        if (item == ModItems.FORTUNE_MESH_UPGRADE.get()) {
+            return FishnetUpgradeInventory.maxFortuneMesh();
+        }
+        if (item == ModItems.TREASURE_MESH_UPGRADE.get()) {
+            return FishnetUpgradeInventory.maxTreasureMesh();
         }
         return 0;
     }

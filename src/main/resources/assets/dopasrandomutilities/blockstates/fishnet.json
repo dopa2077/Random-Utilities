@@ -1,14 +1,54 @@
 {
   "variants": {
-    "axis=y": {
+    "facing=up,waterlogged=false": {
       "model": "dopasrandomutilities:block/fishnet"
     },
-    "axis=z": {
-      "model": "dopasrandomutilities:block/fishnet_horizontal",
+    "facing=up,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet"
+    },
+    "facing=down,waterlogged=false": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 180
+    },
+    "facing=down,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 180
+    },
+    "facing=north,waterlogged=false": {
+      "model": "dopasrandomutilities:block/fishnet",
       "x": 90
     },
-    "axis=x": {
-      "model": "dopasrandomutilities:block/fishnet_horizontal",
+    "facing=north,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90
+    },
+    "facing=south,waterlogged=false": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90,
+      "y": 180
+    },
+    "facing=south,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west,waterlogged=false": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90,
+      "y": 270
+    },
+    "facing=east,waterlogged=false": {
+      "model": "dopasrandomutilities:block/fishnet",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,waterlogged=true": {
+      "model": "dopasrandomutilities:block/fishnet",
       "x": 90,
       "y": 90
     }

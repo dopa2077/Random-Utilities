@@ -3,12 +3,11 @@
   "category": "misc",
   "key": {
     "S": "minecraft:string",
-    "F": "minecraft:fishing_rod",
     "P": "minecraft:oak_planks"
   },
   "pattern": [
     "SPS",
-    "SFS",
+    "S S",
     "SPS"
   ],
   "result": {

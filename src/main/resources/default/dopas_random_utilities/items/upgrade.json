@@ -12,5 +12,12 @@
     "creative_stone_generator": 0,
     "creative_random_ore_generator": 0,
     "creative_metal_block_generator": 0
+  },
+  "fortune_mesh_upgrade": {
+    "treasure_percent_per_upgrade": 10,
+    "max_per_fishnet": 10
+  },
+  "treasure_mesh_upgrade": {
+    "max_per_fishnet": 1
   }
 }

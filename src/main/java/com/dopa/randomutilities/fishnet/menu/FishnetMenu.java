@@ -28,13 +28,21 @@ import java.util.List;
 public class FishnetMenu extends AbstractContainerMenu {
     public static final int TAB_Y_BIAS = 0;
 
-    public static final int DATA_PROGRESS = 0;
-    public static final int DATA_TOTAL = 1;
-    public static final int DATA_REDSTONE = 2;
-    public static final int DATA_UNDERWATER = 3;
-    public static final int DATA_SIZE = 4;
+    public static final int DATA_PROGRESS = FishnetBlockEntity.DATA_PROGRESS;
+    public static final int DATA_TOTAL = FishnetBlockEntity.DATA_TOTAL;
+    public static final int DATA_REDSTONE = FishnetBlockEntity.DATA_REDSTONE;
+    public static final int DATA_UNDERWATER = FishnetBlockEntity.DATA_UNDERWATER;
+    public static final int DATA_HAS_ROD = FishnetBlockEntity.DATA_HAS_ROD;
+    public static final int DATA_PARTICLES = FishnetBlockEntity.DATA_PARTICLES;
+    public static final int DATA_SOUND = FishnetBlockEntity.DATA_SOUND;
+    public static final int DATA_SIZE = FishnetBlockEntity.DATA_COUNT;
 
-    public static final int GRID_LEFT = 62;
+    public static final int ROD_X = 26;
+    public static final int ROD_Y = 35;
+    /** Centered in the gap between the rod slot and the 3×3 catch grid. */
+    public static final int ARROW_X = 58;
+    public static final int ARROW_Y = 35;
+    public static final int GRID_LEFT = 98;
     public static final int GRID_TOP = 17;
 
     private final FishnetBlockEntity be;
@@ -42,6 +50,7 @@ public class FishnetMenu extends AbstractContainerMenu {
     private final ContainerData data;
     private final List<MachineUpgradeSlot> upgradeSlots;
     private final int machineSlotStart;
+    private final int rodSlotIndex;
     private final int playerInvStart;
 
     public FishnetMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
@@ -64,6 +73,19 @@ public class FishnetMenu extends AbstractContainerMenu {
         }
         this.upgradeSlots = Collections.unmodifiableList(upgrades);
         this.machineSlotStart = UpgradeConfig.UPGRADE_SLOT_COUNT;
+        this.rodSlotIndex = this.slots.size();
+
+        this.addSlot(new ResourceHandlerSlot(be.rod(), be.rod()::set, 0, ROD_X, ROD_Y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return FishnetBlockEntity.isFishingRod(stack);
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return 1;
+            }
+        });
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
@@ -101,6 +123,9 @@ public class FishnetMenu extends AbstractContainerMenu {
         data.set(DATA_TOTAL, be.catchTotal());
         data.set(DATA_REDSTONE, be.redstoneMode().ordinal());
         data.set(DATA_UNDERWATER, be.isUnderwater() ? 1 : 0);
+        data.set(DATA_HAS_ROD, be.hasRod() ? 1 : 0);
+        data.set(DATA_PARTICLES, be.particlesEnabled() ? 1 : 0);
+        data.set(DATA_SOUND, be.soundEnabled() ? 1 : 0);
     }
 
     @Override
@@ -121,6 +146,10 @@ public class FishnetMenu extends AbstractContainerMenu {
         return index >= 0 && index < machineSlotStart;
     }
 
+    public boolean isRodSlotIndex(int index) {
+        return index == rodSlotIndex;
+    }
+
     public float progressFraction() {
         int max = data.get(DATA_TOTAL);
         if (max <= 0) {
@@ -133,12 +162,36 @@ public class FishnetMenu extends AbstractContainerMenu {
         return data.get(DATA_UNDERWATER) != 0;
     }
 
+    public boolean hasRod() {
+        return data.get(DATA_HAS_ROD) != 0;
+    }
+
     public RedstoneMode redstoneMode() {
         return RedstoneMode.byOrdinal(data.get(DATA_REDSTONE));
     }
 
     public void setRedstoneMode(RedstoneMode mode) {
         be.setRedstoneMode(mode);
+        syncData();
+        broadcastChanges();
+    }
+
+    public boolean isParticlesEnabled() {
+        return data.get(DATA_PARTICLES) != 0;
+    }
+
+    public void setParticlesEnabled(boolean enabled) {
+        be.setParticlesEnabled(enabled);
+        syncData();
+        broadcastChanges();
+    }
+
+    public boolean isSoundEnabled() {
+        return data.get(DATA_SOUND) != 0;
+    }
+
+    public void setSoundEnabled(boolean enabled) {
+        be.setSoundEnabled(enabled);
         syncData();
         broadcastChanges();
     }
@@ -158,19 +211,25 @@ public class FishnetMenu extends AbstractContainerMenu {
         ItemStack stack = slot.getItem();
         remaining = stack.copy();
 
-        int catchEnd = playerInvStart;
-
         if (index < machineSlotStart) {
             if (!this.moveItemStackTo(stack, playerInvStart, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (index < catchEnd) {
+        } else if (index == rodSlotIndex) {
+            if (!this.moveItemStackTo(stack, playerInvStart, this.slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+        } else if (index < playerInvStart) {
             if (!this.moveItemStackTo(stack, playerInvStart, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
         } else {
             if (UpgradeInventory.isUpgradeItem(stack)) {
                 if (!this.moveItemStackTo(stack, 0, machineSlotStart, false)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (FishnetBlockEntity.isFishingRod(stack)) {
+                if (!this.moveItemStackTo(stack, rodSlotIndex, rodSlotIndex + 1, false)) {
                     return ItemStack.EMPTY;
                 }
             } else if (index < playerInvStart + 27) {
