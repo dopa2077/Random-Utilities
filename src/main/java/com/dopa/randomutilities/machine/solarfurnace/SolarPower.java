@@ -46,6 +46,9 @@ public final class SolarPower {
         if (height <= 0.0F) {
             return new Snapshot(0.0F, Status.NO_SUN);
         }
+        if (level.isRainingAt(skyPos)) {
+            height *= level.isThundering() ? 0.2F : 0.5F;
+        }
         return new Snapshot(PEAK_SPEED * height, Status.WORKING);
     }
 }

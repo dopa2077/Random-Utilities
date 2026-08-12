@@ -39,6 +39,8 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final Identifier FURNACE_TEXTURE =
             Identifier.withDefaultNamespace("textures/gui/container/furnace.png");
+    private static final Identifier BURN_PROGRESS_SPRITE =
+            Identifier.withDefaultNamespace("container/furnace/burn_progress");
     private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
 
     private static final int TEXTURE_SIZE = 256;
@@ -71,13 +73,11 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
     private static final int OUTPUT_Y = GEN_Y;
     /** Progress arrow; also the JEI recipe click area. */
     public static final int ARROW_W = 24;
-    public static final int ARROW_H = 17;
+    public static final int ARROW_H = 16;
     public static final int ARROW_X = RIGHT_X + SLOT + 9;
     public static final int ARROW_Y = GEN_Y + (SLOT - ARROW_H) / 2;
     private static final float ARROW_EMPTY_U = 79.0F;
     private static final float ARROW_EMPTY_V = 34.0F;
-    private static final float ARROW_FILL_U = 176.0F;
-    private static final float ARROW_FILL_V = 14.0F;
 
     private final PanelHost panelHost = new PanelHost();
     private final int tabYBias = ResourceGeneratorMenu.TAB_Y_BIAS;
@@ -189,16 +189,25 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
         int outFrameY = yo + OUTPUT_Y + 8 - LARGE_SLOT / 2;
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, outFrameX, outFrameY, LARGE_SLOT, LARGE_SLOT);
 
-        // Empty furnace arrow, then filled progress strip.
+        // Empty furnace arrow, then filled progress strip (26.2 burn_progress sprite).
         graphics.blit(RenderPipelines.GUI_TEXTURED, FURNACE_TEXTURE,
                 xo + ARROW_X, yo + ARROW_Y, ARROW_EMPTY_U, ARROW_EMPTY_V,
                 ARROW_W, ARROW_H, TEXTURE_SIZE, TEXTURE_SIZE);
         float progress = this.menu.progressFraction();
-        if (progress > 0.0F) {
-            int filled = Math.max(1, Math.round(ARROW_W * progress));
-            graphics.blit(RenderPipelines.GUI_TEXTURED, FURNACE_TEXTURE,
-                    xo + ARROW_X, yo + ARROW_Y, ARROW_FILL_U, ARROW_FILL_V,
-                    filled, ARROW_H, TEXTURE_SIZE, TEXTURE_SIZE);
+        int filled = Mth.ceil(progress * ARROW_W);
+        if (filled > 0) {
+            graphics.blitSprite(
+                    RenderPipelines.GUI_TEXTURED,
+                    BURN_PROGRESS_SPRITE,
+                    ARROW_W,
+                    ARROW_H,
+                    0,
+                    0,
+                    xo + ARROW_X,
+                    yo + ARROW_Y,
+                    filled,
+                    ARROW_H
+            );
         }
     }
 

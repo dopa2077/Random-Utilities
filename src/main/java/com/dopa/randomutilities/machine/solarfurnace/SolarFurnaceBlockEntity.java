@@ -9,7 +9,11 @@ import com.dopa.randomutilities.registry.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -21,6 +25,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.transfer.RangedResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
@@ -31,7 +36,7 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
     public static final int SLOT_INPUT = 0;
     public static final int SLOT_OUTPUT = 1;
     public static final int SLOT_COUNT = 2;
-    public static final int MAX_OVERCLOCKS = 3;
+    private static final int SAVE_INTERVAL = 20;
 
     private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(SLOT_COUNT) {
         @Override
@@ -60,7 +65,7 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
             RangedResourceHandler.ofSingleIndex(items, SLOT_OUTPUT);
 
     private final OverclockUpgradeInventory upgrades =
-            new OverclockUpgradeInventory(UpgradeConfig.UPGRADE_SLOT_COUNT, () -> MAX_OVERCLOCKS);
+            new OverclockUpgradeInventory(UpgradeConfig.UPGRADE_SLOT_COUNT, UpgradeConfig::maxOverclockSolarFurnace);
 
     private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck =
             RecipeManager.createCheck(RecipeType.SMELTING);
@@ -68,6 +73,8 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
     private boolean loading;
     private float cookingProgress;
     private int cookingTotalTime;
+    private int saveTimer;
+    private float storedExperience;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private SolarPower.Snapshot solarSnapshot = new SolarPower.Snapshot(0.0F, SolarPower.Status.NO_SUN);
 
@@ -150,8 +157,8 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         if (!redstoneMode.allowsOperation(level.getBestNeighborSignal(pos))) {
             if (wasLit) {
                 level.setBlock(pos, state.setValue(SolarFurnaceBlock.LIT, false), 3);
+                setChanged();
             }
-            setChanged();
             return;
         }
 
@@ -172,28 +179,35 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
                     if (factor > 0.0F) {
                         cookingProgress += factor;
                         lit = true;
-                        changed = true;
                         if (cookingProgress >= cookingTotalTime) {
-                            finishCook(input, result);
+                            finishCook(input, result, recipe);
                             cookingProgress = 0.0F;
                             cookingTotalTime = UpgradeConfig.effectiveTicks(
                                     recipe.value().cookingTime(), upgrades.overclockCount());
+                            saveTimer = 0;
+                            changed = true;
+                        } else if (++saveTimer >= SAVE_INTERVAL) {
+                            saveTimer = 0;
+                            changed = true;
                         }
                     }
                 } else {
                     if (cookingProgress > 0.0F) {
                         cookingProgress = 0.0F;
+                        saveTimer = 0;
                         changed = true;
                     }
                 }
             } else if (cookingProgress > 0.0F || cookingTotalTime > 0) {
                 cookingProgress = 0.0F;
                 cookingTotalTime = 0;
+                saveTimer = 0;
                 changed = true;
             }
         } else if (cookingProgress > 0.0F || cookingTotalTime > 0) {
             cookingProgress = 0.0F;
             cookingTotalTime = 0;
+            saveTimer = 0;
             changed = true;
         }
 
@@ -234,7 +248,11 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         return output.getCount() + result.getCount() <= max;
     }
 
-    private void finishCook(ItemStack input, ItemStack result) {
+    private void finishCook(
+            ItemStack input,
+            ItemStack result,
+            RecipeHolder<? extends AbstractCookingRecipe> recipe
+    ) {
         ItemStack output = stackInSlot(SLOT_OUTPUT);
         if (output.isEmpty()) {
             items.set(SLOT_OUTPUT, ItemResource.of(result), result.getCount());
@@ -248,6 +266,32 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         } else {
             items.set(SLOT_INPUT, ItemResource.of(remaining), remaining.getCount());
         }
+        storedExperience += recipe.value().experience();
+    }
+
+    /** Same as a vanilla furnace: XP is held until a player takes the output or the block breaks. */
+    public void awardExperience(Player player) {
+        if (storedExperience <= 0.0F || !(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        popExperience(serverLevel, serverPlayer.position());
+    }
+
+    private void popExperience(ServerLevel level, Vec3 pos) {
+        if (storedExperience <= 0.0F) {
+            return;
+        }
+        int orbs = Mth.floor(storedExperience);
+        float fraction = Mth.frac(storedExperience);
+        if (fraction > 0.0F && level.getRandom().nextFloat() < fraction) {
+            orbs++;
+        }
+        ExperienceOrb.award(level, pos, orbs);
+        storedExperience = 0.0F;
+        setChanged();
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -266,6 +310,9 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
             }
         }
         upgrades.clearContents();
+        if (level instanceof ServerLevel serverLevel) {
+            popExperience(serverLevel, Vec3.atCenterOf(pos));
+        }
     }
 
     @Override
@@ -302,6 +349,7 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         }
         cookingProgress = input.getFloatOr("CookingProgress", 0.0F);
         cookingTotalTime = input.getIntOr("CookingTotalTime", 0);
+        storedExperience = Math.max(0.0F, input.getFloatOr("StoredExperience", 0.0F));
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
     }
 
@@ -319,6 +367,9 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         }
         if (cookingTotalTime > 0) {
             output.putInt("CookingTotalTime", cookingTotalTime);
+        }
+        if (storedExperience > 0.0F) {
+            output.putFloat("StoredExperience", storedExperience);
         }
         output.putInt("RedstoneMode", redstoneMode.ordinal());
         for (int i = 0; i < upgrades.size(); i++) {

@@ -33,7 +33,8 @@ import java.util.Optional;
 /**
  * Custom fishnet treasure-mesh loot from
  * {@code config/dopas_random_utilities/items/treasure_loot.json}.
- * Weights are 0–1 (0 never, 1 always); picks one weighted entry per roll.
+ * Weights are relative among entries with weight &gt; 0 (0 is never rolled).
+ * Picks one weighted entry per catch.
  */
 public final class TreasureLootConfig {
     private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/treasure_loot.json";
@@ -142,7 +143,9 @@ public final class TreasureLootConfig {
         defaults.put("minecraft:prismarine_crystals", 0.4);
         defaults.put("minecraft:prismarine_shard", 0.4);
         defaults.put("minecraft:nether_star", 0.001);
-        defaults.put("minecraft:echo_shard", 0.08);
+        defaults.put("minecraft:echo_shard", 0.07);
+        defaults.put("minecraft:diamond", 0.1);
+        defaults.put("minecraft:emerald", 0.09);
         applyMap(defaults);
     }
 

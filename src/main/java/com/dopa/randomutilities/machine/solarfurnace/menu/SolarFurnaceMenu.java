@@ -108,6 +108,12 @@ public class SolarFurnaceMenu extends AbstractContainerMenu {
             public boolean mayPlace(ItemStack stack) {
                 return false;
             }
+
+            @Override
+            public void onTake(Player player, ItemStack stack) {
+                be.awardExperience(player);
+                super.onTake(player, stack);
+            }
         });
         this.playerInvStart = this.slots.size();
         this.addStandardInventorySlots(playerInv, 8, 84);
@@ -219,6 +225,7 @@ public class SolarFurnaceMenu extends AbstractContainerMenu {
             if (!this.moveItemStackTo(stack, playerInvStart, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
+            slot.onTake(player, remaining);
         } else if (index == inputSlot) {
             if (!this.moveItemStackTo(stack, playerInvStart, this.slots.size(), false)) {
                 return ItemStack.EMPTY;

@@ -3,7 +3,7 @@
   "category": "misc",
   "ingredients": [
     "minecraft:apple",
-    "minecraft:cobblestone"
+    "#c:cobblestones"
   ],
   "result": {
     "count": 1,

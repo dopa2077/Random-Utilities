@@ -5,8 +5,8 @@ import com.dopa.randomutilities.client.gui.PanelHost;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
 import com.dopa.randomutilities.machine.client.panel.MachineUpgradePanel;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
-import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlockEntity;
 import com.dopa.randomutilities.machine.solarfurnace.SolarPower;
 import com.dopa.randomutilities.machine.solarfurnace.client.panel.SolarFurnaceInformativePanel;
 import com.dopa.randomutilities.machine.solarfurnace.menu.SolarFurnaceMenu;
@@ -301,7 +301,7 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
         List<Component> lines = new ArrayList<>();
         lines.add(stack.getHoverName());
         int used = this.menu.blockEntity().upgrades().countOf(stack.getItem());
-        int max = SolarFurnaceBlockEntity.MAX_OVERCLOCKS;
+        int max = UpgradeConfig.maxOverclockSolarFurnace();
         if (stack.getItem() instanceof MachineUpgradeItem upgrade) {
             int perUpgrade = upgrade.kind().percent();
             MutableComponent boost = Component.translatable(upgrade.kind().tooltipKey())

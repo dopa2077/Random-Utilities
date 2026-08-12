@@ -9,8 +9,6 @@ import com.dopa.randomutilities.filter.FilterRegistry;
 import com.dopa.randomutilities.filter.item.AdvancedDevNullItem;
 import com.dopa.randomutilities.filter.item.DevNullItem;
 import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
-import com.dopa.randomutilities.filter.dev.UiTestBlockItem;
-import com.dopa.randomutilities.filter.dev.UiTestItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -30,14 +28,6 @@ public final class ModItems {
 
     public static final DeferredItem<AdvancedDevNullItem> ADVANCED_DEV_NULL =
             registerFilter("advanced_dev_null", AdvancedDevNullItem::new, DevNullConfig.advancedProfile());
-
-    public static final DeferredItem<UiTestItem> UI_TEST_ITEM =
-            registerFilter("ui_test_item", UiTestItem::new, DevNullConfig.uiTestProfile());
-
-    public static final DeferredItem<UiTestBlockItem> UI_TEST_BLOCK_ITEM = ITEMS.registerItem(
-            "ui_test_block",
-            props -> new UiTestBlockItem(ModBlocks.UI_TEST_BLOCK.get(), props)
-    );
 
     public static final DeferredItem<BlockItem> MINI_CHEST = ITEMS.registerSimpleBlockItem(ModBlocks.MINI_CHEST);
 

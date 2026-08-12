@@ -3,7 +3,7 @@
   "category": "misc",
   "key": {
     "E": "minecraft:ender_pearl",
-    "R": "minecraft:redstone",
+    "R": "#c:dusts/redstone",
     "H": "minecraft:hopper",
     "O": "minecraft:obsidian"
   },

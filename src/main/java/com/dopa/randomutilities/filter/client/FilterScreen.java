@@ -7,12 +7,9 @@ import com.dopa.randomutilities.client.gui.VanillaContainerPanel;
 import com.dopa.randomutilities.filter.FilterContents;
 import com.dopa.randomutilities.filter.client.panel.ConfiguratorPanel;
 import com.dopa.randomutilities.filter.client.panel.CosmeticPanel;
-import com.dopa.randomutilities.filter.client.panel.EnergyPanel;
 import com.dopa.randomutilities.filter.client.panel.InformativePanel;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
 import com.dopa.randomutilities.client.gui.PanelHost;
-import com.dopa.randomutilities.filter.client.panel.RedstonePanel;
-import com.dopa.randomutilities.filter.client.panel.UpgradePanel;
 import com.dopa.randomutilities.filter.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
@@ -80,8 +77,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     private ConfiguratorPanel configuratorPanel;
     @Nullable
     private CosmeticPanel cosmeticPanel;
-    @Nullable
-    private RedstonePanel redstonePanel;
     private IconButton gatherButton;
     private boolean gatherConfirmPending;
 
@@ -219,7 +214,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
         this.panelHost.clear();
         this.configuratorPanel = null;
         this.cosmeticPanel = null;
-        this.redstonePanel = null;
 
         var profile = this.menu.profile();
         this.panelHost.add(new InformativePanel(this.menu.isBasic()));
@@ -235,18 +229,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
             this.cosmeticPanel = new CosmeticPanel(this, cosmeticAnchor, profile.showCosmeticHighlight());
             this.panelHost.add(this.cosmeticPanel);
             this.cosmeticPanel.initWidgets();
-        }
-
-        if (profile != null && profile.showEnergy()) {
-            this.panelHost.add(new EnergyPanel());
-        }
-        if (profile != null && profile.showUpgrades()) {
-            this.panelHost.add(new UpgradePanel(this.menu.getUpgradeSlots()));
-        }
-        if (profile != null && profile.showRedstone()) {
-            this.redstonePanel = new RedstonePanel(this);
-            this.panelHost.add(this.redstonePanel);
-            this.redstonePanel.initWidgets();
         }
 
         if (profile != null && profile.showGatherButton()) {
@@ -497,15 +479,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                     return true;
                 }
             }
-            // Upgrade slots live in the panel body — let the container handle them; do not close.
-            Slot slotUnder = findActiveSlotAt(event.x(), event.y());
-            if (slotUnder != null && this.menu.isUpgradeSlotIndex(slotUnder.index)) {
-                boolean handled = super.mouseClicked(event, doubleClick);
-                if (handled && !(this.getFocused() instanceof EditBox)) {
-                    this.clearFocus();
-                }
-                return true;
-            }
             if (this.panelHost.mouseClicked(event.x(), event.y())) {
                 return true;
             }
@@ -568,19 +541,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                 && mouseY >= widget.getY()
                 && mouseX < widget.getX() + widget.getWidth()
                 && mouseY < widget.getY() + widget.getHeight();
-    }
-
-    @Nullable
-    private Slot findActiveSlotAt(double mouseX, double mouseY) {
-        for (Slot slot : this.menu.slots) {
-            if (!slot.isActive()) {
-                continue;
-            }
-            if (this.isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) {
-                return slot;
-            }
-        }
-        return null;
     }
 
     private static final class IconButton extends AbstractWidget {

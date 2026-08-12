@@ -8,40 +8,19 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 
-import java.lang.reflect.Field;
-
 /**
  * Mirrors {@link FishingHook}'s private open-water checks so fishnet treasure loot
  * matches vanilla (5×5 water columns, air above — not a small pond).
  */
 final class FishnetOpenWater {
-    private static final Field OPEN_WATER;
-
-    static {
-        try {
-            OPEN_WATER = FishingHook.class.getDeclaredField("openWater");
-            OPEN_WATER.setAccessible(true);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
-
     private FishnetOpenWater() {}
 
     static void applyToBobber(FishingHook bobber, boolean openWater) {
-        setOpenWater(bobber, openWater);
+        bobber.openWater = openWater;
     }
 
     static void applyToBobber(FishingHook bobber, Level level, BlockPos bobberPos) {
         applyToBobber(bobber, calculateOpenWater(level, bobberPos));
-    }
-
-    private static void setOpenWater(FishingHook bobber, boolean openWater) {
-        try {
-            OPEN_WATER.setBoolean(bobber, openWater);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException("Failed to set FishingHook.openWater", e);
-        }
     }
 
     /** Same rules as {@code FishingHook#calculateOpenWater}. */

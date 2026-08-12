@@ -3,7 +3,7 @@
   "category": "misc",
   "key": {
     "C": "dopasrandomutilities:upgrade_casing",
-    "S": "minecraft:prismarine_crystals",
+    "S": "#c:gems/prismarine",
     "N": "minecraft:nautilus_shell",
     "H": "minecraft:chorus_flower",
     "D": "minecraft:prismarine_shard"

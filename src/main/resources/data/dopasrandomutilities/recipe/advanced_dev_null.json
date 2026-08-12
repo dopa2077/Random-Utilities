@@ -2,8 +2,8 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "D": "minecraft:diamond",
-    "E": "minecraft:emerald",
+    "D": "#c:gems/diamond",
+    "E": "#c:gems/emerald",
     "N": "dopasrandomutilities:dev_null"
   },
   "pattern": [

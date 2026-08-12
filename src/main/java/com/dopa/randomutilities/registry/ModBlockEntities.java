@@ -2,7 +2,6 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
-import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
 import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlockEntity;
 import com.dopa.randomutilities.fishnet.FishnetBlockEntity;
@@ -27,16 +26,6 @@ public final class ModBlockEntities {
                             ResourceGeneratorBlockEntity::new,
                             false,
                             ModBlocks.allGenerators()
-                    )
-            );
-
-    public static final Supplier<BlockEntityType<UiTestBlockEntity>> UI_TEST =
-            BLOCK_ENTITIES.register(
-                    "ui_test",
-                    () -> new BlockEntityType<>(
-                            UiTestBlockEntity::new,
-                            false,
-                            ModBlocks.UI_TEST_BLOCK.get()
                     )
             );
 

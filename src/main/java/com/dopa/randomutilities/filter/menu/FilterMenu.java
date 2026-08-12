@@ -1,6 +1,5 @@
 package com.dopa.randomutilities.filter.menu;
 
-import com.dopa.randomutilities.filter.dev.UiTestBlockEntity;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.filter.FilterContents;
 import com.dopa.randomutilities.filter.FilterItem;
@@ -11,12 +10,10 @@ import com.dopa.randomutilities.filter.FilterStorage;
 import com.dopa.randomutilities.registry.ModMenus;
 import com.dopa.randomutilities.registry.ModTriggers;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -27,11 +24,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.world.inventory.StackCopySlot;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 public class FilterMenu extends AbstractContainerMenu {
@@ -52,37 +45,28 @@ public class FilterMenu extends AbstractContainerMenu {
     public static final int BASIC_PLAYER_INV_Y = 49;
 
     private final Player player;
-    @Nullable
     private final InteractionHand hand;
-    @Nullable
-    private final BlockPos blockPos;
     private final FilterProfile profile;
     private final FilterStacksHandler handler;
     private final ContainerData data;
     private final int pageSlotCount;
     private final int rows;
     private int displayPage;
-    private final List<UpgradeSlot> upgradeSlots;
     private final int playerInvStart;
     private final boolean restoreConfigPanel;
 
     public FilterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
-        this(containerId, playerInv, FilterOpenSource.decode(playerInv.player, buf));
+        this(containerId, playerInv, FilterOpenSource.decode(buf));
     }
 
     public FilterMenu(int containerId, Inventory playerInv, InteractionHand hand) {
-        this(containerId, playerInv, FilterOpenSource.forHand(playerInv.player, hand, null, false));
-    }
-
-    public FilterMenu(int containerId, Inventory playerInv, BlockPos blockPos, FilterContents contents) {
-        this(containerId, playerInv, FilterOpenSource.forBlock(blockPos, contents, false));
+        this(containerId, playerInv, FilterOpenSource.forHand(hand, null, false));
     }
 
     private FilterMenu(int containerId, Inventory playerInv, FilterOpenSource source) {
         super(ModMenus.FILTER.get(), containerId);
         this.player = playerInv.player;
         this.hand = source.hand();
-        this.blockPos = source.blockPos();
         ItemStack host = host();
         this.profile = FilterRegistry.profile(host);
         this.data = profile != null && (!profile.isBasic() || profile.colorable())
@@ -100,7 +84,6 @@ public class FilterMenu extends AbstractContainerMenu {
             this.pageSlotCount = 1;
             this.rows = 1;
             this.displayPage = 0;
-            this.upgradeSlots = List.of();
             this.playerInvStart = 1;
             NonNullList<ItemStack> stacks = NonNullList.withSize(1, ItemStack.EMPTY);
             stacks.set(0, contents.stackInSlot(0));
@@ -135,20 +118,7 @@ public class FilterMenu extends AbstractContainerMenu {
             this.addSlot(new FilterSlot(handler, i, FilterPageLayout.slotX(i), FilterPageLayout.slotY(i), false, 0));
         }
 
-        if (profile.showUpgrades()) {
-            SimpleContainer upgradeContainer = new SimpleContainer(UpgradeSlot.COUNT);
-            List<UpgradeSlot> upgrades = new ArrayList<>(UpgradeSlot.COUNT);
-            for (int i = 0; i < UpgradeSlot.COUNT; i++) {
-                UpgradeSlot slot = new UpgradeSlot(upgradeContainer, i, UpgradeSlot.slotX(i), UpgradeSlot.slotY(i));
-                this.addSlot(slot);
-                upgrades.add(slot);
-            }
-            this.upgradeSlots = Collections.unmodifiableList(upgrades);
-            this.playerInvStart = pageSlotCount + UpgradeSlot.COUNT;
-        } else {
-            this.upgradeSlots = List.of();
-            this.playerInvStart = pageSlotCount;
-        }
+        this.playerInvStart = pageSlotCount;
 
         this.addStandardInventorySlots(playerInv, 8, playerInvY());
         syncData();
@@ -183,21 +153,7 @@ public class FilterMenu extends AbstractContainerMenu {
         return playerInvStart;
     }
 
-    public List<UpgradeSlot> getUpgradeSlots() {
-        return upgradeSlots;
-    }
-
-    public boolean isUpgradeSlotIndex(int index) {
-        return !isBasic() && index >= pageSlotCount && index < playerInvStart;
-    }
-
     private ItemStack host() {
-        if (blockPos != null) {
-            if (player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity be) {
-                return be.hostStack();
-            }
-            return ItemStack.EMPTY;
-        }
         return player.getItemInHand(hand);
     }
 
@@ -209,7 +165,6 @@ public class FilterMenu extends AbstractContainerMenu {
         FilterContents contents = FilterStorage.get(host);
         ItemStack stack = handler.getResource(0).toStack(handler.getAmountAsInt(0));
         FilterStorage.set(host, contents.withSlotStack(0, stack));
-        markHostDirty();
         syncData();
         maybeAwardNestAdvancement(host);
     }
@@ -237,14 +192,7 @@ public class FilterMenu extends AbstractContainerMenu {
             contents = contents.withSlotStack(start + i, stack);
         }
         FilterStorage.set(host, contents);
-        markHostDirty();
         syncData();
-    }
-
-    private void markHostDirty() {
-        if (blockPos != null && player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity be) {
-            be.setChanged();
-        }
     }
 
     private void syncData() {
@@ -342,7 +290,6 @@ public class FilterMenu extends AbstractContainerMenu {
         savePage();
         FilterContents contents = FilterStorage.get(host()).withMaxStackSize(DevNullConfig.clampAdvancedMaxStack(value));
         FilterStorage.set(host(), contents);
-        markHostDirty();
         syncData();
         broadcastChanges();
     }
@@ -360,7 +307,6 @@ public class FilterMenu extends AbstractContainerMenu {
             return;
         }
         FilterStorage.set(host(), FilterStorage.get(host()).withColor(rgb));
-        markHostDirty();
         syncData();
         broadcastChanges();
     }
@@ -370,7 +316,6 @@ public class FilterMenu extends AbstractContainerMenu {
             return;
         }
         FilterStorage.set(host(), FilterStorage.get(host()).withHighlightMatchColor(match));
-        markHostDirty();
         syncData();
         broadcastChanges();
     }
@@ -456,7 +401,6 @@ public class FilterMenu extends AbstractContainerMenu {
         }
 
         FilterStorage.set(host(), contents);
-        markHostDirty();
         if (buttonId == BTN_GATHER) {
             reloadPageFromContents(contents);
             syncData();
@@ -601,9 +545,6 @@ public class FilterMenu extends AbstractContainerMenu {
         if (slot != null && slot.hasItem()) {
             ItemStack raw = slot.getItem();
             result = raw.copy();
-            if (isUpgradeSlotIndex(index)) {
-                return ItemStack.EMPTY;
-            }
             if (index < pageSlotCount) {
                 int moveCount = Math.min(raw.getCount(), raw.getMaxStackSize());
                 ItemStack toMove = raw.copyWithCount(moveCount);
@@ -626,17 +567,7 @@ public class FilterMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        if (blockPos != null) {
-            if (!(player.level().getBlockEntity(blockPos) instanceof UiTestBlockEntity)) {
-                return false;
-            }
-            return player.distanceToSqr(
-                    blockPos.getX() + 0.5D,
-                    blockPos.getY() + 0.5D,
-                    blockPos.getZ() + 0.5D
-            ) <= 64.0D;
-        }
-        return hand != null && FilterRegistry.isFilterItem(player.getItemInHand(hand));
+        return FilterRegistry.isFilterItem(player.getItemInHand(hand));
     }
 
     @Override

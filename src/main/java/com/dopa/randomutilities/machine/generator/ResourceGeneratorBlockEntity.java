@@ -310,8 +310,10 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         }
 
         int produced;
+        int requested;
         if (match.recipe().isFluidResult()) {
             Fluid fluid = match.recipe().resultFluid();
+            requested = produceAmount;
             produced = ResourceGeneratorOutput.insertFluid(level, worldPosition, fluid, produceAmount, false);
             if (fluid == null || produced <= 0) {
                 outputBlocked = true;
@@ -326,7 +328,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             Block result = outputOverride != null
                     ? outputOverride
                     : ResourceGeneratorOutput.resolveResult(level, type, match.recipe());
-            produced = ResourceGeneratorOutput.outputBlocks(level, worldPosition, result, produceAmount, match.recipe().outputMode(), false);
+            requested = ResourceGeneratorOutput.requestedAmount(match.recipe().outputMode(), produceAmount);
+            produced = ResourceGeneratorOutput.outputBlocks(
+                    level, worldPosition, result, requested, match.recipe().outputMode(), false);
             if (result == null || produced <= 0) {
                 outputBlocked = true;
                 resetProgress();
@@ -338,7 +342,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             pinLockFromCurrent(match.recipe());
         }
 
-        if (produced >= produceAmount) {
+        if (produced >= requested) {
             consumeResources(level, match);
             productivityBonusBank = UpgradeConfig.advanceProductivityBank(
                     baseAmount, upgrades.productivityCount(), productivityBonusBank);

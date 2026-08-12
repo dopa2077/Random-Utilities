@@ -9,11 +9,16 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 
 /** Accepts productivity, overclock, fortune mesh, and treasure mesh with independent caps. */
 public final class FishnetUpgradeInventory extends UpgradeInventory {
-    public static final int MAX_PRODUCTIVITY = 9;
-    public static final int MAX_OVERCLOCK = 15;
-
     public FishnetUpgradeInventory(int size) {
         super(size, FishnetUpgradeInventory::largestCap);
+    }
+
+    public static int maxProductivity() {
+        return UpgradeConfig.maxProductivityFishnet();
+    }
+
+    public static int maxOverclock() {
+        return UpgradeConfig.maxOverclockFishnet();
     }
 
     public static int maxFortuneMesh() {
@@ -26,17 +31,17 @@ public final class FishnetUpgradeInventory extends UpgradeInventory {
 
     private static int largestCap() {
         return Math.max(
-                MAX_PRODUCTIVITY,
-                Math.max(MAX_OVERCLOCK, Math.max(maxFortuneMesh(), maxTreasureMesh()))
+                maxProductivity(),
+                Math.max(maxOverclock(), Math.max(maxFortuneMesh(), maxTreasureMesh()))
         );
     }
 
     private int maxFor(Item item) {
         if (item == ModItems.PRODUCTIVITY_UPGRADE.get()) {
-            return MAX_PRODUCTIVITY;
+            return maxProductivity();
         }
         if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
-            return MAX_OVERCLOCK;
+            return maxOverclock();
         }
         if (item == ModItems.FORTUNE_MESH_UPGRADE.get()) {
             return maxFortuneMesh();

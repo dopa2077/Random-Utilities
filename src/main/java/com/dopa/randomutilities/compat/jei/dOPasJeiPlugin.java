@@ -19,7 +19,6 @@ import com.dopa.randomutilities.redstoneclock.client.RedstoneClockScreen;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.RecipeTypes;
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.handlers.IGuiClickableArea;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -27,7 +26,6 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
-import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -46,17 +44,6 @@ public class dOPasJeiPlugin implements IModPlugin {
     @Override
     public Identifier getPluginUid() {
         return UID;
-    }
-
-    @Override
-    public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-        jeiRuntime.getIngredientManager().removeIngredientsAtRuntime(
-                VanillaTypes.ITEM_STACK,
-                List.of(
-                        new ItemStack(ModItems.UI_TEST_ITEM.get()),
-                        new ItemStack(ModItems.UI_TEST_BLOCK_ITEM.get())
-                )
-        );
     }
 
     @Override
@@ -212,10 +199,16 @@ public class dOPasJeiPlugin implements IModPlugin {
         // JEI drops empty components; a space keeps a visible blank line.
         lines.add(Component.literal(" "));
         lines.add(Component.translatable("jei.dopasrandomutilities.treasure_mesh_upgrade.weight_never"));
-        lines.add(Component.translatable("jei.dopasrandomutilities.treasure_mesh_upgrade.weight_always"));
+        lines.add(Component.translatable("jei.dopasrandomutilities.treasure_mesh_upgrade.weight_relative"));
         lines.add(Component.literal(" "));
         List<TreasureLootConfig.Entry> entries = new ArrayList<>(TreasureLootConfig.entries());
         entries.sort((a, b) -> Double.compare(b.weight(), a.weight()));
+        double totalWeight = 0.0;
+        for (TreasureLootConfig.Entry entry : entries) {
+            if (entry.weight() > 0.0) {
+                totalWeight += entry.weight();
+            }
+        }
         if (entries.isEmpty()) {
             lines.add(Component.translatable("jei.dopasrandomutilities.treasure_mesh_upgrade.loot_empty"));
         } else {
@@ -223,7 +216,7 @@ public class dOPasJeiPlugin implements IModPlugin {
                 lines.add(Component.translatable(
                         "jei.dopasrandomutilities.treasure_mesh_upgrade.loot_entry",
                         entry.displayName(),
-                        formatWeight(entry.weight())
+                        formatWeightAndChance(entry.weight(), totalWeight)
                 ));
             }
         }
@@ -231,6 +224,14 @@ public class dOPasJeiPlugin implements IModPlugin {
                 ModItems.TREASURE_MESH_UPGRADE.get(),
                 lines.toArray(new Component[0])
         );
+    }
+
+    private static String formatWeightAndChance(double weight, double total) {
+        String weightText = formatWeight(weight);
+        if (weight <= 0.0 || total <= 0.0) {
+            return weightText;
+        }
+        return weightText + " (" + formatWeight(100.0 * weight / total) + "%)";
     }
 
     private static String formatWeight(double weight) {

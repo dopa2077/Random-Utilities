@@ -1,28 +1,27 @@
 package com.dopa.randomutilities.fishnet;
 
+import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.fishnet.config.FishnetConfig;
 import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
-import com.dopa.randomutilities.fishnet.network.FishnetCatchPayload;
+import com.dopa.randomutilities.fishnet.network.FishnetApproachPayload;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
+import com.dopa.randomutilities.registry.ModItemTags;
+import com.mojang.authlib.GameProfile;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -45,12 +44,15 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     public static final int CATCH_SLOT_COUNT = 9;
     public static final int BASE_CATCH_TICKS = 600;
+    private static final int SAVE_INTERVAL = 20;
 
     public static final int DATA_PROGRESS = 0;
     public static final int DATA_TOTAL = 1;
@@ -63,6 +65,11 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
 
     /** Vanilla hooked approach lasts ~20–80 ticks; only then are fishing ripples shown. */
     private static final int HOOKED_PHASE_TICKS = 60;
+
+    private static final GameProfile FISHER_PROFILE = new GameProfile(
+            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":fishnet").getBytes(StandardCharsets.UTF_8)),
+            "[Fishnet]"
+    );
 
     private final ItemStacksResourceHandler rod = new ItemStacksResourceHandler(1) {
         @Override
@@ -95,11 +102,14 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int catchProgress;
     private int catchTotal = BASE_CATCH_TICKS;
+    private int saveTimer;
     private int productivityBonusBank;
     private boolean underwater;
     private float fishAngle;
     private boolean particlesEnabled = true;
     private boolean soundEnabled = true;
+    /** True after the approach VFX packet was sent for the current catch cycle. */
+    private boolean approachSent;
     /** Catch that could not fit; fishing stays paused until these can be stored. */
     private final List<ItemStack> pendingCatch = new ArrayList<>();
 
@@ -115,7 +125,7 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     }
 
     public static boolean isFishingRod(ItemStack stack) {
-        return !stack.isEmpty() && stack.is(Items.FISHING_ROD);
+        return !stack.isEmpty() && stack.is(ModItemTags.FISHING_RODS);
     }
 
     public ItemStacksResourceHandler rod() {
@@ -237,13 +247,14 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         BlockState state = level.getBlockState(pos);
         underwater = canCatchHere(level, pos, state);
 
-        FakePlayer fisher = FakePlayerFactory.getMinecraft(level);
+        FakePlayer fisher = fisher(level);
         ItemStack rodStack = rodStack();
         int lureBonus = 0;
         if (isFishingRod(rodStack)) {
             lureBonus = (int) (EnchantmentHelper.getFishingTimeReduction(level, rodStack, fisher) * 20.0F);
         }
-        int needed = Math.max(40, UpgradeConfig.effectiveTicks(BASE_CATCH_TICKS, upgrades.overclockCount()) - lureBonus);
+        int lureWait = Math.max(1, BASE_CATCH_TICKS - lureBonus);
+        int needed = Math.max(1, UpgradeConfig.effectiveTicks(lureWait, upgrades.overclockCount()));
         if (catchTotal != needed) {
             catchTotal = needed;
             catchProgress = Math.min(catchProgress, catchTotal);
@@ -256,8 +267,10 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         if (!pendingCatch.isEmpty()) {
             if (catchProgress > 0) {
                 catchProgress = 0;
+                saveTimer = 0;
                 setChanged();
             }
+            stopApproachVfx(level, pos);
             if (underwater && isFishingRod(rodStack) && powered) {
                 tryFlushPendingCatch(level, pos, fisher, rodStack);
             }
@@ -267,30 +280,67 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         boolean canRun = underwater && isFishingRod(rodStack) && powered;
 
         if (!canRun) {
-            if (catchProgress > 0) {
-                catchProgress = 0;
-                setChanged();
-            }
+            stopApproachVfx(level, pos);
             return;
         }
 
         catchProgress++;
         int remaining = catchTotal - catchProgress;
-        if (remaining > 0 && remaining <= HOOKED_PHASE_TICKS) {
-            // About to catch: spiral fishing ripples inward (FishingHook timeUntilHooked).
+        int hooked = hookedPhaseTicks();
+        if (remaining > 0 && remaining <= hooked) {
+            if (!approachSent && particlesEnabled) {
+                sendApproachVfx(level, pos, remaining);
+                approachSent = true;
+            }
             spawnHookedApproachParticles(level, pos, remaining);
-        } else if (remaining > HOOKED_PHASE_TICKS) {
-            // Waiting: rare far splash teases (FishingHook timeUntilLured).
+        } else if (remaining > hooked) {
             spawnLureTeaseSplash(level, pos);
         }
         if (catchProgress < catchTotal) {
-            setChanged();
+            markProgressDirty();
             return;
         }
 
         catchProgress = 0;
+        saveTimer = 0;
+        approachSent = false;
         completeCatch(level, pos, fisher, rodStack);
         setChanged();
+    }
+
+    private void markProgressDirty() {
+        if (++saveTimer >= SAVE_INTERVAL) {
+            saveTimer = 0;
+            setChanged();
+        }
+    }
+
+    private FakePlayer fisher(ServerLevel level) {
+        return FakePlayerFactory.get(level, FISHER_PROFILE);
+    }
+
+    private int hookedPhaseTicks() {
+        return Math.min(HOOKED_PHASE_TICKS, Math.max(1, catchTotal));
+    }
+
+    private void sendApproachVfx(ServerLevel level, BlockPos pos, int durationTicks) {
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5,
+                48.0,
+                new FishnetApproachPayload(pos, durationTicks)
+        );
+    }
+
+    private void stopApproachVfx(ServerLevel level, BlockPos pos) {
+        if (!approachSent) {
+            return;
+        }
+        approachSent = false;
+        sendApproachVfx(level, pos, 0);
     }
 
     /** Occasional distant splash while waiting — same idea as vanilla lure teases. */
@@ -355,7 +405,9 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         int luck = EnchantmentHelper.getFishingLuckBonus(level, rodStack, fisher);
         Vec3 origin = Vec3.atCenterOf(pos);
         boolean openWater = FishnetOpenWater.calculateOpenWater(level, pos);
-        boolean treasureAllowed = openWater && !FishnetConfig.preventRareLoot();
+        boolean treasureAllowed = openWater
+                && !FishnetConfig.preventRareLoot()
+                && upgrades.fortuneMeshCount() > 0;
         // Treasure pool requires THIS_ENTITY to be a FishingHook with in_open_water
         // matching vanilla FishingHook#calculateOpenWater (not a small 3×3 pond).
         FishingHook bobber = new FishingHook(fisher, level, luck, 0);
@@ -373,13 +425,9 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         bobber.discard();
 
         List<ItemStack> toStore = new ArrayList<>();
-        boolean caughtFish = false;
         for (ItemStack drop : drops) {
             if (drop.isEmpty()) {
                 continue;
-            }
-            if (drop.is(ItemTags.FISHES)) {
-                caughtFish = true;
             }
             toStore.add(applyProductivity(drop));
         }
@@ -396,7 +444,7 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
             return;
         }
 
-        commitCatch(level, pos, fisher, rodStack, toStore, caughtFish);
+        commitCatch(level, pos, fisher, rodStack, toStore);
     }
 
     /**
@@ -412,20 +460,15 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     }
 
     /**
-     * Fortune Mesh only amplifies treasure when open water is valid and rare loot is allowed.
-     * Each upgrade adds a config % chance to roll the treasure table (100% when chance reaches 100).
+     * Fortune Mesh unlocks vanilla treasure in open water and rolls a capped chance to force it.
+     * Never guaranteed ({@link UpgradeConfig#FORTUNE_MESH_MAX_CHANCE_PERCENT}).
      */
     private List<ItemStack> rollFishingLoot(ServerLevel level, LootParams params, boolean treasureAllowed) {
-        int maxMesh = FishnetUpgradeInventory.maxFortuneMesh();
-        int mesh = Math.min(maxMesh, upgrades.fortuneMeshCount());
-        int percentPer = UpgradeConfig.fortuneMeshTreasurePercent();
-        float forceChance = maxMesh <= 0 || percentPer <= 0
-                ? 0.0F
-                : Math.min(1.0F, mesh * percentPer / 100.0F);
+        int chancePercent = UpgradeConfig.fortuneMeshChancePercent(upgrades.fortuneMeshCount());
+        float forceChance = chancePercent / 100.0F;
         boolean forceTreasure = treasureAllowed
-                && mesh > 0
-                && forceChance > 0.0F
-                && (forceChance >= 1.0F || level.getRandom().nextFloat() < forceChance);
+                && chancePercent > 0
+                && level.getRandom().nextFloat() < forceChance;
         var tableKey = forceTreasure ? BuiltInLootTables.FISHING_TREASURE : BuiltInLootTables.FISHING;
         LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(tableKey);
         return lootTable.getRandomItems(params);
@@ -435,19 +478,12 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         if (pendingCatch.isEmpty() || !canFullyStoreAll(pendingCatch)) {
             return;
         }
-        boolean caughtFish = false;
-        for (ItemStack stack : pendingCatch) {
-            if (stack.is(ItemTags.FISHES)) {
-                caughtFish = true;
-                break;
-            }
-        }
         List<ItemStack> toStore = new ArrayList<>(pendingCatch.size());
         for (ItemStack stack : pendingCatch) {
             toStore.add(stack.copy());
         }
         pendingCatch.clear();
-        commitCatch(level, pos, fisher, rodStack, toStore, caughtFish);
+        commitCatch(level, pos, fisher, rodStack, toStore);
         setChanged();
     }
 
@@ -456,8 +492,7 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
             BlockPos pos,
             FakePlayer fisher,
             ItemStack rodStack,
-            List<ItemStack> toStore,
-            boolean caughtFish
+            List<ItemStack> toStore
     ) {
         double y = pos.getY() + 0.5;
         if (soundEnabled) {
@@ -495,40 +530,13 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
             );
         }
 
-        ItemStack display = ItemStack.EMPTY;
         for (ItemStack stack : toStore) {
-            if (display.isEmpty()) {
-                display = stack.copy();
-            }
             storeFully(stack);
         }
 
         ItemStack damagedRod = rodStack.copy();
         damagedRod.hurtAndBreak(1, level, fisher, broken -> {});
         setRodStack(damagedRod);
-
-        if (particlesEnabled) {
-            PacketDistributor.sendToPlayersNear(
-                    level,
-                    null,
-                    pos.getX() + 0.5,
-                    pos.getY() + 0.5,
-                    pos.getZ() + 0.5,
-                    48.0,
-                    new FishnetCatchPayload(
-                            pos,
-                            display.isEmpty() ? Items.COD.getDefaultInstance() : display
-                    )
-            );
-        }
-
-        if (caughtFish) {
-            Player nearest = level.getNearestPlayer(
-                    pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 32.0, false);
-            if (nearest instanceof ServerPlayer serverPlayer) {
-                serverPlayer.awardStat(net.minecraft.stats.Stats.FISH_CAUGHT, 1);
-            }
-        }
     }
 
     private ItemStack applyProductivity(ItemStack drop) {

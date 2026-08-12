@@ -32,7 +32,7 @@ public class MachineUpgradeItem extends Item {
                 UpgradeConfig::overclockSpeedPercent,
                 true
         ),
-        /** Fishnet-only; each upgrade adds config % chance to force treasure in open water. */
+        /** Fishnet-only; unlocks vanilla treasure in open water and adds a capped chance to force it. */
         FORTUNE_MESH(
                 "item.dopasrandomutilities.fortune_mesh_upgrade.tooltip",
                 UpgradeConfig::fortuneMeshTreasurePercent,

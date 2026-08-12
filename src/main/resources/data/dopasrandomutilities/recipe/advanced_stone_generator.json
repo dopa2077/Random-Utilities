@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "G": "minecraft:gold_block",
+    "G": "#c:storage_blocks/gold",
     "I": "dopasrandomutilities:intermediate_stone_generator",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket"

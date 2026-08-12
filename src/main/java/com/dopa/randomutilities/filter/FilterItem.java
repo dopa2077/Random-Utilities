@@ -288,7 +288,6 @@ public class FilterItem extends Item {
                         profile.containerTitle()
                 ),
                 buf -> {
-                    buf.writeBoolean(false);
                     buf.writeEnum(hand);
                     if (!profile.isBasic()) {
                         buf.writeBoolean(true);

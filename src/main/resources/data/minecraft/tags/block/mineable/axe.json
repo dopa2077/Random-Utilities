@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "dopasrandomutilities:mini_chest"
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:fishnet"
   ]
 }

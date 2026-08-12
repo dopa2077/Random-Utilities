@@ -16,7 +16,7 @@ public final class FishnetClient {
 
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
-        FishnetNetwork.clientCatchHandler = payload -> FishnetCatchEffects.play(payload.pos(), payload.display());
+        FishnetNetwork.clientApproachHandler = payload -> FishnetCatchEffects.play(payload.pos(), payload.durationTicks());
         event.register(ModMenus.FISHNET.get(), FishnetScreen::new);
     }
 

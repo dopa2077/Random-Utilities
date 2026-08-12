@@ -15,7 +15,6 @@
     "dopasrandomutilities:basic_item_collector",
     "dopasrandomutilities:advanced_item_collector",
     "dopasrandomutilities:redstone_clock",
-    "dopasrandomutilities:solar_furnace",
-    "dopasrandomutilities:fishnet"
+    "dopasrandomutilities:solar_furnace"
   ]
 }

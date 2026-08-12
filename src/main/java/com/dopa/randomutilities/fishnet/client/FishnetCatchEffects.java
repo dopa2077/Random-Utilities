@@ -8,23 +8,29 @@ import net.minecraft.world.entity.animal.fish.Cod;
 import net.minecraft.world.entity.animal.fish.Pufferfish;
 import net.minecraft.world.entity.animal.fish.Salmon;
 import net.minecraft.world.entity.animal.fish.TropicalFish;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
-/** Client-only swim-into-net effect for a successful fishnet catch. */
+/**
+ * Client-only swim-into-net VFX. The fish is never added to the level — it is
+ * only ticked here and submitted by {@link FishnetRenderer}.
+ */
 public final class FishnetCatchEffects {
-    private static final int LIFETIME_TICKS = 20;
-    private static final List<ActiveCatch> ACTIVE = new ArrayList<>();
+    private static final Map<BlockPos, ActiveCatch> ACTIVE = new HashMap<>();
 
     private FishnetCatchEffects() {}
 
-    public static void play(BlockPos netPos, ItemStack display) {
+    public static void play(BlockPos netPos, int durationTicks) {
+        BlockPos key = netPos.immutable();
+        if (durationTicks <= 0) {
+            ACTIVE.remove(key);
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         Level level = minecraft.level;
         if (level == null) {
@@ -41,69 +47,86 @@ public final class FishnetCatchEffects {
                 Math.sin(angle) * distance
         );
 
-        AbstractFish fish = createFish(level, display);
+        AbstractFish fish = createFish(level);
         fish.setPos(start.x, start.y, start.z);
         fish.setNoGravity(true);
         fish.setSilent(true);
         fish.setInvulnerable(true);
         fish.setDeltaMovement(Vec3.ZERO);
         fish.setYRot((float) (Math.toDegrees(angle) + 180.0F));
-        level.addFreshEntity(fish);
-        ACTIVE.add(new ActiveCatch(fish, target, LIFETIME_TICKS));
+        ACTIVE.put(key, new ActiveCatch(fish, start, target, durationTicks));
+    }
+
+    @Nullable
+    public static ActiveCatch activeAt(BlockPos netPos) {
+        return ACTIVE.get(netPos);
     }
 
     public static void clientTick() {
         if (ACTIVE.isEmpty()) {
             return;
         }
-        Iterator<ActiveCatch> iterator = ACTIVE.iterator();
+        Iterator<Map.Entry<BlockPos, ActiveCatch>> iterator = ACTIVE.entrySet().iterator();
         while (iterator.hasNext()) {
-            ActiveCatch active = iterator.next();
+            ActiveCatch active = iterator.next().getValue();
             AbstractFish fish = active.fish;
-            if (!fish.isAlive() || fish.level() == null) {
+            if (fish.level() == null) {
                 iterator.remove();
                 continue;
             }
-            active.life--;
-            Vec3 pos = fish.position();
+            active.age++;
+            if (active.age >= active.duration) {
+                iterator.remove();
+                continue;
+            }
+            Vec3 pos = active.position(0.0F);
             Vec3 delta = active.target.subtract(pos);
             double distance = delta.length();
-            if (active.life <= 0 || distance < 0.35) {
-                fish.discard();
+            if (distance < 0.35) {
                 iterator.remove();
                 continue;
             }
+            fish.setPos(pos.x, pos.y, pos.z);
             Vec3 step = delta.normalize().scale(Math.min(0.22, distance));
-            fish.setPos(pos.x + step.x, pos.y + step.y, pos.z + step.z);
             fish.setDeltaMovement(step);
             fish.setYRot((float) (Math.toDegrees(Math.atan2(step.z, step.x)) - 90.0F));
             fish.yBodyRot = fish.getYRot();
             fish.yHeadRot = fish.getYRot();
+            fish.tickCount++;
         }
     }
 
-    private static AbstractFish createFish(Level level, ItemStack display) {
-        if (display.is(Items.SALMON)) {
-            return new Salmon(EntityTypes.SALMON, level);
-        }
-        if (display.is(Items.PUFFERFISH)) {
-            return new Pufferfish(EntityTypes.PUFFERFISH, level);
-        }
-        if (display.is(Items.TROPICAL_FISH)) {
-            return new TropicalFish(EntityTypes.TROPICAL_FISH, level);
-        }
-        return new Cod(EntityTypes.COD, level);
+    private static AbstractFish createFish(Level level) {
+        return switch (level.getRandom().nextInt(4)) {
+            case 1 -> new Salmon(EntityTypes.SALMON, level);
+            case 2 -> new Pufferfish(EntityTypes.PUFFERFISH, level);
+            case 3 -> new TropicalFish(EntityTypes.TROPICAL_FISH, level);
+            default -> new Cod(EntityTypes.COD, level);
+        };
     }
 
-    private static final class ActiveCatch {
+    public static final class ActiveCatch {
         private final AbstractFish fish;
+        private final Vec3 start;
         private final Vec3 target;
-        private int life;
+        private final int duration;
+        private int age;
 
-        private ActiveCatch(AbstractFish fish, Vec3 target, int life) {
+        private ActiveCatch(AbstractFish fish, Vec3 start, Vec3 target, int duration) {
             this.fish = fish;
+            this.start = start;
             this.target = target;
-            this.life = life;
+            this.duration = Math.max(1, duration);
+        }
+
+        public AbstractFish fish() {
+            return fish;
+        }
+
+        public Vec3 position(float partialTick) {
+            float t = Math.min(1.0F, (age + partialTick) / (float) duration);
+            t = t * t * (3.0F - 2.0F * t);
+            return start.lerp(target, t);
         }
     }
 }

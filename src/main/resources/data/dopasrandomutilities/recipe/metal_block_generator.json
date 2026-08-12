@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "D": "minecraft:diamond_block",
-    "N": "minecraft:netherite_block",
+    "D": "#c:storage_blocks/diamond",
+    "N": "#c:storage_blocks/netherite",
     "S": "minecraft:sculk_catalyst",
     "E": "dopasrandomutilities:elite_stone_generator",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket",
     "A": "minecraft:amethyst_block",
-    "M": "minecraft:emerald_block"
+    "M": "#c:storage_blocks/emerald"
   },
   "pattern": [
     "DNS",

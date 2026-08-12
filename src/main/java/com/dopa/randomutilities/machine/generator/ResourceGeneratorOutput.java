@@ -40,22 +40,46 @@ final class ResourceGeneratorOutput {
     ) {
         // Fluids always insert as fluid — never treat the GUI display proxy (ice/magma) as item output.
         if (recipe.isFluidResult()) {
-            return insertFluid(level, pos, recipe.resultFluid(), amount, true) > 0;
+            return insertFluid(level, pos, recipe.resultFluid(), amount, true) >= amount;
         }
+        GeneratorOutputMode mode = recipe.outputMode();
+        int requested = requestedAmount(mode, amount);
         if (outputOverride != null) {
-            return outputBlocks(level, pos, outputOverride, amount, recipe.outputMode(), true) > 0;
+            return canOutput(level, pos, outputOverride, requested, mode);
         }
         if (recipe.isRandomResult()) {
             if (poolFor(type).isEmpty()) {
                 return false;
             }
-            return switch (recipe.outputMode()) {
+            return switch (mode) {
                 case INSERT -> getItemOutputHandler(level, pos) != null;
                 case DROP -> canAcceptItemDrop(level, pos);
                 case PLACE -> canAcceptPlace(level, pos);
             };
         }
-        return outputBlocks(level, pos, recipe.result(), amount, recipe.outputMode(), true) > 0;
+        return canOutput(level, pos, recipe.result(), requested, mode);
+    }
+
+    /** PLACE always outputs one block; productivity does not multiply placed blocks. */
+    static int requestedAmount(GeneratorOutputMode mode, int amount) {
+        return mode == GeneratorOutputMode.PLACE ? 1 : Math.max(0, amount);
+    }
+
+    private static boolean canOutput(
+            ServerLevel level,
+            BlockPos pos,
+            @Nullable Block result,
+            int amount,
+            GeneratorOutputMode mode
+    ) {
+        if (result == null || amount <= 0) {
+            return false;
+        }
+        return switch (mode) {
+            case INSERT -> insertItems(level, pos, result, amount, true) >= amount;
+            case DROP -> canAcceptItemDrop(level, pos);
+            case PLACE -> canAcceptPlace(level, pos);
+        };
     }
 
     static int outputBlocks(
@@ -87,10 +111,14 @@ final class ResourceGeneratorOutput {
         }
         try (Transaction tx = Transaction.open(null)) {
             int inserted = handler.insert(resource, amount, tx);
-            if (inserted > 0 && !simulate) {
-                tx.commit();
+            if (simulate) {
+                return Math.max(0, inserted);
             }
-            return Math.max(0, inserted);
+            if (inserted >= amount) {
+                tx.commit();
+                return inserted;
+            }
+            return 0;
         }
     }
 
@@ -109,10 +137,14 @@ final class ResourceGeneratorOutput {
         }
         try (Transaction tx = Transaction.open(null)) {
             int insertedMb = handler.insert(resource, millibuckets, tx);
-            if (insertedMb > 0 && !simulate) {
-                tx.commit();
+            if (simulate) {
+                return Math.max(0, insertedMb);
             }
-            return Math.max(0, insertedMb);
+            if (insertedMb >= millibuckets) {
+                tx.commit();
+                return insertedMb;
+            }
+            return 0;
         }
     }
 

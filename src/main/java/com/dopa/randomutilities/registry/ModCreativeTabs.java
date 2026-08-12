@@ -28,8 +28,6 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ADVANCED_ITEM_COLLECTOR.get());
                         output.accept(ModItems.SOLAR_FURNACE.get());
                         output.accept(ModItems.FISHNET.get());
-                        output.accept(ModItems.UI_TEST_ITEM.get());
-                        output.accept(ModItems.UI_TEST_BLOCK_ITEM.get());
                         for (GeneratorType type : GeneratorType.values()) {
                             output.accept(ModItems.forType(type).get());
                         }

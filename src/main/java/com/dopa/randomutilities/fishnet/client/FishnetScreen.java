@@ -9,6 +9,7 @@ import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
 import com.dopa.randomutilities.machine.client.panel.MachineUpgradePanel;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
 import com.dopa.randomutilities.registry.ModItems;
 
@@ -190,16 +191,25 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
             graphics.setTooltipForNextFrame(font, tabTooltip, mouseX, mouseY);
             return;
         }
-        if (hoveredSlot != null
-                && menu.isRodSlotIndex(hoveredSlot.index)
-                && !hoveredSlot.hasItem()) {
-            graphics.setTooltipForNextFrame(
-                    font,
-                    Component.translatable("gui.dopasrandomutilities.fishnet.need_rod"),
-                    mouseX,
-                    mouseY
-            );
-            return;
+        if (hoveredSlot != null && menu.isRodSlotIndex(hoveredSlot.index)) {
+            if (!menu.isUnderwater()) {
+                graphics.setTooltipForNextFrame(
+                        font,
+                        Component.translatable("gui.dopasrandomutilities.fishnet.need_water"),
+                        mouseX,
+                        mouseY
+                );
+                return;
+            }
+            if (!hoveredSlot.hasItem()) {
+                graphics.setTooltipForNextFrame(
+                        font,
+                        Component.translatable("gui.dopasrandomutilities.fishnet.need_rod"),
+                        mouseX,
+                        mouseY
+                );
+                return;
+            }
         }
         if (hoveredSlot != null
                 && menu.isUpgradeSlotIndex(hoveredSlot.index)
@@ -218,17 +228,38 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         Item item = stack.getItem();
         int used = menu.blockEntity().upgrades().countOf(item);
         int max = maxForUpgrade(item);
+        boolean fortuneOverwritten = item == ModItems.FORTUNE_MESH_UPGRADE.get()
+                && menu.blockEntity().upgrades().treasureMeshCount() > 0;
+        if (fortuneOverwritten) {
+            lines.add(Component.translatable("gui.dopasrandomutilities.upgrade.overwritten_by_treasure_mesh")
+                    .withStyle(ChatFormatting.GOLD));
+        }
         if (item instanceof MachineUpgradeItem upgrade) {
             if (upgrade.kind().showsPercent()) {
                 int perUpgrade = upgrade.kind().percent();
+                int totalPercent = item == ModItems.FORTUNE_MESH_UPGRADE.get()
+                        ? UpgradeConfig.fortuneMeshChancePercent(used)
+                        : used * perUpgrade;
+                ChatFormatting labelColor = fortuneOverwritten ? ChatFormatting.DARK_GRAY : ChatFormatting.GRAY;
+                ChatFormatting valueColor = fortuneOverwritten ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN;
                 MutableComponent boost = Component.translatable(upgrade.kind().tooltipKey())
-                        .withStyle(ChatFormatting.GRAY);
-                boost.append(Component.literal(perUpgrade + "%").withStyle(ChatFormatting.GREEN));
+                        .withStyle(labelColor);
+                MutableComponent boostValue = Component.literal(perUpgrade + "%").withStyle(valueColor);
+                if (fortuneOverwritten) {
+                    boost.withStyle(ChatFormatting.STRIKETHROUGH);
+                    boostValue.withStyle(ChatFormatting.STRIKETHROUGH);
+                }
+                boost.append(boostValue);
                 lines.add(boost);
                 lines.add(Component.empty());
                 MutableComponent total = Component.translatable("gui.dopasrandomutilities.upgrade.total_boost")
-                        .withStyle(ChatFormatting.GRAY);
-                total.append(Component.literal((used * perUpgrade) + "%").withStyle(ChatFormatting.GREEN));
+                        .withStyle(labelColor);
+                MutableComponent totalValue = Component.literal(totalPercent + "%").withStyle(valueColor);
+                if (fortuneOverwritten) {
+                    total.withStyle(ChatFormatting.STRIKETHROUGH);
+                    totalValue.withStyle(ChatFormatting.STRIKETHROUGH);
+                }
+                total.append(totalValue);
                 lines.add(total);
             } else {
                 lines.add(Component.translatable(upgrade.kind().tooltipKey()).withStyle(ChatFormatting.GRAY));
@@ -245,10 +276,10 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
 
     private static int maxForUpgrade(Item item) {
         if (item == ModItems.PRODUCTIVITY_UPGRADE.get()) {
-            return FishnetUpgradeInventory.MAX_PRODUCTIVITY;
+            return FishnetUpgradeInventory.maxProductivity();
         }
         if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
-            return FishnetUpgradeInventory.MAX_OVERCLOCK;
+            return FishnetUpgradeInventory.maxOverclock();
         }
         if (item == ModItems.FORTUNE_MESH_UPGRADE.get()) {
             return FishnetUpgradeInventory.maxFortuneMesh();

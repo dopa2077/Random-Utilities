@@ -5,7 +5,6 @@ import com.dopa.randomutilities.util.PanelLayout;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.client.gui.AttachedPanel;
 import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.filter.menu.UpgradeSlot;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.registry.ModItems;
 
@@ -29,8 +28,8 @@ public final class MachineUpgradePanel extends AttachedPanel {
     public MachineUpgradePanel(List<MachineUpgradeSlot> upgradeSlots, PanelAnchor anchor, int tabYBias) {
         super(
                 anchor,
-                UpgradeSlot.panelWidth(),
-                PanelLayout.CONTENT_PAD * 2 + UpgradeSlot.TITLE_GAP + UpgradeSlot.ROWS * 18,
+                MachineUpgradeSlot.panelWidth(),
+                PanelLayout.CONTENT_PAD * 2 + MachineUpgradeSlot.TITLE_GAP + MachineUpgradeSlot.ROWS * 18,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.upgrades")
         );
@@ -52,12 +51,12 @@ public final class MachineUpgradePanel extends AttachedPanel {
     protected void renderContents(GuiGraphicsExtractor graphics, Font font, int bodyX, int bodyY,
                                   int mouseX, int mouseY, float partialTick) {
         renderTitleRow(graphics, font, bodyX, bodyY);
-        int gridX = bodyX + (panelWidth - UpgradeSlot.gridWidth()) / 2;
-        int gridY = bodyY + CONTENT_PAD + UpgradeSlot.TITLE_GAP;
+        int gridX = bodyX + (panelWidth - MachineUpgradeSlot.gridWidth()) / 2;
+        int gridY = bodyY + CONTENT_PAD + MachineUpgradeSlot.TITLE_GAP;
         int count = Math.min(UpgradeConfig.UPGRADE_SLOT_COUNT, upgradeSlots.size());
         for (int i = 0; i < count; i++) {
-            int col = i % UpgradeSlot.COLS;
-            int row = i / UpgradeSlot.COLS;
+            int col = i % MachineUpgradeSlot.COLS;
+            int row = i / MachineUpgradeSlot.COLS;
             graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE,
                     gridX + col * 18 - 1, gridY + row * 18 - 1, 18, 18);
         }
