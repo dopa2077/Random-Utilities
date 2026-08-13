@@ -2,6 +2,7 @@ package com.dopa.randomutilities.machine.generator.config;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,13 +20,14 @@ import java.util.Optional;
 public record GeneratorRecipe(
         String id,
         @Nullable Block result,
+        @Nullable Item resultItem,
         @Nullable Fluid resultFluid,
         List<@Nullable GeneratorResource> resources,
         boolean[] consume,
         @Nullable Block requiredUnder,
         int ticks,
         /**
-         * Output quantity: item count for block results, millibuckets for fluid results
+         * Output quantity: item count for block/item results, millibuckets for fluid results
          * ({@code 1000} = one bucket). JSON {@code amount} is buckets for fluids (e.g. {@code 0.2}).
          */
         int amount,
@@ -40,13 +42,23 @@ public record GeneratorRecipe(
         if (consume.length != SIDE_COUNT) {
             throw new IllegalArgumentException("Expected " + SIDE_COUNT + " consume flags");
         }
-        if (result != null && resultFluid != null) {
-            throw new IllegalArgumentException("Recipe cannot have both a block and fluid result");
+        int resultKinds = 0;
+        if (result != null) {
+            resultKinds++;
+        }
+        if (resultItem != null) {
+            resultKinds++;
+        }
+        if (resultFluid != null) {
+            resultKinds++;
+        }
+        if (resultKinds > 1) {
+            throw new IllegalArgumentException("Recipe cannot have more than one result kind");
         }
         resources = Collections.unmodifiableList(new ArrayList<>(resources));
         consume = consume.clone();
         ticks = Math.max(1, ticks);
-        // Block recipes: item count. Fluid recipes: millibuckets (1000 = one bucket).
+        // Block/item recipes: item count. Fluid recipes: millibuckets (1000 = one bucket).
         amount = Math.max(1, amount);
         if (outputMode == null) {
             outputMode = GeneratorOutputMode.INSERT;
@@ -54,11 +66,24 @@ public record GeneratorRecipe(
     }
 
     public boolean isRandomResult() {
-        return result == null && resultFluid == null;
+        return result == null && resultItem == null && resultFluid == null;
     }
 
     public boolean isFluidResult() {
         return resultFluid != null;
+    }
+
+    public boolean isItemResult() {
+        return resultItem != null;
+    }
+
+    /** Item inserted or dropped: explicit item result, or the block's item form. */
+    @Nullable
+    public Item outputItem() {
+        if (resultItem != null) {
+            return resultItem;
+        }
+        return result == null ? null : result.asItem();
     }
 
     public boolean matchesUnderBlock(Block block) {

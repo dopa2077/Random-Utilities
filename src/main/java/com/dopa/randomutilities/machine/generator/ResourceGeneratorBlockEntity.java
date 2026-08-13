@@ -25,7 +25,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -155,6 +157,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 // Fluid recipes are pinned by recipe id only — display uses ice/magma proxies, not real outputs.
                 if (current.result() != null) {
                     lockedResultId = blockId(current.result());
+                } else if (current.resultItem() != null) {
+                    lockedResultId = itemId(current.resultItem());
                 } else if (!current.isFluidResult() && !displayResultId.isEmpty()) {
                     lockedResultId = displayResultId;
                 }
@@ -219,9 +223,21 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     }
 
     public ItemStack displayResultStack() {
-        return getDisplayResultBlock()
-                .map(block -> new ItemStack(block.asItem()))
-                .orElse(ItemStack.EMPTY);
+        if (displayResultId.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        Identifier id = Identifier.tryParse(displayResultId);
+        if (id == null) {
+            return ItemStack.EMPTY;
+        }
+        if (BuiltInRegistries.ITEM.containsKey(id)) {
+            Item item = BuiltInRegistries.ITEM.getValue(id);
+            return item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
+        }
+        if (BuiltInRegistries.BLOCK.containsKey(id)) {
+            return new ItemStack(BuiltInRegistries.BLOCK.getValue(id).asItem());
+        }
+        return ItemStack.EMPTY;
     }
 
     public void dropUpgrades(Level level, BlockPos pos) {
@@ -289,6 +305,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             if (!outputLocked || lockedResultId.isEmpty()) {
                 if (match.recipe().isFluidResult()) {
                     setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(match.recipe().resultFluid()));
+                } else if (match.recipe().isItemResult()) {
+                    setDisplayResult(match.recipe().resultItem());
                 } else if (!match.recipe().isRandomResult()) {
                     setDisplayResult(match.recipe().result());
                 }
@@ -324,6 +342,20 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(fluid));
             rememberNonFree(match.recipe(), null);
             pinLockFromCurrent(match.recipe());
+        } else if (match.recipe().isItemResult()) {
+            Item item = match.recipe().resultItem();
+            requested = ResourceGeneratorOutput.requestedAmount(match.recipe().outputMode(), produceAmount);
+            produced = ResourceGeneratorOutput.outputItems(
+                    level, worldPosition, item, requested, match.recipe().outputMode(), false);
+            if (item == null || produced <= 0) {
+                outputBlocked = true;
+                resetProgress();
+                setChanged();
+                return;
+            }
+            setDisplayResult(item);
+            rememberNonFree(match.recipe(), itemId(item));
+            pinLockFromCurrent(match.recipe());
         } else {
             Block result = outputOverride != null
                     ? outputOverride
@@ -338,7 +370,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                 return;
             }
             setDisplayResult(result);
-            rememberNonFree(match.recipe(), result);
+            rememberNonFree(match.recipe(), blockId(result));
             pinLockFromCurrent(match.recipe());
         }
 
@@ -367,7 +399,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         }
     }
 
-    private void rememberNonFree(GeneratorRecipe recipe, @Nullable Block result) {
+    private void rememberNonFree(GeneratorRecipe recipe, @Nullable String resultId) {
         if (recipe.isFreeRecipe()) {
             return;
         }
@@ -376,16 +408,19 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             lastNonFreeResultId = "";
             return;
         }
-        if (result != null) {
-            String id = blockId(result);
-            if (!id.isEmpty()) {
-                lastNonFreeResultId = id;
-            }
+        if (resultId != null && !resultId.isEmpty()) {
+            lastNonFreeResultId = resultId;
         }
     }
 
     private static String blockId(Block block) {
         return Optional.ofNullable(BuiltInRegistries.BLOCK.getKey(block))
+                .map(Identifier::toString)
+                .orElse("");
+    }
+
+    private static String itemId(Item item) {
+        return Optional.ofNullable(BuiltInRegistries.ITEM.getKey(item))
                 .map(Identifier::toString)
                 .orElse("");
     }
@@ -443,10 +478,14 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                             lockedResultId = "";
                             setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(recipe.resultFluid()));
                             rememberNonFree(recipe, null);
+                        } else if (recipe.isItemResult()) {
+                            lockedResultId = itemId(recipe.resultItem());
+                            setDisplayResult(recipe.resultItem());
+                            rememberNonFree(recipe, lockedResultId);
                         } else if (recipe.result() != null) {
                             lockedResultId = blockId(recipe.result());
                             setDisplayResult(recipe.result());
-                            rememberNonFree(recipe, recipe.result());
+                            rememberNonFree(recipe, lockedResultId);
                         }
                         syncDisplay();
                     }
@@ -464,10 +503,14 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                         lockedResultId = "";
                         setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(recipe.resultFluid()));
                         rememberNonFree(recipe, null);
+                    } else if (recipe.isItemResult()) {
+                        lockedResultId = itemId(recipe.resultItem());
+                        setDisplayResult(recipe.resultItem());
+                        rememberNonFree(recipe, lockedResultId);
                     } else if (recipe.result() != null) {
                         lockedResultId = blockId(recipe.result());
                         setDisplayResult(recipe.result());
-                        rememberNonFree(recipe, recipe.result());
+                        rememberNonFree(recipe, lockedResultId);
                     }
                     syncDisplay();
                 }
@@ -481,8 +524,14 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
 
     private void setDisplayResult(@Nullable Block result) {
-        String newId = result == null ? "" : Optional.ofNullable(BuiltInRegistries.BLOCK.getKey(result))
-                .map(Identifier::toString).orElse("");
+        setDisplayResultId(result == null ? "" : blockId(result));
+    }
+
+    private void setDisplayResult(@Nullable Item item) {
+        setDisplayResultId(item == null ? "" : itemId(item));
+    }
+
+    private void setDisplayResultId(String newId) {
         if (newId.equals(displayResultId)) {
             return;
         }
@@ -503,9 +552,16 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return Optional.empty();
         }
         Identifier id = Identifier.tryParse(displayResultId);
-        return id != null && BuiltInRegistries.BLOCK.containsKey(id)
-                ? Optional.of(BuiltInRegistries.BLOCK.getValue(id))
-                : Optional.empty();
+        if (id == null) {
+            return Optional.empty();
+        }
+        if (BuiltInRegistries.BLOCK.containsKey(id)) {
+            return Optional.of(BuiltInRegistries.BLOCK.getValue(id));
+        }
+        if (BuiltInRegistries.ITEM.containsKey(id)) {
+            return Optional.of(ResourceGeneratorOutput.previewBlockForItem(BuiltInRegistries.ITEM.getValue(id)));
+        }
+        return Optional.empty();
     }
 
     public Block defaultDisplayBlock() {

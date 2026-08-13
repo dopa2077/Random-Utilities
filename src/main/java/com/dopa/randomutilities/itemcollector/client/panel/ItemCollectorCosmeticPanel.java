@@ -32,9 +32,10 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
     private static final int SWATCH_H = (BLUE_Y + 12) - RED_Y;
     private static final int SWATCH_GAP = 4;
     private static final int PARTICLES_LABEL_Y = 80;
-    private static final int PARTICLES_BUTTON_Y = 92;
+    private static final int PARTICLES_BUTTON_Y = 94;
     private static final int PARTICLES_BUTTON_H = 18;
-    private static final int PANEL_H = 120;
+    private static final int TRAY_PAD = 4;
+    private static final int PANEL_H = 122;
     private static final ItemStack DYE_ICON = new ItemStack(Items.DYE.pink());
 
     private final ItemCollectorScreen screen;
@@ -179,6 +180,20 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
         particlesButton.setX(bx + CONTENT_PAD);
         particlesButton.setY(by + PARTICLES_BUTTON_Y);
         particlesButton.setWidth(panelWidth - CONTENT_PAD * 2);
+        particlesButton.setHeight(PARTICLES_BUTTON_H);
+    }
+
+    private TrayBounds particlesTray(int bodyX, int bodyY) {
+        return innerButtonTray(bodyX, bodyY, PARTICLES_BUTTON_Y, PARTICLES_BUTTON_H, TRAY_PAD);
+    }
+
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        if (!contentsInteractive()) {
+            return false;
+        }
+        TrayBounds tray = particlesTray(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
+        return isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height());
     }
 
     @Override
@@ -225,6 +240,7 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
 
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.item_collector.particles"),
                 bodyX, bodyY + PARTICLES_LABEL_Y);
+        renderTray(graphics, particlesTray(bodyX, bodyY), BG);
     }
 
     private static final class ChannelSlider extends AbstractWidget {

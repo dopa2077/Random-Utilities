@@ -12,8 +12,126 @@
       "result": "minecraft:stone",
       "sides": [
         {
-          "id": "minecraft:water",
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "dirt",
+      "result": "minecraft:dirt",
+      "below": "minecraft:oak_leaves",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "gravel",
+      "result": "minecraft:gravel",
+      "below": "minecraft:stone",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "sand",
+      "result": "minecraft:sand",
+      "below": "minecraft:sandstone",
+      "sides": [
+        {
+          "id": "minecraft:dead_bush",
           "consume": true
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "red_sand",
+      "result": "minecraft:red_sand",
+      "below": "minecraft:red_sandstone",
+      "sides": [
+        {
+          "id": "minecraft:dead_bush",
+          "consume": true
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "clay",
+      "result": "minecraft:clay",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:sand"
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "moss_block",
+      "result": "minecraft:moss_block",
+      "below": "minecraft:moss_block",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "sandstone",
+      "result": "minecraft:sandstone",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:clay"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "red_sandstone",
+      "result": "minecraft:red_sandstone",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:clay"
+        }
+      ],
+      "amount": 1,
+      "ticks": 20
+    },
+    {
+      "id": "mud",
+      "result": "minecraft:mud",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:water"
         }
       ],
       "amount": 1,
@@ -56,128 +174,17 @@
       "ticks": 20
     },
     {
-      "id": "dirt",
-      "result": "minecraft:dirt",
-      "below": "minecraft:oak_leaves",
+      "id": "copper_ingot",
+      "result": "minecraft:copper_ingot",
+      "below": "minecraft:copper_ore",
       "sides": [
         {
-          "id": "minecraft:water",
+          "id": "minecraft:lava",
           "consume": true
         }
       ],
       "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "mud",
-      "result": "minecraft:mud",
-      "below": "minecraft:dirt",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "sand",
-      "result": "minecraft:sand",
-      "below": "minecraft:sandstone",
-      "sides": [
-        {
-          "id": "minecraft:dead_bush",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water"
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "red_sand",
-      "result": "minecraft:red_sand",
-      "below": "minecraft:red_sandstone",
-      "sides": [
-        {
-          "id": "minecraft:dead_bush",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water"
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "gravel",
-      "result": "minecraft:gravel",
-      "below": "minecraft:stone",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "clay",
-      "result": "minecraft:clay",
-      "below": "minecraft:dirt",
-      "sides": [
-        {
-          "id": "minecraft:sand"
-        },
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "moss_block",
-      "result": "minecraft:moss_block",
-      "below": "minecraft:moss_block",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "sandstone",
-      "result": "minecraft:sandstone",
-      "below": "minecraft:sand",
-      "sides": [
-        {
-          "id": "minecraft:clay"
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
-    },
-    {
-      "id": "red_sandstone",
-      "result": "minecraft:red_sandstone",
-      "below": "minecraft:red_sand",
-      "sides": [
-        {
-          "id": "minecraft:clay"
-        }
-      ],
-      "amount": 1,
-      "ticks": 20
+      "ticks": 80
     }
   ]
 }

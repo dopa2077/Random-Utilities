@@ -9,6 +9,7 @@ import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -78,10 +79,10 @@ public record GeneratorJeiRecipe(GeneratorType type, GeneratorRecipe recipe) {
             return List.of();
         }
         if (!recipe.isRandomResult()) {
-            Block result = recipe.result();
-            return result == null || result.asItem() == Items.AIR
+            Item output = recipe.outputItem();
+            return output == null || output == Items.AIR
                     ? List.of()
-                    : List.of(new ItemStack(result.asItem(), recipe.amount()));
+                    : List.of(new ItemStack(output, recipe.amount()));
         }
         List<Block> pool = switch (type.mode()) {
             case RANDOM_ORE -> GeneratorRecipeConfig.ores();

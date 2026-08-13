@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "D": "#c:storage_blocks/diamond",
+    "D": "#c:gems/diamond",
     "A": "dopasrandomutilities:advanced_stone_generator",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket"

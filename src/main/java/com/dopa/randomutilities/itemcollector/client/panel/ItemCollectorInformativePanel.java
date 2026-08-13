@@ -12,6 +12,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class ItemCollectorInformativePanel extends AttachedPanel {
@@ -60,13 +61,13 @@ public final class ItemCollectorInformativePanel extends AttachedPanel {
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
 
-        List<FormattedCharSequence> lines = font.split(infoText(), maxWidth);
+        List<FormattedCharSequence> lines = buildLines(font, maxWidth);
         int contentHeight = lines.size() * lineStep;
         int scrollPixels = scrollbar.begin(contentHeight, viewHeight);
 
         int textY = viewTop - scrollPixels;
         for (FormattedCharSequence line : lines) {
-            if (textY + font.lineHeight > viewTop && textY < viewBottom) {
+            if (line != null && textY + font.lineHeight > viewTop && textY < viewBottom) {
                 graphics.text(font, line, textX, textY, BODY_TEXT, false);
             }
             textY += lineStep;
@@ -107,14 +108,33 @@ public final class ItemCollectorInformativePanel extends AttachedPanel {
         int viewHeight = Math.max(0, panelHeight - TITLE_ROW_HEIGHT - 2 - CONTENT_PAD);
         int maxWidth = contentInnerWidth() - 4;
         int lineStep = font.lineHeight + 1;
-        int contentHeight = font.split(infoText(), maxWidth).size() * lineStep;
+        int contentHeight = buildLines(font, maxWidth).size() * lineStep;
         scrollbar.begin(contentHeight, viewHeight);
         return scrollbar.mouseScrolled(scrollY * lineStep * 2);
     }
 
-    private Component infoText() {
-        return type == ItemCollectorType.BASIC
-                ? Component.translatable("gui.dopasrandomutilities.panel.info.item_collector.basic")
-                : Component.translatable("gui.dopasrandomutilities.panel.info.item_collector.advanced");
+    private List<FormattedCharSequence> buildLines(Font font, int maxWidth) {
+        List<FormattedCharSequence> lines = new ArrayList<>();
+        String[] keys = paragraphKeys();
+        for (int i = 0; i < keys.length; i++) {
+            if (i > 0) {
+                lines.add(null);
+            }
+            lines.addAll(font.split(Component.translatable(keys[i]), maxWidth));
+        }
+        return lines;
+    }
+
+    private String[] paragraphKeys() {
+        if (type == ItemCollectorType.BASIC) {
+            return new String[] {
+                    "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                    "gui.dopasrandomutilities.panel.info.item_collector.basic"
+            };
+        }
+        return new String[] {
+                "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                "gui.dopasrandomutilities.panel.info.item_collector.advanced"
+        };
     }
 }

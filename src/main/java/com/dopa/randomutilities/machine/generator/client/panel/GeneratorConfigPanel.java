@@ -17,8 +17,10 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 public final class GeneratorConfigPanel extends AttachedPanel {
     private static final int BG = 0xFF1A4548;
     private static final int LOCK_LABEL_Y = 28;
-    private static final int LOCK_BUTTON_Y = 40;
+    private static final int LOCK_BUTTON_Y = 42;
     private static final int LOCK_BUTTON_H = 18;
+    private static final int LOCK_BUTTON_W = 100;
+    private static final int TRAY_PAD = 4;
     private static final ItemStack COMPARATOR_ICON = new ItemStack(Items.COMPARATOR);
 
     private final ResourceGeneratorScreen screen;
@@ -49,7 +51,7 @@ public final class GeneratorConfigPanel extends AttachedPanel {
         }
         widgetsCreated = true;
         lockButton = Button.builder(Component.empty(), b -> toggleLock())
-                .bounds(0, 0, 100, LOCK_BUTTON_H)
+                .bounds(0, 0, LOCK_BUTTON_W, LOCK_BUTTON_H)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.dopasrandomutilities.panel.config.lock_output.tooltip")))
                 .build();
@@ -76,6 +78,19 @@ public final class GeneratorConfigPanel extends AttachedPanel {
                 : "gui.dopasrandomutilities.panel.config.lock_output.disabled"));
     }
 
+    private TrayBounds lockTray(int bodyX, int bodyY) {
+        return trayBounds(bodyX, panelWidth, LOCK_BUTTON_W, bodyY + LOCK_BUTTON_Y, LOCK_BUTTON_H, TRAY_PAD);
+    }
+
+    @Override
+    public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
+        if (!contentsInteractive()) {
+            return false;
+        }
+        TrayBounds tray = lockTray(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
+        return isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height());
+    }
+
     @Override
     public void layoutWidgets(int leftPos, int topPos, int imageWidth) {
         if (!widgetsCreated) {
@@ -83,8 +98,10 @@ public final class GeneratorConfigPanel extends AttachedPanel {
         }
         int bx = bodyXOpen(leftPos, imageWidth);
         int by = bodyY(topPos);
-        lockButton.setX(bx + (panelWidth - lockButton.getWidth()) / 2);
+        lockButton.setX(bx + (panelWidth - LOCK_BUTTON_W) / 2);
         lockButton.setY(by + LOCK_BUTTON_Y);
+        lockButton.setWidth(LOCK_BUTTON_W);
+        lockButton.setHeight(LOCK_BUTTON_H);
     }
 
     @Override
@@ -108,5 +125,6 @@ public final class GeneratorConfigPanel extends AttachedPanel {
         refreshLockButton();
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.panel.config.lock_output"),
                 bodyX, bodyY + LOCK_LABEL_Y);
+        renderTray(graphics, lockTray(bodyX, bodyY), BG);
     }
 }

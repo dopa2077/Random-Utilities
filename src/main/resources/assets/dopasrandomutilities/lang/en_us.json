@@ -156,11 +156,11 @@
   "item.dopasrandomutilities.solar_furnace": "Solar Furnace",
   "container.dopasrandomutilities.solar_furnace": "Solar Furnace",
   "gui.dopasrandomutilities.panel.info.solar_furnace.intro": "A furnace powered by sunlight instead of fuel. It needs clear sky access above the block.",
-  "gui.dopasrandomutilities.panel.info.solar_furnace.sun": "Speed peaks around noon at about 90% of a normal furnace, and slows near sunrise and sunset. Rain cuts that roughly in half, and thunderstorms cut it further. At night or when blocked from the sky it stops completely.",
+  "gui.dopasrandomutilities.panel.info.solar_furnace.sun": "Sunlight ramps from a trickle at sunrise to full strength at noon, then back down toward sunset. Peak cook speed is about 90% of a normal furnace. \n\nRain cuts that roughly in half, and thunderstorms cut it further. At night or when blocked from the sky it stops completely.",
   "block.dopasrandomutilities.fishnet": "Fishnet",
   "item.dopasrandomutilities.fishnet": "Fishnet",
   "container.dopasrandomutilities.fishnet": "Fishnet",
-  "gui.dopasrandomutilities.panel.info.fishnet.intro": "Place it waterlogged with water sources on all four sides. Insert a fishing rod to catch fish and junk; Lure and Luck of the Sea apply, and the rod takes durability. Fortune Mesh unlocks vanilla treasure in open water (up to 90% force chance). Treasure Mesh replaces that loot with a custom table.",
+  "gui.dopasrandomutilities.panel.info.fishnet.intro": "Place it waterlogged with water sources on all four sides. Insert a fishing rod to catch fish and junk; Lure and Luck of the Sea apply, and the rod takes durability. \n\nFortune vanilla treasure in open water (up to 90% force chance). Treasure Mesh replaces that loot with a custom table.",
   "gui.dopasrandomutilities.fishnet.need_water": "Needs to be waterlogged with water sources on all four sides",
   "gui.dopasrandomutilities.fishnet.need_rod": "Requires a fishing rod",
   "jei.dopasrandomutilities.fishnet.info": "An underwater fish trap. Place it in water so it is waterlogged and every horizontal side touches a water source, then insert a fishing rod.\n\nPeriodically rolls vanilla fishing loot into its 9 slots. Without Fortune Mesh that is fish and junk only. Rod enchantments (Lure, Luck of the Sea, Unbreaking) apply, and each catch costs durability. Fortune Mesh unlocks vanilla treasure in open water (the same check as a fishing bobber; a 3×3 pond is not enough) and raises the chance to force it, capped at 90%. Treasure Mesh replaces catches with a custom config loot table and overwrites Fortune Mesh. When a catch is about to finish, a fish swims toward the net as a visual effect.",
@@ -202,7 +202,9 @@
   "gui.dopasrandomutilities.item_collector.range_y": "Range Y:",
   "gui.dopasrandomutilities.item_collector.range_z": "Range Z:",
   "gui.dopasrandomutilities.item_collector.pickup_delay": "Pickup delay (ticks)",
+  "gui.dopasrandomutilities.item_collector.pickup_delay.tooltip": "Ticks between pickup attempts. Higher values slow down collection. Use ∞ to pause collection.",
   "gui.dopasrandomutilities.item_collector.pickup_batch": "Items per pickup",
+  "gui.dopasrandomutilities.item_collector.pickup_batch.tooltip": "How many items to pull in each pickup attempt.",
   "gui.dopasrandomutilities.item_collector.infinite_delay": "Disable pickup",
   "gui.dopasrandomutilities.item_collector.los": "Line of sight",
   "gui.dopasrandomutilities.item_collector.los.tooltip": "When enabled, items behind solid blocks are not collected",
@@ -222,6 +224,7 @@
   "gui.dopasrandomutilities.item_collector.particles.disabled": "Disabled",
   "gui.dopasrandomutilities.item_collector.particles.tooltip": "Portal particles when items are collected",
   "gui.dopasrandomutilities.item_collector.cosmetic.swatch.tooltip": "These sliders change the color of the highlight pickup range",
-  "gui.dopasrandomutilities.panel.info.item_collector.basic": "Attach to any block face. Collected items go into the block behind the collector. Blacklist slots ignore matching item types. Use the configurator for pickup range, delay, and batch size.",
-  "gui.dopasrandomutilities.panel.info.item_collector.advanced": "Attach to any block face. Collected items go into the block behind the collector. Toggle blacklist or whitelist for all filter slots. Line-of-sight mode skips items behind solid blocks. Use the configurator for range, delay, batch size, and LOS."
+  "gui.dopasrandomutilities.panel.info.item_collector.intro": "Collects items in its pickup range. They go directly into the attached block.",
+  "gui.dopasrandomutilities.panel.info.item_collector.basic": "Blacklist slots ignore matching item types. Set range, delay, and batch in the Configuration panel.",
+  "gui.dopasrandomutilities.panel.info.item_collector.advanced": "Switch between blacklist and whitelist to choose what gets picked up. Set range, delay, batch, and line of sight in the Configuration panel."
 }

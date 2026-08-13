@@ -12,8 +12,126 @@
       "result": "minecraft:stone",
       "sides": [
         {
-          "id": "minecraft:water",
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "dirt",
+      "result": "minecraft:dirt",
+      "below": "minecraft:oak_leaves",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "gravel",
+      "result": "minecraft:gravel",
+      "below": "minecraft:stone",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "sand",
+      "result": "minecraft:sand",
+      "below": "minecraft:sandstone",
+      "sides": [
+        {
+          "id": "minecraft:dead_bush",
           "consume": true
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "red_sand",
+      "result": "minecraft:red_sand",
+      "below": "minecraft:red_sandstone",
+      "sides": [
+        {
+          "id": "minecraft:dead_bush",
+          "consume": true
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "clay",
+      "result": "minecraft:clay",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:sand"
+        },
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "moss_block",
+      "result": "minecraft:moss_block",
+      "below": "minecraft:moss_block",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "sandstone",
+      "result": "minecraft:sandstone",
+      "below": "minecraft:sand",
+      "sides": [
+        {
+          "id": "minecraft:clay"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "red_sandstone",
+      "result": "minecraft:red_sandstone",
+      "below": "minecraft:red_sand",
+      "sides": [
+        {
+          "id": "minecraft:clay"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "mud",
+      "result": "minecraft:mud",
+      "below": "minecraft:dirt",
+      "sides": [
+        {
+          "id": "minecraft:water"
         }
       ],
       "amount": 1000000,
@@ -56,136 +174,12 @@
       "ticks": 1
     },
     {
-      "id": "dirt",
-      "result": "minecraft:dirt",
-      "below": "minecraft:oak_leaves",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "mud",
-      "result": "minecraft:mud",
-      "below": "minecraft:dirt",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "sand",
-      "result": "minecraft:sand",
-      "below": "minecraft:sandstone",
-      "sides": [
-        {
-          "id": "minecraft:dead_bush",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water"
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "red_sand",
-      "result": "minecraft:red_sand",
-      "below": "minecraft:red_sandstone",
-      "sides": [
-        {
-          "id": "minecraft:dead_bush",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water"
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "gravel",
-      "result": "minecraft:gravel",
-      "below": "minecraft:stone",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "clay",
-      "result": "minecraft:clay",
-      "below": "minecraft:dirt",
-      "sides": [
-        {
-          "id": "minecraft:sand"
-        },
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "moss_block",
-      "result": "minecraft:moss_block",
-      "below": "minecraft:moss_block",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "sandstone",
-      "result": "minecraft:sandstone",
-      "below": "minecraft:sand",
-      "sides": [
-        {
-          "id": "minecraft:clay"
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "red_sandstone",
-      "result": "minecraft:red_sandstone",
-      "below": "minecraft:red_sand",
-      "sides": [
-        {
-          "id": "minecraft:clay"
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
       "id": "cobbled_deepslate",
       "result": "minecraft:cobbled_deepslate",
-      "below": "minecraft:deepslate",
+      "below": "minecraft:cobblestone",
       "sides": [
         {
-          "id": "minecraft:iron_block"
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -197,27 +191,6 @@
       "below": "minecraft:cobbled_deepslate",
       "sides": [
         {
-          "id": "minecraft:water",
-          "consume": true
-        },
-        {
-          "id": "minecraft:lava",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "basalt",
-      "result": "minecraft:basalt",
-      "below": "minecraft:soul_soil",
-      "sides": [
-        {
-          "id": "minecraft:blue_ice",
-          "consume": true
-        },
-        {
           "id": "minecraft:lava"
         }
       ],
@@ -225,12 +198,12 @@
       "ticks": 1
     },
     {
-      "id": "soul_sand",
-      "result": "minecraft:soul_sand",
-      "below": "minecraft:soul_soil",
+      "id": "smooth_stone",
+      "result": "minecraft:smooth_stone",
+      "below": "minecraft:stone",
       "sides": [
         {
-          "id": "minecraft:water"
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -242,8 +215,7 @@
       "below": "minecraft:clay",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -255,12 +227,7 @@
       "below": "minecraft:clay",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water",
-          "consume": true
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -280,9 +247,22 @@
       "ticks": 1
     },
     {
-      "id": "smooth_stone",
-      "result": "minecraft:smooth_stone",
-      "below": "minecraft:stone",
+      "id": "copper_ingot",
+      "result": "minecraft:copper_ingot",
+      "below": "minecraft:copper_ore",
+      "sides": [
+        {
+          "id": "minecraft:lava",
+          "consume": true
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "iron_ingot",
+      "result": "minecraft:iron_ingot",
+      "below": "minecraft:iron_ore",
       "sides": [
         {
           "id": "minecraft:lava",
@@ -313,8 +293,7 @@
       "below": "minecraft:magma_block",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -326,11 +305,7 @@
       "below": "minecraft:basalt",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
-        },
-        {
-          "id": "minecraft:gold_block"
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -342,11 +317,7 @@
       "below": "minecraft:netherrack",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
-        },
-        {
-          "id": "minecraft:gold_block"
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -366,12 +337,36 @@
       "ticks": 1
     },
     {
-      "id": "resin_bricks",
-      "result": "minecraft:resin_bricks",
-      "below": "minecraft:creaking_heart",
+      "id": "basalt",
+      "result": "minecraft:basalt",
+      "below": "minecraft:soul_soil",
       "sides": [
         {
-          "id": "minecraft:pale_oak_log",
+          "id": "minecraft:lava"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "soul_sand",
+      "result": "minecraft:soul_sand",
+      "below": "minecraft:soul_soil",
+      "sides": [
+        {
+          "id": "minecraft:water"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "gold_ingot",
+      "result": "minecraft:gold_ingot",
+      "below": "minecraft:nether_gold_ore",
+      "sides": [
+        {
+          "id": "minecraft:lava",
           "consume": true
         }
       ],
@@ -385,9 +380,6 @@
       "sides": [
         {
           "id": "minecraft:water"
-        },
-        {
-          "id": "minecraft:diamond_block"
         }
       ],
       "amount": 1000000,
@@ -437,8 +429,7 @@
       "below": "minecraft:smooth_basalt",
       "sides": [
         {
-          "id": "minecraft:amethyst_block",
-          "consume": true
+          "id": "minecraft:amethyst_block"
         }
       ],
       "amount": 1000000,
@@ -450,8 +441,7 @@
       "below": "minecraft:deepslate",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
+          "id": "minecraft:lava"
         }
       ],
       "amount": 1000000,
@@ -476,7 +466,32 @@
       "below": "minecraft:ice",
       "sides": [
         {
-          "id": "minecraft:blue_ice",
+          "id": "minecraft:blue_ice"
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "resin_bricks",
+      "result": "minecraft:resin_bricks",
+      "below": "minecraft:creaking_heart",
+      "sides": [
+        {
+          "id": "minecraft:pale_oak_log",
+          "consume": true
+        }
+      ],
+      "amount": 1000000,
+      "ticks": 1
+    },
+    {
+      "id": "diamond",
+      "result": "minecraft:diamond",
+      "below": "minecraft:deepslate_diamond_ore",
+      "sides": [
+        {
+          "id": "minecraft:lava",
           "consume": true
         }
       ],
@@ -489,8 +504,7 @@
       "below": "minecraft:end_stone",
       "sides": [
         {
-          "id": "minecraft:end_rod",
-          "consume": true
+          "id": "minecraft:end_rod"
         }
       ],
       "amount": 1000000,
@@ -510,80 +524,34 @@
       "ticks": 1
     },
     {
-      "id": "reinforced_deepslate",
-      "result": "minecraft:reinforced_deepslate",
-      "below": "minecraft:chiseled_deepslate",
-      "sides": [
-        {
-          "id": "minecraft:sculk_catalyst",
-          "consume": true
-        },
-        {
-          "id": "minecraft:sculk_shrieker"
-        },
-        {
-          "id": "minecraft:iron_block",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
       "id": "lava",
       "result": "minecraft:lava",
       "below": "minecraft:magma_block",
       "sides": [
         {
-          "id": "minecraft:netherrack",
-          "consume": true
+          "id": "minecraft:netherrack"
         }
       ],
       "amount": 1000000,
       "ticks": 1
     },
     {
-      "id": "iron_block",
-      "result": "minecraft:iron_block",
-      "below": "minecraft:iron_ore",
+      "id": "reinforced_deepslate",
+      "result": "minecraft:reinforced_deepslate",
+      "below": "minecraft:chiseled_deepslate",
       "sides": [
         {
-          "id": "minecraft:lava",
-          "consume": true
-        },
-        {
-          "id": "minecraft:water",
-          "consume": true
+          "id": "minecraft:sculk_catalyst"
         }
       ],
       "amount": 1000000,
       "ticks": 1
     },
     {
-      "id": "diamond_block",
-      "result": "minecraft:diamond_block",
-      "below": "minecraft:deepslate_diamond_ore",
-      "sides": [
-        {
-          "id": "minecraft:water",
-          "consume": true
-        },
-        {
-          "id": "minecraft:lava",
-          "consume": true
-        }
-      ],
-      "amount": 1000000,
-      "ticks": 1
-    },
-    {
-      "id": "netherite_block",
-      "result": "minecraft:netherite_block",
+      "id": "netherite_ingot",
+      "result": "minecraft:netherite_ingot",
       "below": "minecraft:ancient_debris",
       "sides": [
-        {
-          "id": "minecraft:netherite_block"
-        },
         {
           "id": "minecraft:lava",
           "consume": true

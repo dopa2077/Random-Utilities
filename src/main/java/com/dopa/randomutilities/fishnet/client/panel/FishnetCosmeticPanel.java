@@ -19,7 +19,7 @@ public final class FishnetCosmeticPanel extends AttachedPanel {
     private static final int BG = 0xFF7B5A96;
     private static final int BUTTON_W = 100;
     private static final int BUTTON_H = 18;
-    private static final int TRAY_PAD = 5;
+    private static final int TRAY_PAD = 4;
     private static final int PARTICLES_LABEL_Y = 22;
     private static final int PARTICLES_BUTTON_Y = 34;
     private static final int SOUND_LABEL_Y = 66;

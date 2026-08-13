@@ -39,13 +39,13 @@ public final class SolarPower {
 
         float sunAngleDeg = level.environmentAttributes().getValue(EnvironmentAttributes.SUN_ANGLE, skyPos);
         float sunAngleRad = sunAngleDeg * ((float) Math.PI / 180.0F);
-        // Same soft correction Daylight Detector uses so noon reads high and dawn/dusk taper.
-        float offset = sunAngleRad < (float) Math.PI ? 0.0F : (float) (Math.PI * 2.0);
-        sunAngleRad += (offset - sunAngleRad) * 0.2F;
         float height = Mth.cos(sunAngleRad);
         if (height <= 0.0F) {
             return new Snapshot(0.0F, Status.NO_SUN);
         }
+        // Horizon is a trickle; noon is full strength. Do not use the daylight-detector
+        // 0.2 pull-toward-noon, which made sunrise look like ~40%.
+        height = Mth.clamp(height, 0.01F, 1.0F);
         if (level.isRainingAt(skyPos)) {
             height *= level.isThundering() ? 0.2F : 0.5F;
         }

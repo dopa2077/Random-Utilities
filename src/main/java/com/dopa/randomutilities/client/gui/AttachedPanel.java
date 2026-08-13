@@ -227,6 +227,17 @@ public abstract class AttachedPanel {
         );
     }
 
+    /** Tray around a full-width inner button ({@link #CONTENT_PAD} on each side). */
+    protected TrayBounds innerButtonTray(int bodyX, int bodyY, int buttonY, int buttonH, int trayPad) {
+        return trayBoundsAt(
+                bodyX + CONTENT_PAD,
+                bodyY + buttonY,
+                panelWidth - CONTENT_PAD * 2,
+                buttonH,
+                trayPad
+        );
+    }
+
     protected void renderTray(GuiGraphicsExtractor graphics, TrayBounds tray, int bgColor) {
         graphics.fill(tray.x(), tray.y(), tray.x() + tray.width(), tray.y() + tray.height(), darken(bgColor, 40));
     }
