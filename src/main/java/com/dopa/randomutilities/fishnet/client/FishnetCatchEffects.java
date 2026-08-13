@@ -22,8 +22,19 @@ import java.util.Map;
  */
 public final class FishnetCatchEffects {
     private static final Map<BlockPos, ActiveCatch> ACTIVE = new HashMap<>();
+    /** Dummy ids for display-only fish; 0 is the unassigned sentinel in Entity#getId. */
+    private static int nextVisualId = -1;
 
     private FishnetCatchEffects() {}
+
+    private static int nextVisualId() {
+        int id = nextVisualId;
+        nextVisualId--;
+        if (nextVisualId == 0) {
+            nextVisualId = -1;
+        }
+        return id;
+    }
 
     public static void play(BlockPos netPos, int durationTicks) {
         BlockPos key = netPos.immutable();
@@ -48,6 +59,9 @@ public final class FishnetCatchEffects {
         );
 
         AbstractFish fish = createFish(level);
+        // Never added to the level, but LivingEntityRenderer → ItemModelResolver
+        // calls Entity#getId(), which throws if the id is still 0.
+        fish.setId(nextVisualId());
         fish.setPos(start.x, start.y, start.z);
         fish.setNoGravity(true);
         fish.setSilent(true);
