@@ -1,8 +1,10 @@
 package com.dopa.randomutilities.machine.network;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.machine.solarfurnace.menu.SolarFurnaceMenu;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -41,13 +43,20 @@ public record MachineSettingPayload(byte kind, int value) implements CustomPacke
     public static void handle(MachineSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof ResourceGeneratorMenu menu)) {
-                return;
-            }
-            if (payload.kind() == KIND_LOCK_OUTPUT) {
-                menu.setOutputLocked(payload.value() != 0);
-            } else if (payload.kind() == KIND_REDSTONE) {
-                menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+            if (player.containerMenu instanceof ResourceGeneratorMenu menu) {
+                if (payload.kind() == KIND_LOCK_OUTPUT) {
+                    menu.setOutputLocked(payload.value() != 0);
+                } else if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof SolarFurnaceMenu menu) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof FishnetMenu menu) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
             }
         });
     }

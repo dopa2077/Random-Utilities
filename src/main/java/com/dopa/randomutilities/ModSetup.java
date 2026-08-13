@@ -9,6 +9,9 @@ import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.trashcan.TrashCanNetwork;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockNetwork;
+import com.dopa.randomutilities.fishnet.FishnetNetwork;
+import com.dopa.randomutilities.fishnet.config.FishnetConfig;
+import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -36,6 +39,10 @@ public final class ModSetup {
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":upgrade_config");
     private static final Identifier ITEM_COLLECTOR_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":item_collector_config");
+    private static final Identifier FISHNET_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":fishnet_config");
+    private static final Identifier TREASURE_LOOT_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":treasure_loot_config");
 
     private ModSetup() {}
 
@@ -47,11 +54,15 @@ public final class ModSetup {
         ModMenus.MENUS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        // Load early so JEI (and other client plugins) see config values, not jar defaults only.
+        TreasureLootConfig.load();
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(() -> {
                     DevNullConfig.load();
                     UpgradeConfig.load();
                     ItemCollectorConfig.load();
+                    FishnetConfig.load();
+                    TreasureLootConfig.load();
                     GeneratorRecipeConfig.load();
                 }));
         modEventBus.addListener(FilterNetwork::registerCapabilities);
@@ -61,6 +72,7 @@ public final class ModSetup {
         modEventBus.addListener(ItemCollectorNetwork::registerPayloads);
         modEventBus.addListener(TrashCanNetwork::registerPayloads);
         modEventBus.addListener(RedstoneClockNetwork::registerPayloads);
+        modEventBus.addListener(FishnetNetwork::registerPayloads);
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -73,6 +85,16 @@ public final class ModSetup {
                 Capabilities.Item.BLOCK,
                 ModBlockEntities.TRASH_CAN.get(),
                 (be, side) -> be.itemHandler()
+        );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.SOLAR_FURNACE.get(),
+                (be, side) -> be.itemHandler(side)
+        );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.FISHNET.get(),
+                (be, side) -> be.itemHandler(side)
         );
     }
 
@@ -100,6 +122,14 @@ public final class ModSetup {
             event.addListener(
                     ITEM_COLLECTOR_CONFIG_LISTENER,
                     (ResourceManagerReloadListener) resourceManager -> ItemCollectorConfig.reload()
+            );
+            event.addListener(
+                    FISHNET_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> FishnetConfig.reload()
+            );
+            event.addListener(
+                    TREASURE_LOOT_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> TreasureLootConfig.reload()
             );
         }
 

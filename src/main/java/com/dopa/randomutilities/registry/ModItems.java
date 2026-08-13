@@ -9,8 +9,6 @@ import com.dopa.randomutilities.filter.FilterRegistry;
 import com.dopa.randomutilities.filter.item.AdvancedDevNullItem;
 import com.dopa.randomutilities.filter.item.DevNullItem;
 import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
-import com.dopa.randomutilities.filter.dev.UiTestBlockItem;
-import com.dopa.randomutilities.filter.dev.UiTestItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -31,14 +29,6 @@ public final class ModItems {
     public static final DeferredItem<AdvancedDevNullItem> ADVANCED_DEV_NULL =
             registerFilter("advanced_dev_null", AdvancedDevNullItem::new, DevNullConfig.advancedProfile());
 
-    public static final DeferredItem<UiTestItem> UI_TEST_ITEM =
-            registerFilter("ui_test_item", UiTestItem::new, DevNullConfig.uiTestProfile());
-
-    public static final DeferredItem<UiTestBlockItem> UI_TEST_BLOCK_ITEM = ITEMS.registerItem(
-            "ui_test_block",
-            props -> new UiTestBlockItem(ModBlocks.UI_TEST_BLOCK.get(), props)
-    );
-
     public static final DeferredItem<BlockItem> MINI_CHEST = ITEMS.registerSimpleBlockItem(ModBlocks.MINI_CHEST);
 
     public static final DeferredItem<BlockItem> TRASH_CAN = ITEMS.registerSimpleBlockItem(ModBlocks.TRASH_CAN);
@@ -52,6 +42,12 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> ADVANCED_ITEM_COLLECTOR =
             ITEMS.registerSimpleBlockItem(ModBlocks.ADVANCED_ITEM_COLLECTOR);
 
+    public static final DeferredItem<BlockItem> SOLAR_FURNACE =
+            ITEMS.registerSimpleBlockItem(ModBlocks.SOLAR_FURNACE);
+
+    public static final DeferredItem<BlockItem> FISHNET =
+            ITEMS.registerSimpleBlockItem(ModBlocks.FISHNET);
+
     public static final DeferredItem<Item> UPGRADE_CASING = ITEMS.registerItem("upgrade_casing", Item::new);
     public static final DeferredItem<MachineUpgradeItem> PRODUCTIVITY_UPGRADE = ITEMS.registerItem(
             "productivity_upgrade",
@@ -60,6 +56,14 @@ public final class ModItems {
     public static final DeferredItem<MachineUpgradeItem> OVERCLOCK_UPGRADE = ITEMS.registerItem(
             "overclock_upgrade",
             props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.OVERCLOCK)
+    );
+    public static final DeferredItem<MachineUpgradeItem> FORTUNE_MESH_UPGRADE = ITEMS.registerItem(
+            "fortune_mesh_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.FORTUNE_MESH)
+    );
+    public static final DeferredItem<MachineUpgradeItem> TREASURE_MESH_UPGRADE = ITEMS.registerItem(
+            "treasure_mesh_upgrade",
+            props -> new MachineUpgradeItem(props, MachineUpgradeItem.Kind.TREASURE_MESH)
     );
 
     private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);

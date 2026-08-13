@@ -26,7 +26,8 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
  */
 public final class ConfiguratorPanel extends AttachedPanel {
     private static final int BG = 0xFF1A4548;
-    private static final int BUTTON_SIZE = 20;
+    private static final int BUTTON_W = 20;
+    private static final int BUTTON_H = 18;
     private static final int BUTTON_GAP = 7;
     private static final int TRAY_PAD = 3;
     private static final ItemStack COMPARATOR_ICON = new ItemStack(Items.COMPARATOR);
@@ -102,21 +103,21 @@ public final class ConfiguratorPanel extends AttachedPanel {
 
     private Button settingsButton(Component label, Component tooltip, Runnable action) {
         return Button.builder(label, b -> action.run())
-                .bounds(0, 0, BUTTON_SIZE, BUTTON_SIZE)
+                .bounds(0, 0, BUTTON_W, BUTTON_H)
                 .tooltip(Tooltip.create(tooltip))
                 .build();
     }
 
     private static int buttonGroupWidth() {
-        return BUTTON_SIZE * 2 + BUTTON_GAP;
+        return BUTTON_W * 2 + BUTTON_GAP;
     }
 
     private TrayBounds slotTrayBounds(int bodyX, int bodyY) {
-        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + SLOT_BUTTONS_Y, BUTTON_SIZE, TRAY_PAD);
+        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + SLOT_BUTTONS_Y, BUTTON_H, TRAY_PAD);
     }
 
     private TrayBounds pageTrayBounds(int bodyX, int bodyY) {
-        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + PAGE_BUTTONS_Y, BUTTON_SIZE, TRAY_PAD);
+        return trayBounds(bodyX, panelWidth, buttonGroupWidth(), bodyY + PAGE_BUTTONS_Y, BUTTON_H, TRAY_PAD);
     }
 
     @Override
@@ -151,13 +152,21 @@ public final class ConfiguratorPanel extends AttachedPanel {
 
         removeSlotButton.setX(groupX);
         removeSlotButton.setY(by + SLOT_BUTTONS_Y);
-        addSlotButton.setX(groupX + BUTTON_SIZE + BUTTON_GAP);
+        removeSlotButton.setWidth(BUTTON_W);
+        removeSlotButton.setHeight(BUTTON_H);
+        addSlotButton.setX(groupX + BUTTON_W + BUTTON_GAP);
         addSlotButton.setY(by + SLOT_BUTTONS_Y);
+        addSlotButton.setWidth(BUTTON_W);
+        addSlotButton.setHeight(BUTTON_H);
 
         prevPageButton.setX(groupX);
         prevPageButton.setY(by + PAGE_BUTTONS_Y);
-        nextPageButton.setX(groupX + BUTTON_SIZE + BUTTON_GAP);
+        prevPageButton.setWidth(BUTTON_W);
+        prevPageButton.setHeight(BUTTON_H);
+        nextPageButton.setX(groupX + BUTTON_W + BUTTON_GAP);
         nextPageButton.setY(by + PAGE_BUTTONS_Y);
+        nextPageButton.setWidth(BUTTON_W);
+        nextPageButton.setHeight(BUTTON_H);
     }
 
     @Override

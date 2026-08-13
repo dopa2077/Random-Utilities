@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:furnace",
+    "minecraft:daylight_detector"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:solar_furnace"
+  }
+}

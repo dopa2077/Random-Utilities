@@ -3,6 +3,7 @@ package com.dopa.randomutilities;
 import java.util.Arrays;
 import java.util.List;
 
+import com.dopa.randomutilities.fishnet.client.FishnetRenderer;
 import com.dopa.randomutilities.minichest.client.MiniChestRenderer;
 import com.dopa.randomutilities.machine.generator.client.ResourceGeneratorRenderer;
 import com.dopa.randomutilities.machine.generator.config.GeneratorType;
@@ -36,6 +37,10 @@ public class dOPasRandomUtilitiesClient {
         event.registerBlockEntityRenderer(
                 ModBlockEntities.MINI_CHEST.get(),
                 MiniChestRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                ModBlockEntities.FISHNET.get(),
+                FishnetRenderer::new
         );
     }
 

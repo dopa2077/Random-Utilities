@@ -1,16 +1,30 @@
 {
   "productivity_bonus_percent_per_upgrade": 13,
   "overclock_speed_percent_per_upgrade": 9,
-  "max_upgrades_per_type": {
-    "basic_stone_generator": 5,
-    "intermediate_stone_generator": 10,
-    "advanced_stone_generator": 15,
-    "elite_stone_generator": 20,
-    "ultimate_stone_generator": 32,
-    "random_ore_generator": 10,
-    "metal_block_generator": 15,
-    "creative_stone_generator": 0,
-    "creative_random_ore_generator": 0,
-    "creative_metal_block_generator": 0
+  "generators": {
+    "basic_stone_generator": { "max_upgrades": 5 },
+    "intermediate_stone_generator": { "max_upgrades": 10 },
+    "advanced_stone_generator": { "max_upgrades": 15 },
+    "elite_stone_generator": { "max_upgrades": 20 },
+    "ultimate_stone_generator": { "max_upgrades": 32 },
+    "random_ore_generator": { "max_upgrades": 10 },
+    "metal_block_generator": { "max_upgrades": 15 },
+    "creative_stone_generator": { "max_upgrades": 0 },
+    "creative_random_ore_generator": { "max_upgrades": 0 },
+    "creative_metal_block_generator": { "max_upgrades": 0 }
+  },
+  "solar_furnace": {
+    "max_overclock": 3
+  },
+  "fishnet": {
+    "max_productivity": 9,
+    "max_overclock": 15,
+    "fortune_mesh": {
+      "treasure_percent_per_upgrade": 10,
+      "max": 9
+    },
+    "treasure_mesh": {
+      "max": 1
+    }
   }
 }

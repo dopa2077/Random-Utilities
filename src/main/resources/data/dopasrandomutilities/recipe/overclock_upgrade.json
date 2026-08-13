@@ -3,9 +3,9 @@
   "category": "misc",
   "key": {
     "C": "dopasrandomutilities:upgrade_casing",
-    "G": "minecraft:gold_block",
-    "R": "minecraft:redstone_block",
-    "D": "minecraft:redstone"
+    "G": "#c:storage_blocks/gold",
+    "R": "#c:storage_blocks/redstone",
+    "D": "#c:dusts/redstone"
   },
   "pattern": [
     "CDC",

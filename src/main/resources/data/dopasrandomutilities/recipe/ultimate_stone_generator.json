@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "N": "minecraft:netherite_block",
+    "N": "#c:ingots/netherite",
     "E": "dopasrandomutilities:elite_stone_generator",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket"

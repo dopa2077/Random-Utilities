@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "minecraft:chest"
+    "#c:chests/wooden"
   ],
   "result": {
     "count": 9,

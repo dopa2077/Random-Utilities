@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.itemcollector;
 
 import com.dopa.randomutilities.itemcollector.config.ItemCollectorConfig;
+import com.dopa.randomutilities.util.GhostItemFilter;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -62,7 +63,7 @@ final class ItemCollectorLogic {
                 continue;
             }
             ItemStack stack = entity.getItem();
-            if (!ItemCollectorFilter.shouldCollect(stack, be.filterSlots(), be.whitelistMode())) {
+            if (!GhostItemFilter.allows(stack, be.filterSlots(), be.whitelistMode())) {
                 continue;
             }
             if (type.supportsLineOfSight()

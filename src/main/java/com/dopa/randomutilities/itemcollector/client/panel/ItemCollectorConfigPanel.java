@@ -48,7 +48,8 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
     private static final int BATCH_LABEL_Y = 116;
     private static final int BATCH_BOX_Y = 126;
     private static final int LOS_LABEL_Y = 144;
-    private static final int LOS_BUTTON_Y = 154;
+    private static final int LOS_BUTTON_Y = 158;
+    private static final int LOS_BUTTON_H = 14;
 
     private final ItemCollectorScreen screen;
     private StepperButton rangeXMinus;
@@ -73,7 +74,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         super(
                 PanelAnchor.LEFT_BELOW,
                 PANEL_W,
-                screen.getMenu().collectorType() == ItemCollectorType.ADVANCED ? 176 : 148,
+                screen.getMenu().collectorType() == ItemCollectorType.ADVANCED ? 180 : 148,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.config")
         );
@@ -96,7 +97,11 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         rangeZPlus = stepperButton("+", ItemCollectorSettingPayload.KIND_RANGE_Z, 1);
 
         delayBox = axisBox(innerWidth - 24);
+        delayBox.setTooltip(Tooltip.create(Component.translatable(
+                "gui.dopasrandomutilities.item_collector.pickup_delay.tooltip")));
         batchBox = axisBox(innerWidth);
+        batchBox.setTooltip(Tooltip.create(Component.translatable(
+                "gui.dopasrandomutilities.item_collector.pickup_batch.tooltip")));
 
         infiniteDelayButton = Button.builder(Component.literal("\u221E"), b -> setInfiniteDelay())
                 .bounds(0, 0, 20, 12)
@@ -105,7 +110,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
 
         if (type.supportsLineOfSight()) {
             losButton = Button.builder(Component.empty(), b -> toggleLos())
-                    .bounds(0, 0, innerWidth, 14)
+                    .bounds(0, 0, innerWidth, LOS_BUTTON_H)
                     .build();
             screen.addOverlayWidget(losButton);
             refreshLosButton();
@@ -149,6 +154,10 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
 
     private int stepperGroupX(int bodyX) {
         return bodyX + panelWidth - CONTENT_PAD - STEPPER_RIGHT_INSET - stepperGroupWidth();
+    }
+
+    private TrayBounds losTray(int bodyX, int bodyY) {
+        return innerButtonTray(bodyX, bodyY, LOS_BUTTON_Y, LOS_BUTTON_H, TRAY_PAD);
     }
 
     private TrayBounds rangeStepperTrayBounds(int bodyX, int bodyY) {
@@ -196,7 +205,14 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
             return false;
         }
         TrayBounds tray = rangeStepperTrayBounds(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
-        return isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height());
+        if (isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height())) {
+            return true;
+        }
+        if (losButton == null) {
+            return false;
+        }
+        TrayBounds los = losTray(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
+        return isMouseOverRect(mouseX, mouseY, los.x(), los.y(), los.width(), los.height());
     }
 
     private void adjustRange(byte kind, int delta) {
@@ -301,6 +317,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
             losButton.setX(bx + CONTENT_PAD);
             losButton.setY(by + LOS_BUTTON_Y);
             losButton.setWidth(innerWidth);
+            losButton.setHeight(LOS_BUTTON_H);
         }
     }
 
@@ -489,9 +506,28 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
                 bodyX, bodyY + DELAY_LABEL_Y);
         drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.item_collector.pickup_batch"),
                 bodyX, bodyY + BATCH_LABEL_Y);
+        tooltipIfOverLabel(graphics, font, mouseX, mouseY, bodyX, bodyY + DELAY_LABEL_Y,
+                "gui.dopasrandomutilities.item_collector.pickup_delay.tooltip");
+        tooltipIfOverLabel(graphics, font, mouseX, mouseY, bodyX, bodyY + BATCH_LABEL_Y,
+                "gui.dopasrandomutilities.item_collector.pickup_batch.tooltip");
         if (losButton != null) {
             drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.item_collector.los"),
                     bodyX, bodyY + LOS_LABEL_Y);
+            renderTray(graphics, losTray(bodyX, bodyY), BG);
+        }
+    }
+
+    private void tooltipIfOverLabel(
+            GuiGraphicsExtractor graphics,
+            Font font,
+            int mouseX,
+            int mouseY,
+            int bodyX,
+            int labelY,
+            String tooltipKey
+    ) {
+        if (isMouseOverRect(mouseX, mouseY, bodyX + CONTENT_PAD, labelY, panelWidth - CONTENT_PAD * 2, font.lineHeight)) {
+            graphics.setTooltipForNextFrame(font, Component.translatable(tooltipKey), mouseX, mouseY);
         }
     }
 

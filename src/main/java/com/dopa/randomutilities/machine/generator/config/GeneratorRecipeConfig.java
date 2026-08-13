@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -244,7 +245,7 @@ public final class GeneratorRecipeConfig {
                 ? GeneratorOutputMode.parse(object.get("output").getAsString())
                 : GeneratorOutputMode.PLACE;
         RECIPE_MAP.put(type, List.of(new GeneratorRecipe(
-                "default", null, null,
+                "default", null, null, null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
                 null, ticks, amount, outputMode
@@ -322,6 +323,7 @@ public final class GeneratorRecipeConfig {
 
         String resultRaw = definition.get("result").getAsString().trim();
         Block resultBlock = null;
+        Item resultItem = null;
         Fluid resultFluid = null;
         if (isRandomResultToken(resultRaw)) {
             if (!allowRandomResult) {
@@ -337,6 +339,12 @@ public final class GeneratorRecipeConfig {
                 resultFluid = BuiltInRegistries.FLUID.getValue(resultId);
             } else if (BuiltInRegistries.BLOCK.containsKey(resultId)) {
                 resultBlock = BuiltInRegistries.BLOCK.getValue(resultId);
+            } else if (BuiltInRegistries.ITEM.containsKey(resultId)) {
+                resultItem = BuiltInRegistries.ITEM.getValue(resultId);
+                if (resultItem == Items.AIR) {
+                    dOPasRandomUtilities.LOGGER.warn("Unknown result '{}' in recipe '{}'", resultId, recipeId);
+                    return Optional.empty();
+                }
             } else {
                 dOPasRandomUtilities.LOGGER.warn("Unknown result '{}' in recipe '{}'", resultId, recipeId);
                 return Optional.empty();
@@ -386,15 +394,19 @@ public final class GeneratorRecipeConfig {
         GeneratorOutputMode outputMode = definition.has("output")
                 ? GeneratorOutputMode.parse(definition.get("output").getAsString())
                 : fileDefaultOutput;
+        // Items cannot be placed as blocks; INSERT into the inventory above instead.
+        if (resultItem != null && outputMode == GeneratorOutputMode.PLACE) {
+            outputMode = GeneratorOutputMode.INSERT;
+        }
 
         return Optional.of(new GeneratorRecipe(
-                recipeId, resultBlock, resultFluid, resources, consume,
+                recipeId, resultBlock, resultItem, resultFluid, resources, consume,
                 requiredUnder, ticks, amount, outputMode
         ));
     }
 
     /**
-     * Reads {@code amount} from JSON. Block recipes use whole items; fluid recipes use buckets
+     * Reads {@code amount} from JSON. Block/item recipes use whole items; fluid recipes use buckets
      * (including fractions such as {@code 0.2}) and are stored as millibuckets.
      */
     private static int parseOutputAmount(JsonObject definition, boolean fluidResult) {
@@ -474,6 +486,7 @@ public final class GeneratorRecipeConfig {
                 "cobblestone",
                 BuiltInRegistries.BLOCK.getValue(Identifier.parse("minecraft:cobblestone")),
                 null,
+                null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
                 null, 20, 1, GeneratorOutputMode.INSERT
@@ -483,7 +496,7 @@ public final class GeneratorRecipeConfig {
     private static GeneratorRecipe createFallbackRandomRecipe(GeneratorType type) {
         return new GeneratorRecipe(
                 type.mode() == GeneratorType.Mode.METAL_BLOCK ? "random_storage" : "random_ore",
-                null, null,
+                null, null, null,
                 Arrays.asList(null, null, null, null),
                 new boolean[] {false, false, false, false},
                 null, 40, 1, GeneratorOutputMode.PLACE

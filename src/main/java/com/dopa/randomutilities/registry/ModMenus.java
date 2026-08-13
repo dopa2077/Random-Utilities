@@ -3,6 +3,8 @@ package com.dopa.randomutilities.registry;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.menu.FilterMenu;
 import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.machine.solarfurnace.menu.SolarFurnaceMenu;
+import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.minichest.MiniChestMenu;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
@@ -35,6 +37,12 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<ItemCollectorMenu>> ITEM_COLLECTOR =
             MENUS.register("item_collector", () -> IMenuTypeExtension.create(ItemCollectorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<SolarFurnaceMenu>> SOLAR_FURNACE =
+            MENUS.register("solar_furnace", () -> IMenuTypeExtension.create(SolarFurnaceMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<FishnetMenu>> FISHNET =
+            MENUS.register("fishnet", () -> IMenuTypeExtension.create(FishnetMenu::new));
 
     private ModMenus() {}
 }

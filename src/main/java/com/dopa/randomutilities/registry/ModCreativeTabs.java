@@ -26,8 +26,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.REDSTONE_CLOCK.get());
                         output.accept(ModItems.BASIC_ITEM_COLLECTOR.get());
                         output.accept(ModItems.ADVANCED_ITEM_COLLECTOR.get());
-                        output.accept(ModItems.UI_TEST_ITEM.get());
-                        output.accept(ModItems.UI_TEST_BLOCK_ITEM.get());
+                        output.accept(ModItems.SOLAR_FURNACE.get());
+                        output.accept(ModItems.FISHNET.get());
                         for (GeneratorType type : GeneratorType.values()) {
                             output.accept(ModItems.forType(type).get());
                         }
@@ -42,6 +42,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.UPGRADE_CASING.get());
                         output.accept(ModItems.PRODUCTIVITY_UPGRADE.get());
                         output.accept(ModItems.OVERCLOCK_UPGRADE.get());
+                        output.accept(ModItems.FORTUNE_MESH_UPGRADE.get());
+                        output.accept(ModItems.TREASURE_MESH_UPGRADE.get());
                     })
                     .build());
 

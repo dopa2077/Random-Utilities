@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [{ "condition": "minecraft:survives_explosion" }],
+      "entries": [{ "type": "minecraft:item", "name": "dopasrandomutilities:solar_furnace" }],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "dopasrandomutilities:blocks/solar_furnace"
+}

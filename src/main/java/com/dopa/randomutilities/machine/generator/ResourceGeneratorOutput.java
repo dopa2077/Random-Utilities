@@ -9,7 +9,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
@@ -40,22 +43,67 @@ final class ResourceGeneratorOutput {
     ) {
         // Fluids always insert as fluid — never treat the GUI display proxy (ice/magma) as item output.
         if (recipe.isFluidResult()) {
-            return insertFluid(level, pos, recipe.resultFluid(), amount, true) > 0;
+            return insertFluid(level, pos, recipe.resultFluid(), amount, true) >= amount;
         }
+        GeneratorOutputMode mode = recipe.outputMode();
+        int requested = requestedAmount(mode, amount);
         if (outputOverride != null) {
-            return outputBlocks(level, pos, outputOverride, amount, recipe.outputMode(), true) > 0;
+            return canOutput(level, pos, outputOverride, requested, mode);
         }
         if (recipe.isRandomResult()) {
             if (poolFor(type).isEmpty()) {
                 return false;
             }
-            return switch (recipe.outputMode()) {
+            return switch (mode) {
                 case INSERT -> getItemOutputHandler(level, pos) != null;
                 case DROP -> canAcceptItemDrop(level, pos);
                 case PLACE -> canAcceptPlace(level, pos);
             };
         }
-        return outputBlocks(level, pos, recipe.result(), amount, recipe.outputMode(), true) > 0;
+        if (recipe.isItemResult()) {
+            return canOutputItem(level, pos, recipe.resultItem(), requested, mode);
+        }
+        return canOutput(level, pos, recipe.result(), requested, mode);
+    }
+
+    /** PLACE always outputs one block; productivity does not multiply placed blocks. */
+    static int requestedAmount(GeneratorOutputMode mode, int amount) {
+        return mode == GeneratorOutputMode.PLACE ? 1 : Math.max(0, amount);
+    }
+
+    private static boolean canOutput(
+            ServerLevel level,
+            BlockPos pos,
+            @Nullable Block result,
+            int amount,
+            GeneratorOutputMode mode
+    ) {
+        if (result == null || amount <= 0) {
+            return false;
+        }
+        return switch (mode) {
+            case INSERT -> insertItems(level, pos, result.asItem(), amount, true) >= amount;
+            case DROP -> canAcceptItemDrop(level, pos);
+            case PLACE -> canAcceptPlace(level, pos);
+        };
+    }
+
+    private static boolean canOutputItem(
+            ServerLevel level,
+            BlockPos pos,
+            @Nullable Item item,
+            int amount,
+            GeneratorOutputMode mode
+    ) {
+        if (item == null || item == Items.AIR || amount <= 0) {
+            return false;
+        }
+        GeneratorOutputMode effective = mode == GeneratorOutputMode.PLACE ? GeneratorOutputMode.INSERT : mode;
+        return switch (effective) {
+            case INSERT -> insertItems(level, pos, item, amount, true) >= amount;
+            case DROP -> canAcceptItemDrop(level, pos);
+            case PLACE -> false;
+        };
     }
 
     static int outputBlocks(
@@ -70,27 +118,54 @@ final class ResourceGeneratorOutput {
             return 0;
         }
         return switch (mode) {
-            case INSERT -> insertItems(level, pos, result, amount, simulate);
-            case DROP -> simulate || dropItems(level, pos, result, amount) ? amount : 0;
+            case INSERT -> insertItems(level, pos, result.asItem(), amount, simulate);
+            case DROP -> simulate || dropItems(level, pos, result.asItem(), amount) ? amount : 0;
             case PLACE -> simulate ? (canAcceptPlace(level, pos) ? 1 : 0) : (placeBlock(level, pos, result) ? 1 : 0);
         };
     }
 
-    static int insertItems(ServerLevel level, BlockPos pos, Block result, int amount, boolean simulate) {
-        ResourceHandler<ItemResource> handler = getItemOutputHandler(level, pos);
-        if (handler == null || amount <= 0) {
+    /**
+     * Item-only results cannot be placed. PLACE is treated as INSERT so a misconfigured
+     * recipe still produces into the inventory above.
+     */
+    static int outputItems(
+            ServerLevel level,
+            BlockPos pos,
+            @Nullable Item item,
+            int amount,
+            GeneratorOutputMode mode,
+            boolean simulate
+    ) {
+        if (item == null || item == Items.AIR || amount <= 0) {
             return 0;
         }
-        ItemResource resource = ItemResource.of(result.asItem());
+        GeneratorOutputMode effective = mode == GeneratorOutputMode.PLACE ? GeneratorOutputMode.INSERT : mode;
+        return switch (effective) {
+            case INSERT -> insertItems(level, pos, item, amount, simulate);
+            case DROP -> simulate || dropItems(level, pos, item, amount) ? amount : 0;
+            case PLACE -> 0;
+        };
+    }
+
+    static int insertItems(ServerLevel level, BlockPos pos, Item item, int amount, boolean simulate) {
+        ResourceHandler<ItemResource> handler = getItemOutputHandler(level, pos);
+        if (handler == null || item == null || item == Items.AIR || amount <= 0) {
+            return 0;
+        }
+        ItemResource resource = ItemResource.of(item);
         if (resource.isEmpty()) {
             return 0;
         }
         try (Transaction tx = Transaction.open(null)) {
             int inserted = handler.insert(resource, amount, tx);
-            if (inserted > 0 && !simulate) {
-                tx.commit();
+            if (simulate) {
+                return Math.max(0, inserted);
             }
-            return Math.max(0, inserted);
+            if (inserted >= amount) {
+                tx.commit();
+                return inserted;
+            }
+            return 0;
         }
     }
 
@@ -109,10 +184,14 @@ final class ResourceGeneratorOutput {
         }
         try (Transaction tx = Transaction.open(null)) {
             int insertedMb = handler.insert(resource, millibuckets, tx);
-            if (insertedMb > 0 && !simulate) {
-                tx.commit();
+            if (simulate) {
+                return Math.max(0, insertedMb);
             }
-            return Math.max(0, insertedMb);
+            if (insertedMb >= millibuckets) {
+                tx.commit();
+                return insertedMb;
+            }
+            return 0;
         }
     }
 
@@ -172,11 +251,11 @@ final class ResourceGeneratorOutput {
                 && level.setBlock(above, result.defaultBlockState(), Block.UPDATE_ALL);
     }
 
-    private static boolean dropItems(ServerLevel level, BlockPos pos, Block result, int amount) {
+    private static boolean dropItems(ServerLevel level, BlockPos pos, Item item, int amount) {
         if (!canAcceptItemDrop(level, pos)) {
             return false;
         }
-        ItemStack probe = new ItemStack(result.asItem(), 1);
+        ItemStack probe = new ItemStack(item, 1);
         if (probe.isEmpty()) {
             return false;
         }
@@ -187,11 +266,40 @@ final class ResourceGeneratorOutput {
         int maxStack = Math.max(1, probe.getMaxStackSize());
         for (int remaining = amount; remaining > 0; ) {
             int batch = Math.min(remaining, maxStack);
-            ItemEntity entity = new ItemEntity(level, x, y, z, new ItemStack(result.asItem(), batch));
+            ItemEntity entity = new ItemEntity(level, x, y, z, new ItemStack(item, batch));
             entity.setDefaultPickUpDelay();
             level.addFreshEntity(entity);
             remaining -= batch;
         }
         return true;
+    }
+
+    /** Block shown inside the glass for item-only results (ores stand in for ingots/gems). */
+    static Block previewBlockForItem(@Nullable Item item) {
+        if (item == null || item == Items.AIR) {
+            return Blocks.COBBLESTONE;
+        }
+        if (item instanceof BlockItem blockItem) {
+            Block asBlock = blockItem.getBlock();
+            if (asBlock != Blocks.AIR) {
+                return asBlock;
+            }
+        }
+        if (item == Items.COPPER_INGOT) {
+            return Blocks.COPPER_ORE;
+        }
+        if (item == Items.IRON_INGOT) {
+            return Blocks.IRON_ORE;
+        }
+        if (item == Items.GOLD_INGOT) {
+            return Blocks.NETHER_GOLD_ORE;
+        }
+        if (item == Items.DIAMOND) {
+            return Blocks.DIAMOND_ORE;
+        }
+        if (item == Items.NETHERITE_INGOT) {
+            return Blocks.ANCIENT_DEBRIS;
+        }
+        return Blocks.COBBLESTONE;
     }
 }

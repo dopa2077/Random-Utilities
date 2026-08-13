@@ -4,8 +4,8 @@
   "key": {
     "C": "dopasrandomutilities:upgrade_casing",
     "H": "minecraft:hopper",
-    "I": "minecraft:iron_block",
-    "L": "minecraft:lapis_lazuli"
+    "I": "#c:storage_blocks/iron",
+    "L": "#c:gems/lapis"
   },
   "pattern": [
     "CLC",

@@ -2,9 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
-    "R": "minecraft:redstone",
+    "R": "#c:dusts/redstone",
     "C": "minecraft:clock",
-    "S": "minecraft:stone"
+    "S": "#c:stones"
   },
   "pattern": [
     "SRS",

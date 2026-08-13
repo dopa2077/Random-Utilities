@@ -227,6 +227,17 @@ public abstract class AttachedPanel {
         );
     }
 
+    /** Tray around a full-width inner button ({@link #CONTENT_PAD} on each side). */
+    protected TrayBounds innerButtonTray(int bodyX, int bodyY, int buttonY, int buttonH, int trayPad) {
+        return trayBoundsAt(
+                bodyX + CONTENT_PAD,
+                bodyY + buttonY,
+                panelWidth - CONTENT_PAD * 2,
+                buttonH,
+                trayPad
+        );
+    }
+
     protected void renderTray(GuiGraphicsExtractor graphics, TrayBounds tray, int bgColor) {
         graphics.fill(tray.x(), tray.y(), tray.x() + tray.width(), tray.y() + tray.height(), darken(bgColor, 40));
     }
@@ -551,6 +562,21 @@ public abstract class AttachedPanel {
      */
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY,
                                  int leftPos, int topPos, int imageWidth, Font font) {
+        return false;
+    }
+
+    /** Optional click handling (e.g. info scrollbar) before empty-body close. */
+    public boolean mouseClicked(double mouseX, double mouseY) {
+        return false;
+    }
+
+    /** Optional drag handling while a panel-owned interaction is active. */
+    public boolean mouseDragged(double mouseX, double mouseY) {
+        return false;
+    }
+
+    /** Optional release handling for panel-owned drag interactions. */
+    public boolean mouseReleased() {
         return false;
     }
 }

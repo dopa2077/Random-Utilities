@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest",
+    "dopasrandomutilities:mini_chest"
+  ],
+  "result": {
+    "count": 1,
+    "id": "minecraft:chest"
+  }
+}

@@ -25,11 +25,11 @@ public final class DevNullConfig {
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/devnull.json";
 
     private static int basicMaxStackSize = 64;
-    private static boolean basicAllowOverstacking = true;
-    private static int advancedMinSlots = FilterContents.MIN_ADVANCED_SLOTS;
-    private static int advancedMaxSlots = FilterContents.SLOTS_PER_PAGE;
-    private static int advancedMaxStackSize = 1_000_000;
-    private static int advancedMaxPages = 1;
+    private static boolean basicAllowOverstacking = false;
+    private static int advancedMinSlots = 27;
+    private static int advancedMaxSlots = 81;
+    private static int advancedMaxStackSize = 1000;
+    private static int advancedMaxPages = 2;
     private static boolean advancedAllowOverstacking = true;
 
     static {
@@ -117,7 +117,7 @@ public final class DevNullConfig {
                 1, 1, basicMaxStackSize,
                 false, true, false, false,
                 true, false,
-                false, false, false, false, false,
+                false, false,
                 "item.dopasrandomutilities.dev_null.empty",
                 "container.dopasrandomutilities.dev_null",
                 null
@@ -131,24 +131,9 @@ public final class DevNullConfig {
                 0,
                 true, true, true, true,
                 true, true,
-                true, false, false, false, true,
+                true, true,
                 "item.dopasrandomutilities.advanced_dev_null.empty",
                 "container.dopasrandomutilities.advanced_dev_null",
-                "item.dopasrandomutilities.advanced_dev_null.slots"
-        );
-    }
-
-    /** Full AttachedPanel set for creative UI testers. */
-    public static FilterProfile uiTestProfile() {
-        return new FilterProfile(
-                advancedMinSlots,
-                advancedMaxSlots,
-                0,
-                true, true, true, true,
-                true, true,
-                true, true, true, true, true,
-                "item.dopasrandomutilities.ui_test_item.empty",
-                "container.dopasrandomutilities.ui_test",
                 "item.dopasrandomutilities.advanced_dev_null.slots"
         );
     }
@@ -199,11 +184,11 @@ public final class DevNullConfig {
 
     private static void applyBuiltInDefaults() {
         basicMaxStackSize = 64;
-        basicAllowOverstacking = true;
-        advancedMinSlots = FilterContents.MIN_ADVANCED_SLOTS;
-        advancedMaxSlots = FilterContents.SLOTS_PER_PAGE;
-        advancedMaxStackSize = 1_000_000;
-        advancedMaxPages = 1;
+        basicAllowOverstacking = false;
+        advancedMinSlots = 27;
+        advancedMaxSlots = 81;
+        advancedMaxStackSize = 1000;
+        advancedMaxPages = 2;
         advancedAllowOverstacking = true;
     }
 
