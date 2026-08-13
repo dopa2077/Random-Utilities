@@ -50,6 +50,7 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
             }
         }
 
+        /** Blocks hoppers / pipes from inserting into output; smelting uses {@link #set}. */
         @Override
         public boolean isValid(int index, ItemResource resource) {
             if (index == SLOT_OUTPUT) {
@@ -237,6 +238,9 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
     }
 
     private boolean canAcceptResult(ItemStack result) {
+        if (result.isEmpty()) {
+            return false;
+        }
         ItemStack output = stackInSlot(SLOT_OUTPUT);
         if (output.isEmpty()) {
             return true;
@@ -244,8 +248,8 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         if (!ItemStack.isSameItemSameComponents(output, result)) {
             return false;
         }
-        int max = Math.min(items.getCapacityAsInt(SLOT_OUTPUT, ItemResource.of(result)), result.getMaxStackSize());
-        return output.getCount() + result.getCount() <= max;
+        // Output isValid is false (hopper lock); getCapacityAsInt would be 0.
+        return output.getCount() + result.getCount() <= output.getMaxStackSize();
     }
 
     private void finishCook(
