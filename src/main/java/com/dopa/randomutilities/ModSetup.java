@@ -1,14 +1,20 @@
 package com.dopa.randomutilities;
 
+import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerNetwork;
+import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerNetwork;
 import com.dopa.randomutilities.filter.FilterNetwork;
+import com.dopa.randomutilities.filter.FilterRegistry;
+import com.dopa.randomutilities.filter.FilterStorage;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.itemcollector.ItemCollectorNetwork;
-import com.dopa.randomutilities.itemcollector.config.ItemCollectorConfig;
+import com.dopa.randomutilities.transfer.TransferNodeNetwork;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
-import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.trashcan.TrashCanNetwork;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockNetwork;
+import com.dopa.randomutilities.transfer.TransferFilterContents;
+import com.dopa.randomutilities.util.GhostItemFilter;
 import com.dopa.randomutilities.fishnet.FishnetNetwork;
 import com.dopa.randomutilities.fishnet.config.FishnetConfig;
 import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
@@ -16,12 +22,15 @@ import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
 import com.dopa.randomutilities.registry.ModDataComponents;
+import com.dopa.randomutilities.registry.ModEntities;
 import com.dopa.randomutilities.registry.ModItems;
 import com.dopa.randomutilities.registry.ModMenus;
+import com.dopa.randomutilities.registry.ModSounds;
 import com.dopa.randomutilities.registry.ModTriggers;
 
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -37,8 +46,6 @@ public final class ModSetup {
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":devnull_config");
     private static final Identifier UPGRADE_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":upgrade_config");
-    private static final Identifier ITEM_COLLECTOR_CONFIG_LISTENER =
-            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":item_collector_config");
     private static final Identifier FISHNET_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":fishnet_config");
     private static final Identifier TREASURE_LOOT_CONFIG_LISTENER =
@@ -49,18 +56,36 @@ public final class ModSetup {
     public static void register(IEventBus modEventBus) {
         ModDataComponents.DATA_COMPONENTS.register(modEventBus);
         ModTriggers.TRIGGER_TYPES.register(modEventBus);
+        ModSounds.SOUND_EVENTS.register(modEventBus);
+        ModEntities.ENTITY_TYPES.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         ModMenus.MENUS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        GhostItemFilter.setNestedItemFilter(new GhostItemFilter.NestedItemFilter() {
+            @Override
+            public boolean isFilter(ItemStack stack) {
+                return TransferFilterContents.isFilter(stack) || FilterRegistry.isFilterItem(stack);
+            }
+
+            @Override
+            public boolean allows(ItemStack candidate, ItemStack filter, int depth) {
+                if (TransferFilterContents.isFilter(filter)) {
+                    return TransferFilterContents.allows(candidate, filter, depth);
+                }
+                if (FilterRegistry.isFilterItem(filter)) {
+                    return FilterStorage.matchesNested(candidate, filter, depth);
+                }
+                return false;
+            }
+        });
         // Load early so JEI (and other client plugins) see config values, not jar defaults only.
         TreasureLootConfig.load();
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(() -> {
                     DevNullConfig.load();
                     UpgradeConfig.load();
-                    ItemCollectorConfig.load();
                     FishnetConfig.load();
                     TreasureLootConfig.load();
                     GeneratorRecipeConfig.load();
@@ -70,9 +95,12 @@ public final class ModSetup {
         modEventBus.addListener(FilterNetwork::registerPayloads);
         modEventBus.addListener(MachineNetwork::registerPayloads);
         modEventBus.addListener(ItemCollectorNetwork::registerPayloads);
+        modEventBus.addListener(TransferNodeNetwork::registerPayloads);
         modEventBus.addListener(TrashCanNetwork::registerPayloads);
         modEventBus.addListener(RedstoneClockNetwork::registerPayloads);
         modEventBus.addListener(FishnetNetwork::registerPayloads);
+        modEventBus.addListener(AdvancedBlockBreakerNetwork::registerPayloads);
+        modEventBus.addListener(AdvancedBlockPlacerNetwork::registerPayloads);
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -96,6 +124,31 @@ public final class ModSetup {
                 ModBlockEntities.FISHNET.get(),
                 (be, side) -> be.itemHandler(side)
         );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.SIMPLE_BLOCK_PLACER.get(),
+                (be, side) -> be.itemHandler()
+        );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.ADVANCED_BLOCK_PLACER.get(),
+                (be, side) -> be.itemHandler()
+        );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
+                ModBlockEntities.ADVANCED_BLOCK_BREAKER.get(),
+                (be, side) -> be.pickaxeHandler()
+        );
+        event.registerBlockEntity(
+                Capabilities.Energy.BLOCK,
+                ModBlockEntities.ADVANCED_BLOCK_BREAKER.get(),
+                (be, side) -> be.energy()
+        );
+        event.registerBlockEntity(
+                Capabilities.Energy.BLOCK,
+                ModBlockEntities.ADVANCED_BLOCK_PLACER.get(),
+                (be, side) -> be.energy()
+        );
     }
 
     @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
@@ -118,10 +171,6 @@ public final class ModSetup {
             event.addListener(
                     UPGRADE_CONFIG_LISTENER,
                     (ResourceManagerReloadListener) resourceManager -> UpgradeConfig.reload()
-            );
-            event.addListener(
-                    ITEM_COLLECTOR_CONFIG_LISTENER,
-                    (ResourceManagerReloadListener) resourceManager -> ItemCollectorConfig.reload()
             );
             event.addListener(
                     FISHNET_CONFIG_LISTENER,

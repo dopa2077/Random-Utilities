@@ -76,15 +76,21 @@ public final class FishnetCatchEffects {
         return ACTIVE.get(netPos);
     }
 
+    public static void clear() {
+        ACTIVE.clear();
+    }
+
     public static void clientTick() {
         if (ACTIVE.isEmpty()) {
             return;
         }
+        Minecraft minecraft = Minecraft.getInstance();
+        Level level = minecraft.level;
         Iterator<Map.Entry<BlockPos, ActiveCatch>> iterator = ACTIVE.entrySet().iterator();
         while (iterator.hasNext()) {
             ActiveCatch active = iterator.next().getValue();
             AbstractFish fish = active.fish;
-            if (fish.level() == null) {
+            if (fish.level() == null || level == null || fish.level() != level) {
                 iterator.remove();
                 continue;
             }

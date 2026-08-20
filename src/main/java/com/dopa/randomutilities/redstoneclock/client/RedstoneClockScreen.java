@@ -1,9 +1,9 @@
 package com.dopa.randomutilities.redstoneclock.client;
 
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelHost;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
+import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockBlockEntity;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockMenu;
 import com.dopa.randomutilities.redstoneclock.client.panel.RedstoneClockInformativePanel;
@@ -34,14 +34,15 @@ import java.util.function.Supplier;
 
 public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMenu>
         implements MachineRedstonePanel.Host {
-    private static final Identifier CHEST_BACKGROUND =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final Identifier BACKGROUND =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/special/trash_can.png");
     private static final int TEXTURE_SIZE = 256;
     private static final int BODY_COLOR = 0xFFC6C6C6;
     private static final int LABEL_COLOR = 0xFF404040;
-    private static final int FOOTER_Y = 70;
-    private static final int PLAYER_INV_HEIGHT = 96;
-    private static final int IMAGE_HEIGHT = FOOTER_Y + PLAYER_INV_HEIGHT + 1;
+    private static final int IMAGE_HEIGHT = 155;
+    private static final int SLOT_COVER_X = 79;
+    private static final int SLOT_COVER_Y = 19;
+    private static final int SLOT_COVER = 18;
 
     private static final int STEPPER_W = 18;
     private static final int STEPPER_H = 12;
@@ -191,7 +192,6 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
     @Override
     protected void containerTick() {
         super.containerTick();
-        panelHost.tick();
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
         layoutSteppers();
         updateStepperStates();
@@ -209,17 +209,20 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
         int xo = leftPos;
         int yo = topPos;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                imageWidth, FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.fill(xo + 7, yo + 17, xo + imageWidth - 7, yo + FOOTER_Y, BODY_COLOR);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo, 0.0F, 0.0F,
+                imageWidth, imageHeight, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.fill(
+                xo + SLOT_COVER_X,
+                yo + SLOT_COVER_Y,
+                xo + SLOT_COVER_X + SLOT_COVER,
+                yo + SLOT_COVER_Y + SLOT_COVER,
+                BODY_COLOR
+        );
         renderStepperTray(graphics);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + FOOTER_Y,
-                0.0F, 126.0F, imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
     }
 
     @Override

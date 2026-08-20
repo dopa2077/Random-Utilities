@@ -2,6 +2,7 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.FilterContents;
+import com.dopa.randomutilities.transfer.TransferFilterContents;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +20,14 @@ public final class ModDataComponents {
                     builder -> builder
                             .persistent(FilterContents.CODEC)
                             .networkSynchronized(FilterContents.STREAM_CODEC)
+            );
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TransferFilterContents>> TRANSFER_FILTER =
+            DATA_COMPONENTS.registerComponentType(
+                    "transfer_filter_contents",
+                    builder -> builder
+                            .persistent(TransferFilterContents.CODEC)
+                            .networkSynchronized(TransferFilterContents.STREAM_CODEC)
             );
 
     private ModDataComponents() {}

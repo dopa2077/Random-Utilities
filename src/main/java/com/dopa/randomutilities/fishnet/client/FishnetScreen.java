@@ -1,16 +1,14 @@
 package com.dopa.randomutilities.fishnet.client;
 
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelHost;
-import com.dopa.randomutilities.fishnet.FishnetUpgradeInventory;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.fishnet.client.panel.FishnetCosmeticPanel;
 import com.dopa.randomutilities.fishnet.client.panel.FishnetInformativePanel;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
-import com.dopa.randomutilities.machine.client.panel.MachineUpgradePanel;
-import com.dopa.randomutilities.machine.config.UpgradeConfig;
-import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
+import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
+import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
+import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.registry.ModItems;
 
 import net.minecraft.ChatFormatting;
@@ -21,38 +19,25 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implements MachineRedstonePanel.Host {
-    private static final Identifier CHEST_BACKGROUND =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Identifier FURNACE_TEXTURE =
-            Identifier.withDefaultNamespace("textures/gui/container/furnace.png");
+    private static final Identifier BACKGROUND =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/special/fishnet.png");
     private static final Identifier BURN_PROGRESS_SPRITE =
             Identifier.withDefaultNamespace("container/furnace/burn_progress");
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
     private static final int TEXTURE_SIZE = 256;
     private static final int LABEL_COLOR = 0xFF404040;
-    private static final int BODY_COLOR = 0xFFC6C6C6;
-    private static final int PLAYER_INV_HEIGHT = 96;
-    private static final int MACHINE_FOOTER_Y = 70;
 
     private static final int ARROW_W = 24;
     private static final int ARROW_H = 16;
-    private static final float ARROW_EMPTY_U = 79.0F;
-    private static final float ARROW_EMPTY_V = 34.0F;
 
     private final PanelHost panelHost = new PanelHost();
     private final int tabYBias = FishnetMenu.TAB_Y_BIAS;
@@ -65,7 +50,6 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
     public FishnetScreen(FishnetMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 176, 166);
         this.inventoryLabelY = this.imageHeight - 94;
-        this.titleLabelX = 8;
         this.titleLabelY = 6;
     }
 
@@ -117,54 +101,29 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
     @Override
     public void containerTick() {
         super.containerTick();
-        panelHost.tick();
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
         int xo = leftPos;
         int yo = topPos;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                imageWidth, MACHINE_FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.fill(xo + 7, yo + 17, xo + imageWidth - 7, yo + MACHINE_FOOTER_Y, BODY_COLOR);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + MACHINE_FOOTER_Y,
-                0.0F, 126.0F, imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
-
-        graphics.blitSprite(
-                RenderPipelines.GUI_TEXTURED,
-                SLOT_SPRITE,
-                xo + FishnetMenu.ROD_X - 1,
-                yo + FishnetMenu.ROD_Y - 1,
-                18,
-                18
-        );
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
-                int slotX = xo + FishnetMenu.GRID_LEFT + col * 18 - 1;
-                int slotY = yo + FishnetMenu.GRID_TOP + row * 18 - 1;
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, slotX, slotY, 18, 18);
-            }
-        }
-
-        // Empty arrow from furnace GUI atlas; white fill uses the 26.2 burn_progress sprite
-        // (the old furnace.png UV strip no longer contains the animated arrow).
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                FURNACE_TEXTURE,
-                xo + FishnetMenu.ARROW_X,
-                yo + FishnetMenu.ARROW_Y,
-                ARROW_EMPTY_U,
-                ARROW_EMPTY_V,
-                ARROW_W,
-                ARROW_H,
+                BACKGROUND,
+                xo,
+                yo,
+                0.0F,
+                0.0F,
+                imageWidth,
+                imageHeight,
                 TEXTURE_SIZE,
                 TEXTURE_SIZE
         );
+
         float progress = menu.progressFraction();
         int filled = Mth.ceil(progress * ARROW_W);
         if (filled > 0) {
@@ -211,88 +170,34 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
                 return;
             }
         }
+        List<Component> extras = List.of();
+        boolean fortuneOverwritten = false;
         if (hoveredSlot != null
                 && menu.isUpgradeSlotIndex(hoveredSlot.index)
-                && hoveredSlot.hasItem()) {
-            List<FormattedCharSequence> lines = new ArrayList<>();
-            for (Component line : upgradeSlotTooltip(hoveredSlot.getItem())) {
-                lines.add(line.getVisualOrderText());
-            }
-            graphics.setTooltipForNextFrame(font, lines, mouseX, mouseY);
-        }
-    }
-
-    private List<Component> upgradeSlotTooltip(ItemStack stack) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(stack.getHoverName());
-        Item item = stack.getItem();
-        int used = menu.blockEntity().upgrades().countOf(item);
-        int max = maxForUpgrade(item);
-        boolean fortuneOverwritten = item == ModItems.FORTUNE_MESH_UPGRADE.get()
-                && menu.blockEntity().upgrades().treasureMeshCount() > 0;
-        if (fortuneOverwritten) {
-            lines.add(Component.translatable("gui.dopasrandomutilities.upgrade.overwritten_by_treasure_mesh")
+                && hoveredSlot.hasItem()
+                && hoveredSlot.getItem().is(ModItems.FORTUNE_MESH_UPGRADE.get())
+                && menu.blockEntity().upgrades().treasureMeshCount() > 0) {
+            extras = List.of(Component.translatable("gui.dopasrandomutilities.upgrade.overwritten_by_treasure_mesh")
                     .withStyle(ChatFormatting.GOLD));
+            fortuneOverwritten = true;
         }
-        if (item instanceof MachineUpgradeItem upgrade) {
-            if (upgrade.kind().showsPercent()) {
-                int perUpgrade = upgrade.kind().percent();
-                int totalPercent = item == ModItems.FORTUNE_MESH_UPGRADE.get()
-                        ? UpgradeConfig.fortuneMeshChancePercent(used)
-                        : used * perUpgrade;
-                ChatFormatting labelColor = fortuneOverwritten ? ChatFormatting.DARK_GRAY : ChatFormatting.GRAY;
-                ChatFormatting valueColor = fortuneOverwritten ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN;
-                MutableComponent boost = Component.translatable(upgrade.kind().tooltipKey())
-                        .withStyle(labelColor);
-                MutableComponent boostValue = Component.literal(perUpgrade + "%").withStyle(valueColor);
-                if (fortuneOverwritten) {
-                    boost.withStyle(ChatFormatting.STRIKETHROUGH);
-                    boostValue.withStyle(ChatFormatting.STRIKETHROUGH);
-                }
-                boost.append(boostValue);
-                lines.add(boost);
-                lines.add(Component.empty());
-                MutableComponent total = Component.translatable("gui.dopasrandomutilities.upgrade.total_boost")
-                        .withStyle(labelColor);
-                MutableComponent totalValue = Component.literal(totalPercent + "%").withStyle(valueColor);
-                if (fortuneOverwritten) {
-                    total.withStyle(ChatFormatting.STRIKETHROUGH);
-                    totalValue.withStyle(ChatFormatting.STRIKETHROUGH);
-                }
-                total.append(totalValue);
-                lines.add(total);
-            } else {
-                lines.add(Component.translatable(upgrade.kind().tooltipKey()).withStyle(ChatFormatting.GRAY));
-            }
-        }
-        ChatFormatting color = used >= max ? ChatFormatting.RED : ChatFormatting.GREEN;
-        lines.add(Component.translatable(
-                "gui.dopasrandomutilities.upgrade.available",
-                Integer.toString(used),
-                Integer.toString(max)
-        ).withStyle(color));
-        return lines;
-    }
-
-    private static int maxForUpgrade(Item item) {
-        if (item == ModItems.PRODUCTIVITY_UPGRADE.get()) {
-            return FishnetUpgradeInventory.maxProductivity();
-        }
-        if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
-            return FishnetUpgradeInventory.maxOverclock();
-        }
-        if (item == ModItems.FORTUNE_MESH_UPGRADE.get()) {
-            return FishnetUpgradeInventory.maxFortuneMesh();
-        }
-        if (item == ModItems.TREASURE_MESH_UPGRADE.get()) {
-            return FishnetUpgradeInventory.maxTreasureMesh();
-        }
-        return 0;
+        UpgradeSlotTooltips.applyHover(
+                graphics,
+                font,
+                mouseX,
+                mouseY,
+                hoveredSlot,
+                hoveredSlot != null && menu.isUpgradeSlotIndex(hoveredSlot.index),
+                menu.blockEntity().upgrades(),
+                extras,
+                null,
+                fortuneOverwritten
+        );
     }
 
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        graphics.text(font, title, titleLabelX, titleLabelY, LABEL_COLOR, false);
+        graphics.text(font, title, (imageWidth - font.width(title)) / 2, titleLabelY, LABEL_COLOR, false);
         graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, LABEL_COLOR, false);
     }
 

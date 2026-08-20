@@ -1,0 +1,52 @@
+package com.dopa.randomutilities.client;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/** Client-only tracker for which working-volume machines should draw their range overlay. */
+public final class WorkingVolumeOverlay {
+    private static final Map<ResourceKey<Level>, Set<BlockPos>> ENABLED = new ConcurrentHashMap<>();
+
+    private WorkingVolumeOverlay() {}
+
+    public static boolean isEnabled(ResourceKey<Level> dimension, BlockPos pos) {
+        Set<BlockPos> set = ENABLED.get(dimension);
+        return set != null && set.contains(pos.immutable());
+    }
+
+    public static void setEnabled(ResourceKey<Level> dimension, BlockPos pos, boolean enabled) {
+        BlockPos key = pos.immutable();
+        if (enabled) {
+            ENABLED.computeIfAbsent(dimension, d -> ConcurrentHashMap.newKeySet()).add(key);
+        } else {
+            Set<BlockPos> set = ENABLED.get(dimension);
+            if (set != null) {
+                set.remove(key);
+                if (set.isEmpty()) {
+                    ENABLED.remove(dimension);
+                }
+            }
+        }
+    }
+
+    public static void toggle(ResourceKey<Level> dimension, BlockPos pos) {
+        setEnabled(dimension, pos, !isEnabled(dimension, pos));
+    }
+
+    public static Set<BlockPos> enabledPositions(ResourceKey<Level> dimension) {
+        Set<BlockPos> set = ENABLED.get(dimension);
+        return set == null ? Set.of() : set;
+    }
+
+    public static void dropIfEmpty(ResourceKey<Level> dimension) {
+        Set<BlockPos> set = ENABLED.get(dimension);
+        if (set != null && set.isEmpty()) {
+            ENABLED.remove(dimension);
+        }
+    }
+}

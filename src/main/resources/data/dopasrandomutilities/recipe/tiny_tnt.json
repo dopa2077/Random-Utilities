@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "GS",
+    "SG"
+  ],
+  "key": {
+    "G": "minecraft:gunpowder",
+    "S": "#minecraft:sand"
+  },
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:tiny_tnt"
+  }
+}

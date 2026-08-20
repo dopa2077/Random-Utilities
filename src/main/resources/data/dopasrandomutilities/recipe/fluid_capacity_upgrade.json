@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "dopasrandomutilities:upgrade_casing",
+    "G": "#c:glass_blocks",
+    "B": "minecraft:bucket"
+  },
+  "pattern": [
+    "CGC",
+    "GBG",
+    "CGC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:fluid_capacity_upgrade"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "orientation=north_up,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker" },
+    "orientation=east_up,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "y": 90 },
+    "orientation=south_up,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker", "y": 180 },
+    "orientation=west_up,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "y": 270 },
+    "orientation=up_north,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 270, "y": 180 },
+    "orientation=up_east,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 270, "y": 270 },
+    "orientation=up_south,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 270 },
+    "orientation=up_west,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 270, "y": 90 },
+    "orientation=down_north,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 90 },
+    "orientation=down_east,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 90, "y": 90 },
+    "orientation=down_south,triggered=false": { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 90, "y": 180 },
+    "orientation=down_west,triggered=false":  { "model": "dopasrandomutilities:block/advanced_block_breaker", "x": 90, "y": 270 },
+    "orientation=north_up,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on" },
+    "orientation=east_up,triggered=true":  { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "y": 90 },
+    "orientation=south_up,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "y": 180 },
+    "orientation=west_up,triggered=true":  { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "y": 270 },
+    "orientation=up_north,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 270, "y": 180 },
+    "orientation=up_east,triggered=true":  { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 270, "y": 270 },
+    "orientation=up_south,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 270 },
+    "orientation=up_west,triggered=true":  { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 270, "y": 90 },
+    "orientation=down_north,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 90 },
+    "orientation=down_east,triggered=true":  { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 90, "y": 90 },
+    "orientation=down_south,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 90, "y": 180 },
+    "orientation=down_west,triggered=true": { "model": "dopasrandomutilities:block/advanced_block_breaker_on", "x": 90, "y": 270 }
+  }
+}

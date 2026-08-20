@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "dopasrandomutilities:block/advanced_block_placer_side",
+    "north": "dopasrandomutilities:block/advanced_block_placer",
+    "south": "dopasrandomutilities:block/advanced_block_placer_side",
+    "east": "dopasrandomutilities:block/advanced_block_placer_side",
+    "west": "dopasrandomutilities:block/advanced_block_placer_side",
+    "up": "dopasrandomutilities:block/advance_machine_top",
+    "down": "dopasrandomutilities:block/advance_machine_top"
+  }
+}

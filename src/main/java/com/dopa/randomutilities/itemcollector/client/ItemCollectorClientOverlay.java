@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,21 +44,12 @@ public final class ItemCollectorClientOverlay {
 
     public static Set<BlockPos> enabledPositions(ResourceKey<Level> dimension) {
         Set<BlockPos> set = ENABLED.get(dimension);
-        return set == null ? Set.of() : Set.copyOf(set);
+        return set == null ? Set.of() : set;
     }
 
-    public static void removeMissing(ResourceKey<Level> dimension, Set<BlockPos> stillPresent) {
+    public static void dropIfEmpty(ResourceKey<Level> dimension) {
         Set<BlockPos> set = ENABLED.get(dimension);
-        if (set == null) {
-            return;
-        }
-        Iterator<BlockPos> it = set.iterator();
-        while (it.hasNext()) {
-            if (!stillPresent.contains(it.next())) {
-                it.remove();
-            }
-        }
-        if (set.isEmpty()) {
+        if (set != null && set.isEmpty()) {
             ENABLED.remove(dimension);
         }
     }

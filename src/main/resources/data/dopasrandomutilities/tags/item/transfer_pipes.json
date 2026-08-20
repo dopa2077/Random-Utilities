@@ -1,0 +1,22 @@
+{
+  "replace": false,
+  "values": [
+    "dopasrandomutilities:transfer_pipe",
+    "dopasrandomutilities:transfer_pipe_white",
+    "dopasrandomutilities:transfer_pipe_orange",
+    "dopasrandomutilities:transfer_pipe_magenta",
+    "dopasrandomutilities:transfer_pipe_light_blue",
+    "dopasrandomutilities:transfer_pipe_yellow",
+    "dopasrandomutilities:transfer_pipe_lime",
+    "dopasrandomutilities:transfer_pipe_pink",
+    "dopasrandomutilities:transfer_pipe_gray",
+    "dopasrandomutilities:transfer_pipe_light_gray",
+    "dopasrandomutilities:transfer_pipe_cyan",
+    "dopasrandomutilities:transfer_pipe_purple",
+    "dopasrandomutilities:transfer_pipe_blue",
+    "dopasrandomutilities:transfer_pipe_brown",
+    "dopasrandomutilities:transfer_pipe_green",
+    "dopasrandomutilities:transfer_pipe_red",
+    "dopasrandomutilities:transfer_pipe_black"
+  ]
+}

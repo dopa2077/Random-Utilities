@@ -18,7 +18,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID, value = Dist.CLIENT)
@@ -42,16 +42,16 @@ public final class ItemCollectorRangeRenderer {
             return;
         }
 
-        Set<BlockPos> stillPresent = new HashSet<>();
         PoseStack poseStack = event.getPoseStack();
         Vec3 camera = event.getLevelRenderState().cameraRenderState.pos;
-
-        for (BlockPos pos : enabled) {
+        Iterator<BlockPos> it = enabled.iterator();
+        while (it.hasNext()) {
+            BlockPos pos = it.next();
             BlockEntity be = level.getBlockEntity(pos);
             if (!(be instanceof ItemCollectorBlockEntity collector)) {
+                it.remove();
                 continue;
             }
-            stillPresent.add(pos.immutable());
 
             AABB worldBox = collector.scanBox();
             float minX = (float) (worldBox.minX - pos.getX()) - Z_FIGHT_EPS;
@@ -72,8 +72,7 @@ public final class ItemCollectorRangeRenderer {
             );
             poseStack.popPose();
         }
-
-        ItemCollectorClientOverlay.removeMissing(level.dimension(), stillPresent);
+        ItemCollectorClientOverlay.dropIfEmpty(level.dimension());
     }
 
     private static void drawHollowCube(

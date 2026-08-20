@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.fishnet.client.panel;
 
-import com.dopa.randomutilities.client.gui.AttachedPanel;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.AttachedPanel;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
 import com.dopa.randomutilities.fishnet.client.FishnetScreen;
 import com.dopa.randomutilities.fishnet.network.FishnetSettingPayload;
 
@@ -21,9 +21,9 @@ public final class FishnetCosmeticPanel extends AttachedPanel {
     private static final int BUTTON_H = 18;
     private static final int TRAY_PAD = 4;
     private static final int PARTICLES_LABEL_Y = 22;
-    private static final int PARTICLES_BUTTON_Y = 34;
-    private static final int SOUND_LABEL_Y = 66;
-    private static final int SOUND_BUTTON_Y = 78;
+    private static final int PARTICLES_BUTTON_Y = 36;
+    private static final int SOUND_LABEL_Y = 60;
+    private static final int SOUND_BUTTON_Y = 74;
     private static final ItemStack DYE_ICON = new ItemStack(Items.DYE.pink());
 
     private final FishnetScreen screen;

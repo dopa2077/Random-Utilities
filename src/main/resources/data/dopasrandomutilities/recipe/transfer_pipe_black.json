@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "#dopasrandomutilities:transfer_pipes",
+    "minecraft:black_dye"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:transfer_pipe_black"
+  }
+}

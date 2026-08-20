@@ -1,0 +1,17 @@
+{
+  "tiny_tnt.explode": {
+    "subtitle": "subtitles.entity.generic.explode",
+    "sounds": [
+      { "name": "minecraft:random/explode1", "pitch": 1.8, "volume": 0.9 },
+      { "name": "minecraft:random/explode2", "pitch": 1.8, "volume": 0.9 },
+      { "name": "minecraft:random/explode3", "pitch": 1.8, "volume": 0.9 },
+      { "name": "minecraft:random/explode4", "pitch": 1.8, "volume": 0.9 }
+    ]
+  },
+  "tiny_tnt.primed": {
+    "subtitle": "subtitles.block.tnt.primed",
+    "sounds": [
+      { "name": "minecraft:random/fuse", "volume": 0.9 }
+    ]
+  }
+}

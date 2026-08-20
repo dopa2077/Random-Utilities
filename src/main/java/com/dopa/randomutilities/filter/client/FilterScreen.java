@@ -2,14 +2,15 @@ package com.dopa.randomutilities.filter.client;
 
 import com.dopa.randomutilities.util.CompactCountFormat;
 
-import com.dopa.randomutilities.client.gui.VanillaContainerPanel;
+import com.dopa.randomutilities.gui.widget.IconButton;
+import com.dopa.randomutilities.gui.widget.VanillaContainerPanel;
 
 import com.dopa.randomutilities.filter.FilterContents;
 import com.dopa.randomutilities.filter.client.panel.ConfiguratorPanel;
 import com.dopa.randomutilities.filter.client.panel.CosmeticPanel;
 import com.dopa.randomutilities.filter.client.panel.InformativePanel;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelHost;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.filter.menu.FilterMenu;
 
 import net.minecraft.ChatFormatting;
@@ -19,11 +20,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -31,7 +28,6 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -42,11 +38,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
-    private static final Identifier CHEST_BACKGROUND =
+    private static final Identifier BACKGROUND =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
+    private static final Identifier BASIC_BACKGROUND =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/special/dev_null.png");
     private static final Identifier GATHER_TEXTURE =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/gather.png");
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/widget/gather.png");
 
     private static final int PLAYER_INV_HEIGHT = 96;
     private static final int TEXTURE_SIZE = 256;
@@ -56,14 +53,10 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     private static final int DIVIDER_STRIP_H = 7;
 
     private static final int LABEL_COLOR = 0xFF404040;
-    private static final int BODY_COLOR = 0xFFC6C6C6;
 
-    private static final int BASIC_FOOTER_Y = 35;
-    private static final int BASIC_IMAGE_HEIGHT = 114 + 18;
-    private static final int LARGE_SLOT = 26;
+    private static final int BASIC_IMAGE_HEIGHT = 133;
 
     private static final int GATHER_BUTTON_SIZE = 13;
-    private static final int GATHER_ICON_SIZE = 11;
     private static final int HIGHLIGHT_BORDER = 2;
     private static final float OVER_CAP_PULSE_SPEED = 0.25F;
 
@@ -89,7 +82,7 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                 menu.isBasic() ? BASIC_IMAGE_HEIGHT : 114 + menu.getRows() * 18
         );
         this.containerRows = menu.isBasic() ? 1 : menu.getRows();
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.inventoryLabelY = this.imageHeight - (menu.isBasic() ? 94 : 93);
         this.titleLabelX = 8;
         this.titleLabelY = 6;
     }
@@ -236,7 +229,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                     this.leftPos + this.imageWidth - GATHER_BUTTON_SIZE - 4,
                     this.topPos + 4,
                     GATHER_BUTTON_SIZE,
-                    GATHER_ICON_SIZE,
                     GATHER_TEXTURE,
                     gatherTooltip(),
                     this::onGatherPressed
@@ -259,7 +251,6 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     @Override
     public void containerTick() {
         super.containerTick();
-        this.panelHost.tick();
         this.panelHost.layoutWidgets(this.leftPos, this.topPos, this.imageWidth);
 
         if (this.gatherButton != null) {
@@ -292,28 +283,24 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
     }
 
     private void renderBasicBackground(GuiGraphicsExtractor graphics) {
-        int xo = this.leftPos;
-        int yo = this.topPos;
-
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                this.imageWidth, BASIC_FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.fill(xo + 7, yo + 17, xo + this.imageWidth - 7, yo + BASIC_FOOTER_Y, BODY_COLOR);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + BASIC_FOOTER_Y,
-                0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
-
-        int slotX = FilterMenu.BASIC_SLOT_X;
-        int slotY = FilterMenu.BASIC_SLOT_Y;
-        // Center the enlarged slot sprite on the 16x16 item/hover area (not on an 18x18 box at slot origin).
-        int frameX = xo + slotX + 8 - LARGE_SLOT / 2;
-        int frameY = yo + slotY + 8 - LARGE_SLOT / 2;
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, frameX, frameY, LARGE_SLOT, LARGE_SLOT);
+        graphics.blit(
+                RenderPipelines.GUI_TEXTURED,
+                BASIC_BACKGROUND,
+                this.leftPos,
+                this.topPos,
+                0.0F,
+                0.0F,
+                this.imageWidth,
+                this.imageHeight,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE
+        );
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         // Panels first so the inventory frame draws over them (glued / underneath look).
-        this.panelHost.tick();
         this.panelHost.render(graphics, this.font, this.leftPos, this.topPos, this.imageWidth,
                 mouseX, mouseY, partialTick);
         if (this.menu.isBasic()) {
@@ -321,9 +308,14 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
         } else {
             int xo = this.leftPos;
             int yo = this.topPos;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                    this.imageWidth, this.containerRows * 18 + 17, TEXTURE_SIZE, TEXTURE_SIZE);
-            graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + this.containerRows * 18 + 17,
+            int slotBlockH = this.containerRows * 18;
+            graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo, 0.0F, 0.0F,
+                    this.imageWidth, 17, TEXTURE_SIZE, TEXTURE_SIZE);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo + 17, 0.0F, 16.0F,
+                    this.imageWidth, 1, TEXTURE_SIZE, TEXTURE_SIZE);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo + 18, 0.0F, 17.0F,
+                    this.imageWidth, slotBlockH, TEXTURE_SIZE, TEXTURE_SIZE);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo + 18 + slotBlockH,
                     0.0F, 126.0F, this.imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
             coverUnusedSlotsOnLastRow(graphics, xo, yo, this.menu.getPageSlotCount());
         }
@@ -541,60 +533,5 @@ public class FilterScreen extends AbstractContainerScreen<FilterMenu> {
                 && mouseY >= widget.getY()
                 && mouseX < widget.getX() + widget.getWidth()
                 && mouseY < widget.getY() + widget.getHeight();
-    }
-
-    private static final class IconButton extends AbstractWidget {
-        private static final WidgetSprites BUTTON_SPRITES = new WidgetSprites(
-                Identifier.withDefaultNamespace("widget/button"),
-                Identifier.withDefaultNamespace("widget/button_disabled"),
-                Identifier.withDefaultNamespace("widget/button_highlighted")
-        );
-
-        private final Identifier texture;
-        private final int iconSize;
-        private final Runnable onPress;
-
-        IconButton(int x, int y, int size, int iconSize, Identifier texture, Component tooltip, Runnable onPress) {
-            super(x, y, size, size, Component.empty());
-            this.texture = texture;
-            this.iconSize = iconSize;
-            this.onPress = onPress;
-            this.setTooltip(Tooltip.create(tooltip));
-        }
-
-        void updateTooltip(Component tooltip) {
-            this.setTooltip(Tooltip.create(tooltip));
-        }
-
-        @Override
-        public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-            if (this.active) {
-                this.onPress.run();
-            }
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            output.add(NarratedElementType.TITLE, this.getMessage());
-        }
-
-        @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            int x = this.getX();
-            int y = this.getY();
-            graphics.blitSprite(
-                    RenderPipelines.GUI_TEXTURED,
-                    BUTTON_SPRITES.get(this.active, this.isHoveredOrFocused()),
-                    x,
-                    y,
-                    this.width,
-                    this.height,
-                    ARGB.white(this.alpha)
-            );
-            int iconX = x + (this.width - iconSize) / 2;
-            int iconY = y + (this.height - iconSize) / 2;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, iconX, iconY, 0.0F, 0.0F,
-                    iconSize, iconSize, iconSize, iconSize);
-        }
     }
 }

@@ -36,7 +36,8 @@ public final class FishnetUpgradeInventory extends UpgradeInventory {
         );
     }
 
-    private int maxFor(Item item) {
+    @Override
+    public int maxFor(Item item) {
         if (item == ModItems.PRODUCTIVITY_UPGRADE.get()) {
             return maxProductivity();
         }

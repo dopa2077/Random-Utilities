@@ -27,6 +27,6 @@ final class FilterPageLayout {
     }
 
     static int slotY(int index) {
-        return 18 + (index / FilterContents.SLOTS_PER_ROW) * 18;
+        return 19 + (index / FilterContents.SLOTS_PER_ROW) * 18;
     }
 }

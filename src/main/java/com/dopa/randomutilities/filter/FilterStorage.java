@@ -3,6 +3,7 @@ package com.dopa.randomutilities.filter;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.filter.FilterContents.Slot;
 import com.dopa.randomutilities.registry.ModDataComponents;
+import com.dopa.randomutilities.util.GhostItemFilter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,21 @@ public final class FilterStorage {
             stack.set(ModDataComponents.FILTER_CONTENTS.get(), contents);
         }
         return contents;
+    }
+
+    /** Read filter contents without write-on-read clamping (hot match paths). */
+    public static FilterContents peek(ItemStack stack) {
+        FilterProfile profile = profile(stack);
+        if (profile == null) {
+            return FilterContents.basicDefault();
+        }
+        FilterContents stored = stack.getOrDefault(
+                ModDataComponents.FILTER_CONTENTS.get(),
+                profile.defaultContents()
+        );
+        return profile.isBasic()
+                ? clampBasic(stored, profile)
+                : clampAdvanced(stored.ensureMinimum(profile.minSlots()), profile);
     }
 
     public static void set(ItemStack stack, FilterContents contents) {
@@ -285,6 +301,9 @@ public final class FilterStorage {
 
         if (profile != null && profile.isBasic()) {
             Slot slot = contents.slot(0);
+            if (!slot.isEmpty() && GhostItemFilter.isNestedFilter(slot.toStack()) && slot.matches(incoming)) {
+                return 0;
+            }
             if (!slot.isEmpty() && !slot.resource().equals(resource)) {
                 return remaining;
             }
@@ -299,6 +318,10 @@ public final class FilterStorage {
         boolean hadMatch = false;
         for (int i = 0; i < contents.slotCount() && remaining > 0; i++) {
             Slot slot = contents.slot(i);
+            if (!slot.isEmpty() && GhostItemFilter.isNestedFilter(slot.toStack()) && slot.matches(incoming)) {
+                set(host, contents);
+                return 0;
+            }
             if (slot.isEmpty() || !slot.resource().equals(resource)) {
                 continue;
             }
@@ -323,10 +346,31 @@ public final class FilterStorage {
         if (resource.isEmpty() || !FilterRegistry.isFilterItem(host)) {
             return false;
         }
-        FilterContents contents = get(host);
+        FilterContents contents = peek(host);
+        ItemStack stack = resource.toStack(1);
         for (int i = 0; i < contents.slotCount(); i++) {
-            Slot slot = contents.slot(i);
-            if (!slot.isEmpty() && slot.resource().equals(resource)) {
+            if (contents.slot(i).matches(stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether {@code candidate} matches any configured slot of a nested filter host
+     * (including further nested filters via {@link GhostItemFilter}).
+     */
+    public static boolean matchesNested(ItemStack candidate, ItemStack host, int depth) {
+        if (candidate.isEmpty() || !FilterRegistry.isFilterItem(host) || depth >= FilterNesting.MAX_DEPTH) {
+            return false;
+        }
+        FilterContents contents = peek(host);
+        for (int i = 0; i < contents.slotCount(); i++) {
+            FilterContents.Slot slot = contents.slot(i);
+            if (slot.isEmpty()) {
+                continue;
+            }
+            if (GhostItemFilter.slotMatches(slot.toStack(), candidate, depth + 1)) {
                 return true;
             }
         }

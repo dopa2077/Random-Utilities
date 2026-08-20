@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "minecraft:cobbled_deepslate",
+    "D": "minecraft:dispenser",
+    "S": "dopasrandomutilities:simple_block_placer"
+  },
+  "pattern": [
+    "CCC",
+    "CSC",
+    "CDC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:advanced_block_placer"
+  }
+}

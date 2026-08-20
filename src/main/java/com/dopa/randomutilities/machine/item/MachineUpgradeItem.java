@@ -1,9 +1,13 @@
 package com.dopa.randomutilities.machine.item;
 
+import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerBlock;
+import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerBlock;
 import com.dopa.randomutilities.fishnet.FishnetBlock;
+import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
-import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
-import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.transfer.TransferNodeBlock;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -43,6 +47,31 @@ public class MachineUpgradeItem extends Item {
                 "item.dopasrandomutilities.treasure_mesh_upgrade.tooltip",
                 () -> 0,
                 false
+        ),
+        ENERGY(
+                "item.dopasrandomutilities.energy_upgrade.tooltip",
+                UpgradeConfig::energyBonusPercent,
+                true
+        ),
+        EFFICIENCY(
+                "item.dopasrandomutilities.efficiency_upgrade.tooltip",
+                UpgradeConfig::efficiencyBonusPercent,
+                true
+        ),
+        RANGE(
+                "item.dopasrandomutilities.range_upgrade.tooltip",
+                UpgradeConfig::rangeBonus,
+                false
+        ),
+        STACK(
+                "item.dopasrandomutilities.stack_upgrade.tooltip",
+                () -> 0,
+                false
+        ),
+        FLUID_CAPACITY(
+                "item.dopasrandomutilities.fluid_capacity_upgrade.tooltip",
+                UpgradeConfig::fluidCapacityBonusPercent,
+                true
         );
 
         private final String tooltipKey;
@@ -79,6 +108,21 @@ public class MachineUpgradeItem extends Item {
         return kind;
     }
 
+    /** Gray description used both in the inventory hover and in installed-slot tooltips. */
+    public Component descriptionLine() {
+        if (kind == Kind.RANGE) {
+            return Component.translatable(
+                    kind.tooltipKey(),
+                    Component.literal(Integer.toString(kind.percent())).withStyle(ChatFormatting.GREEN)
+            ).withStyle(ChatFormatting.GRAY);
+        }
+        MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
+        if (kind.showsPercent()) {
+            line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        }
+        return line;
+    }
+
     /**
      * Allow shift-right-click to reach the generator block (vanilla otherwise suppresses
      * block use while sneaking with an item in hand).
@@ -88,7 +132,11 @@ public class MachineUpgradeItem extends Item {
         var block = level.getBlockState(pos).getBlock();
         return block instanceof ResourceGeneratorBlock
                 || block instanceof SolarFurnaceBlock
-                || block instanceof FishnetBlock;
+                || block instanceof FishnetBlock
+                || block instanceof AdvancedBlockBreakerBlock
+                || block instanceof AdvancedBlockPlacerBlock
+                || block instanceof ItemCollectorBlock
+                || block instanceof TransferNodeBlock;
     }
 
     @Override
@@ -99,10 +147,10 @@ public class MachineUpgradeItem extends Item {
             Consumer<Component> tooltip,
             TooltipFlag flag
     ) {
-        MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
-        if (kind.showsPercent()) {
-            line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        tooltip.accept(descriptionLine());
+        if (kind == Kind.ENERGY) {
+            tooltip.accept(Component.translatable("item.dopasrandomutilities.energy_upgrade.tooltip_node")
+                    .withStyle(ChatFormatting.GRAY));
         }
-        tooltip.accept(line);
     }
 }

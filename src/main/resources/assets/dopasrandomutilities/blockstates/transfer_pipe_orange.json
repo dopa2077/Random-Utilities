@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "type": "dopasrandomutilities:transfer_connections"
+    }
+  }
+}

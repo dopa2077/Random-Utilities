@@ -15,6 +15,13 @@
     "dopasrandomutilities:basic_item_collector",
     "dopasrandomutilities:advanced_item_collector",
     "dopasrandomutilities:redstone_clock",
-    "dopasrandomutilities:solar_furnace"
+    "dopasrandomutilities:solar_furnace",
+    "dopasrandomutilities:simple_block_breaker",
+    "dopasrandomutilities:simple_block_placer",
+    "dopasrandomutilities:advanced_block_breaker",
+    "dopasrandomutilities:advanced_block_placer",
+    "dopasrandomutilities:simple_frame",
+    "#dopasrandomutilities:transfer_pipes",
+    "dopasrandomutilities:transfer_node"
   ]
 }

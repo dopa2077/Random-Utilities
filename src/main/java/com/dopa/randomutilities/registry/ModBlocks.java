@@ -1,14 +1,23 @@
 package com.dopa.randomutilities.registry;
 
+import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerBlock;
+import com.dopa.randomutilities.blockbreaker.SimpleBlockBreakerBlock;
+import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerBlock;
+import com.dopa.randomutilities.blockplacer.SimpleBlockPlacerBlock;
+import com.dopa.randomutilities.simpleframe.SimpleFrameBlock;
 import com.dopa.randomutilities.minichest.MiniChestBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorType;
-import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
-import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlock;
 import com.dopa.randomutilities.fishnet.FishnetBlock;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.trashcan.TrashCanBlock;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockBlock;
+import com.dopa.randomutilities.tinytnt.TinyTntBlock;
+import com.dopa.randomutilities.transfer.TransferChannel;
+import com.dopa.randomutilities.transfer.TransferNodeBlock;
+import com.dopa.randomutilities.transfer.TransferPipeBlock;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.world.level.block.Block;
@@ -69,11 +78,80 @@ public final class ModBlocks {
             props -> props.mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD).noOcclusion()
     );
 
+    public static final DeferredBlock<SimpleBlockBreakerBlock> SIMPLE_BLOCK_BREAKER = BLOCKS.registerBlock(
+            "simple_block_breaker",
+            SimpleBlockBreakerBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<SimpleBlockPlacerBlock> SIMPLE_BLOCK_PLACER = BLOCKS.registerBlock(
+            "simple_block_placer",
+            SimpleBlockPlacerBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<AdvancedBlockBreakerBlock> ADVANCED_BLOCK_BREAKER = BLOCKS.registerBlock(
+            "advanced_block_breaker",
+            AdvancedBlockBreakerBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<AdvancedBlockPlacerBlock> ADVANCED_BLOCK_PLACER = BLOCKS.registerBlock(
+            "advanced_block_placer",
+            AdvancedBlockPlacerBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+    );
+
+    public static final DeferredBlock<SimpleFrameBlock> SIMPLE_FRAME = BLOCKS.registerBlock(
+            "simple_frame",
+            SimpleFrameBlock::new,
+            props -> props.mapColor(MapColor.METAL).strength(3.0F, 6.0F).sound(SoundType.GLASS).noOcclusion()
+                    .isRedstoneConductor((state, level, pos) -> false)
+    );
+
+    public static final DeferredBlock<TinyTntBlock> TINY_TNT = BLOCKS.registerBlock(
+            "tiny_tnt",
+            TinyTntBlock::new,
+            props -> props.mapColor(MapColor.FIRE).instabreak().sound(SoundType.GRASS).ignitedByLava().noOcclusion()
+                    .isRedstoneConductor((state, level, pos) -> false)
+    );
+
+    public static final DeferredBlock<TransferPipeBlock> TRANSFER_PIPE = BLOCKS.registerBlock(
+            "transfer_pipe",
+            props -> new TransferPipeBlock(props, TransferChannel.NONE),
+            props -> props.mapColor(MapColor.STONE).strength(1.0F).sound(SoundType.STONE).noOcclusion().dynamicShape()
+    );
+
+    private static final Map<TransferChannel, DeferredBlock<TransferPipeBlock>> PIPES = new EnumMap<>(TransferChannel.class);
+
     static {
+        PIPES.put(TransferChannel.NONE, TRANSFER_PIPE);
+        for (TransferChannel channel : TransferChannel.dyed()) {
+            TransferChannel color = channel;
+            PIPES.put(color, BLOCKS.registerBlock(
+                    color.blockId(),
+                    props -> new TransferPipeBlock(props, color),
+                    props -> props.mapColor(color.mapColor()).strength(1.0F).sound(SoundType.STONE).noOcclusion().dynamicShape()
+            ));
+        }
         for (GeneratorType type : GeneratorType.values()) {
             BY_TYPE.put(type, registerGenerator(type));
         }
     }
+
+    public static DeferredBlock<TransferPipeBlock> pipe(TransferChannel channel) {
+        return PIPES.getOrDefault(channel, TRANSFER_PIPE);
+    }
+
+    public static Iterable<DeferredBlock<TransferPipeBlock>> pipes() {
+        return PIPES.values();
+    }
+
+    public static final DeferredBlock<TransferNodeBlock> TRANSFER_NODE = BLOCKS.registerBlock(
+            "transfer_node",
+            TransferNodeBlock::new,
+            props -> props.mapColor(MapColor.STONE).strength(2.0F).sound(SoundType.STONE).noOcclusion().dynamicShape()
+    );
 
     public static DeferredBlock<ResourceGeneratorBlock> forType(GeneratorType type) {
         return BY_TYPE.get(type);

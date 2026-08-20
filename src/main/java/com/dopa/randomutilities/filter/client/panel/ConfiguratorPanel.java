@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.filter.client.panel;
 
-import com.dopa.randomutilities.client.gui.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
 
-import com.dopa.randomutilities.client.gui.AttachedPanel;
+import com.dopa.randomutilities.gui.panel.AttachedPanel;
 
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.filter.client.FilterScreen;
@@ -35,9 +35,9 @@ public final class ConfiguratorPanel extends AttachedPanel {
     private static final int STACK_LABEL_Y = 28;
     private static final int STACK_BOX_Y = 38;
     private static final int SLOTS_LABEL_Y = 55;
-    private static final int SLOT_BUTTONS_Y = 66;
+    private static final int SLOT_BUTTONS_Y = 67;
     private static final int PAGE_LABEL_Y = 95;
-    private static final int PAGE_BUTTONS_Y = 107;
+    private static final int PAGE_BUTTONS_Y = 108;
 
     private final FilterScreen screen;
 

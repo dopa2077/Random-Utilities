@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "dopasrandomutilities:upgrade_casing",
+    "E": "#c:gems/emerald",
+    "G": "#c:ingots/gold",
+    "P": "minecraft:comparator"
+  },
+  "pattern": [
+    "CEC",
+    "GPG",
+    "CEC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:efficiency_upgrade"
+  }
+}

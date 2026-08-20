@@ -1,12 +1,17 @@
 package com.dopa.randomutilities.registry;
 
+import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerBlockEntity;
+import com.dopa.randomutilities.blockbreaker.SimpleBlockBreakerBlockEntity;
+import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerBlockEntity;
+import com.dopa.randomutilities.blockplacer.SimpleBlockPlacerBlockEntity;
 import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
-import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlockEntity;
-import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlockEntity;
+import com.dopa.randomutilities.generator.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlockEntity;
 import com.dopa.randomutilities.fishnet.FishnetBlockEntity;
 import com.dopa.randomutilities.trashcan.TrashCanBlockEntity;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockBlockEntity;
+import com.dopa.randomutilities.transfer.TransferNodeBlockEntity;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -87,6 +92,56 @@ public final class ModBlockEntities {
                             FishnetBlockEntity::new,
                             false,
                             ModBlocks.FISHNET.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<SimpleBlockBreakerBlockEntity>> SIMPLE_BLOCK_BREAKER =
+            BLOCK_ENTITIES.register(
+                    "simple_block_breaker",
+                    () -> new BlockEntityType<>(
+                            SimpleBlockBreakerBlockEntity::new,
+                            false,
+                            ModBlocks.SIMPLE_BLOCK_BREAKER.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<SimpleBlockPlacerBlockEntity>> SIMPLE_BLOCK_PLACER =
+            BLOCK_ENTITIES.register(
+                    "simple_block_placer",
+                    () -> new BlockEntityType<>(
+                            SimpleBlockPlacerBlockEntity::new,
+                            false,
+                            ModBlocks.SIMPLE_BLOCK_PLACER.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<AdvancedBlockBreakerBlockEntity>> ADVANCED_BLOCK_BREAKER =
+            BLOCK_ENTITIES.register(
+                    "advanced_block_breaker",
+                    () -> new BlockEntityType<>(
+                            AdvancedBlockBreakerBlockEntity::new,
+                            false,
+                            ModBlocks.ADVANCED_BLOCK_BREAKER.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<AdvancedBlockPlacerBlockEntity>> ADVANCED_BLOCK_PLACER =
+            BLOCK_ENTITIES.register(
+                    "advanced_block_placer",
+                    () -> new BlockEntityType<>(
+                            AdvancedBlockPlacerBlockEntity::new,
+                            false,
+                            ModBlocks.ADVANCED_BLOCK_PLACER.get()
+                    )
+            );
+
+    public static final Supplier<BlockEntityType<TransferNodeBlockEntity>> TRANSFER_NODE =
+            BLOCK_ENTITIES.register(
+                    "transfer_node",
+                    () -> new BlockEntityType<>(
+                            TransferNodeBlockEntity::new,
+                            false,
+                            ModBlocks.TRANSFER_NODE.get()
                     )
             );
 

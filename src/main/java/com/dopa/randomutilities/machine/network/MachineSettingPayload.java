@@ -3,8 +3,10 @@ package com.dopa.randomutilities.machine.network;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
-import com.dopa.randomutilities.machine.solarfurnace.menu.SolarFurnaceMenu;
+import com.dopa.randomutilities.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
+import com.dopa.randomutilities.transfer.menu.TransferEnergyMenu;
+import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -56,6 +58,14 @@ public record MachineSettingPayload(byte kind, int value) implements CustomPacke
             } else if (player.containerMenu instanceof FishnetMenu menu) {
                 if (payload.kind() == KIND_REDSTONE) {
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof TransferNodeMenu menu) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof TransferEnergyMenu energyMenu) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    energyMenu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
             }
         });

@@ -5,10 +5,12 @@ import java.util.List;
 
 import com.dopa.randomutilities.fishnet.client.FishnetRenderer;
 import com.dopa.randomutilities.minichest.client.MiniChestRenderer;
-import com.dopa.randomutilities.machine.generator.client.ResourceGeneratorRenderer;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.client.ResourceGeneratorRenderer;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
+import com.dopa.randomutilities.registry.ModEntities;
+import com.dopa.randomutilities.tinytnt.client.PrimedTinyTntRenderer;
 
 import net.minecraft.client.color.block.BlockTintSources;
 import net.minecraft.world.level.block.Block;
@@ -42,6 +44,7 @@ public class dOPasRandomUtilitiesClient {
                 ModBlockEntities.FISHNET.get(),
                 FishnetRenderer::new
         );
+        event.registerEntityRenderer(ModEntities.PRIMED_TINY_TNT.get(), PrimedTinyTntRenderer::new);
     }
 
     @SubscribeEvent

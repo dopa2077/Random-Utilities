@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.itemcollector.client.panel;
 
-import com.dopa.randomutilities.client.gui.AttachedPanel;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelTextScrollbar;
+import com.dopa.randomutilities.gui.panel.AttachedPanel;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.widget.PanelTextScrollbar;
 import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 
 import net.minecraft.client.gui.Font;
@@ -27,7 +27,7 @@ public final class ItemCollectorInformativePanel extends AttachedPanel {
         super(
                 PanelAnchor.LEFT_TOP,
                 122,
-                type == ItemCollectorType.ADVANCED ? 90 : 78,
+                90,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.info")
         );

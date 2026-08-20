@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#c:cobblestones",
+    "D": "minecraft:dispenser",
+    "I": "#c:ingots/iron",
+    "P": "#c:pistons"
+  },
+  "pattern": [
+    "ICC",
+    "PDC",
+    "ICC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:simple_block_placer"
+  }
+}

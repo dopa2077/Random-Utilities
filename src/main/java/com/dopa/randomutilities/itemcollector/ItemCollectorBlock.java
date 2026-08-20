@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.itemcollector;
 
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
+import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 
@@ -8,10 +9,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -68,6 +73,11 @@ public class ItemCollectorBlock extends BaseEntityBlock {
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+        return true;
     }
 
     @Override
@@ -146,6 +156,36 @@ public class ItemCollectorBlock extends BaseEntityBlock {
         return level.isClientSide()
                 ? null
                 : createTickerHelper(type, ModBlockEntities.ITEM_COLLECTOR.get(), ItemCollectorBlockEntity::serverTick);
+    }
+
+    @Override
+    protected InteractionResult useItemOn(
+            ItemStack stack,
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        if (!player.isShiftKeyDown() || !UpgradeInventory.isCollectorUpgrade(stack)) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
+        if (level.isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+        if (!(level.getBlockEntity(pos) instanceof ItemCollectorBlockEntity be)) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
+        int inserted = be.insertUpgrade(stack);
+        if (inserted <= 0) {
+            return InteractionResult.FAIL;
+        }
+        if (!player.getAbilities().instabuild) {
+            stack.shrink(inserted);
+        }
+        level.playSound(null, pos, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 0.6F, 1.1F);
+        return InteractionResult.CONSUME;
     }
 
     @Override

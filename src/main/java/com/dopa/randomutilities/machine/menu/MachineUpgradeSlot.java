@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.machine.menu;
 
 import com.dopa.randomutilities.machine.UpgradeInventory;
-import com.dopa.randomutilities.util.PanelLayout;
+import com.dopa.randomutilities.gui.panel.PanelLayout;
 
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;

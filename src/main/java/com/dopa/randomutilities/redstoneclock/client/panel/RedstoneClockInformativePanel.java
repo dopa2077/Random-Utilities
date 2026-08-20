@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.redstoneclock.client.panel;
 
-import com.dopa.randomutilities.client.gui.AttachedPanel;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelTextScrollbar;
+import com.dopa.randomutilities.gui.panel.AttachedPanel;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.widget.PanelTextScrollbar;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

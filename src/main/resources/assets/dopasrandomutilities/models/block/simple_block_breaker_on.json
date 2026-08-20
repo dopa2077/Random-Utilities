@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "dopasrandomutilities:block/simple_block_breaker_side",
+    "north": "dopasrandomutilities:block/simple_block_breaker_on",
+    "south": "dopasrandomutilities:block/simple_block_breaker_back",
+    "east": "dopasrandomutilities:block/simple_block_breaker_side",
+    "west": "dopasrandomutilities:block/simple_block_breaker_side",
+    "up": "minecraft:block/furnace_top",
+    "down": "minecraft:block/furnace_top"
+  }
+}

@@ -1,0 +1,6 @@
+{
+	"parent": "dopasrandomutilities:block/transfer_node_dots",
+	"textures": {
+		"2": "dopasrandomutilities:block/transfernode_dots_energy"
+	}
+}

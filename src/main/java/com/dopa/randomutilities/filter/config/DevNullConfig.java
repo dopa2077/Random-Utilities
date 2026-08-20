@@ -26,11 +26,13 @@ public final class DevNullConfig {
 
     private static int basicMaxStackSize = 64;
     private static boolean basicAllowOverstacking = false;
+    private static boolean basicCanPlaceBlocks = false;
     private static int advancedMinSlots = 27;
     private static int advancedMaxSlots = 81;
     private static int advancedMaxStackSize = 1000;
     private static int advancedMaxPages = 2;
     private static boolean advancedAllowOverstacking = true;
+    private static boolean advancedCanPlaceBlocks = true;
 
     static {
         loadDefaultsFromJar();
@@ -84,6 +86,18 @@ public final class DevNullConfig {
 
     public static boolean advancedAllowOverstacking() {
         return advancedAllowOverstacking;
+    }
+
+    public static boolean basicCanPlaceBlocks() {
+        return basicCanPlaceBlocks;
+    }
+
+    public static boolean advancedCanPlaceBlocks() {
+        return advancedCanPlaceBlocks;
+    }
+
+    public static boolean canPlaceBlocks(boolean basic) {
+        return basic ? basicCanPlaceBlocks : advancedCanPlaceBlocks;
     }
 
     public static boolean allowOverstacking(boolean basic) {
@@ -185,11 +199,13 @@ public final class DevNullConfig {
     private static void applyBuiltInDefaults() {
         basicMaxStackSize = 64;
         basicAllowOverstacking = false;
+        basicCanPlaceBlocks = false;
         advancedMinSlots = 27;
         advancedMaxSlots = 81;
         advancedMaxStackSize = 1000;
         advancedMaxPages = 2;
         advancedAllowOverstacking = true;
+        advancedCanPlaceBlocks = true;
     }
 
     private static void applyJson(JsonObject root) {
@@ -201,11 +217,13 @@ public final class DevNullConfig {
 
         basicMaxStackSize = Math.max(1, basic.get("max_stack_size").getAsInt());
         basicAllowOverstacking = !basic.has("allow_overstacking") || basic.get("allow_overstacking").getAsBoolean();
+        basicCanPlaceBlocks = basic.has("can_place_blocks") && basic.get("can_place_blocks").getAsBoolean();
         advancedMinSlots = Math.max(1, advanced.get("min_slots").getAsInt());
         advancedMaxSlots = Math.max(advancedMinSlots, advanced.get("max_slots").getAsInt());
         advancedMaxStackSize = Math.max(1, advanced.get("max_stack_size").getAsInt());
         advancedMaxPages = Math.max(1, advanced.get("max_pages").getAsInt());
         advancedAllowOverstacking = !advanced.has("allow_overstacking") || advanced.get("allow_overstacking").getAsBoolean();
+        advancedCanPlaceBlocks = !advanced.has("can_place_blocks") || advanced.get("can_place_blocks").getAsBoolean();
 
         int slotsForPages = Math.min(advancedMaxSlots, advancedMaxPages * FilterContents.SLOTS_PER_PAGE);
         if (slotsForPages < advancedMaxSlots) {

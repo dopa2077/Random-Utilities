@@ -1,7 +1,8 @@
 package com.dopa.randomutilities.machine.config;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.config.GeneratorType;
+import com.dopa.randomutilities.transfer.HeadKind;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -28,6 +29,10 @@ public final class UpgradeConfig {
     public static final int UPGRADE_SLOT_COUNT = 6;
     /** Fortune Mesh never guarantees treasure; 9×10% default = 90%. */
     public static final int FORTUNE_MESH_MAX_CHANCE_PERCENT = 90;
+    /** Treasure Mesh only switches loot tables; one is enough. */
+    public static final int MAX_TREASURE_MESH = 1;
+    /** Stack upgrade moves up to 64 items per transfer; one is enough. */
+    public static final int MAX_STACK_UPGRADE = 1;
 
     private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/upgrade.json";
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/upgrade.json";
@@ -35,12 +40,30 @@ public final class UpgradeConfig {
     private static int productivityBonusPercent = 13;
     private static int overclockSpeedPercent = 9;
     private static int fortuneMeshTreasurePercent = 10;
+    private static int energyBonusPercent = 25;
+    private static int efficiencyBonusPercent = 6;
+    private static int rangeBonus = 1;
     private static int maxFortuneMeshFishnet = 9;
-    private static int maxTreasureMeshFishnet = 1;
     private static int maxProductivityFishnet = 9;
     private static int maxOverclockFishnet = 15;
-    private static int maxOverclockSolarFurnace = 3;
-    private static final Map<GeneratorType, Integer> maxPerType = new EnumMap<>(GeneratorType.class);
+    private static int maxOverclockSolarFurnace = 17;
+    private static int solarPeakSpeedPercent = 70;
+    private static int maxEnergy = 32;
+    private static int maxEfficiency = 12;
+    private static int maxRange = 16;
+    private static int fluidCapacityBonusPercent = 10;
+    private static int itemNodeBaseTicks = 40;
+    private static int itemNodeMaxOverclock = 40;
+    private static int fluidNodeBaseTicks = 40;
+    private static int fluidNodeBaseMb = 100;
+    private static int fluidNodeMaxOverclock = 40;
+    private static int maxFluidCapacity = 64;
+    private static int energyNodeBaseTicks = 20;
+    private static int energyNodeBaseFe = 50;
+    private static int energyNodeMaxOverclock = 40;
+    private static int maxEnergyTransferNode = 64;
+    private static final Map<GeneratorType, Integer> maxProductivityPerType = new EnumMap<>(GeneratorType.class);
+    private static final Map<GeneratorType, Integer> maxOverclockPerType = new EnumMap<>(GeneratorType.class);
 
     static {
         applyBuiltInDefaults();
@@ -81,6 +104,22 @@ public final class UpgradeConfig {
         return fortuneMeshTreasurePercent;
     }
 
+    public static int energyBonusPercent() {
+        return energyBonusPercent;
+    }
+
+    public static int efficiencyBonusPercent() {
+        return efficiencyBonusPercent;
+    }
+
+    public static int rangeBonus() {
+        return Math.max(0, rangeBonus);
+    }
+
+    public static int extraRange(int rangeCount) {
+        return rangeBonus() * Math.max(0, rangeCount);
+    }
+
     /** Treasure chance from installed Fortune Mesh, capped at {@link #FORTUNE_MESH_MAX_CHANCE_PERCENT}. */
     public static int fortuneMeshChancePercent(int meshCount) {
         int percent = fortuneMeshTreasurePercent * Math.max(0, meshCount);
@@ -100,7 +139,7 @@ public final class UpgradeConfig {
     }
 
     public static int maxTreasureMeshFishnet() {
-        return Math.max(0, maxTreasureMeshFishnet);
+        return MAX_TREASURE_MESH;
     }
 
     public static int maxProductivityFishnet() {
@@ -115,12 +154,111 @@ public final class UpgradeConfig {
         return Math.max(0, maxOverclockSolarFurnace);
     }
 
-    public static int maxPerType(GeneratorType type) {
-        return Math.max(0, maxPerType.getOrDefault(type, 0));
+    /** Noon cook speed vs a vanilla furnace: base peak plus the global overclock bonus per upgrade. */
+    public static float solarPeakFactor(int overclockCount) {
+        int count = Math.min(Math.max(0, overclockCount), maxOverclockSolarFurnace());
+        return (solarPeakSpeedPercent + overclockSpeedPercent * count) / 100.0F;
+    }
+
+    public static int solarPeakPercent(int overclockCount) {
+        return Math.round(solarPeakFactor(overclockCount) * 100.0F);
+    }
+
+    public static int maxEnergy() {
+        return Math.max(0, maxEnergy);
+    }
+
+    public static int maxEfficiency() {
+        return Math.max(0, maxEfficiency);
+    }
+
+    public static int maxRange() {
+        return Math.max(0, maxRange);
+    }
+
+    public static int fluidCapacityBonusPercent() {
+        return fluidCapacityBonusPercent;
+    }
+
+    public static int maxOverclockTransferNode() {
+        return maxOverclockTransferNode(HeadKind.ITEM);
+    }
+
+    public static int maxOverclockTransferNode(HeadKind kind) {
+        return Math.max(0, switch (kind) {
+            case ITEM -> itemNodeMaxOverclock;
+            case FLUID -> fluidNodeMaxOverclock;
+            case ENERGY -> energyNodeMaxOverclock;
+        });
+    }
+
+    public static int transferNodeBaseTicks() {
+        return transferNodeBaseTicks(HeadKind.ITEM);
+    }
+
+    public static int transferNodeBaseTicks(HeadKind kind) {
+        return Math.max(1, switch (kind) {
+            case ITEM -> itemNodeBaseTicks;
+            case FLUID -> fluidNodeBaseTicks;
+            case ENERGY -> energyNodeBaseTicks;
+        });
+    }
+
+    public static int transferNodeBaseMb() {
+        return Math.max(0, fluidNodeBaseMb);
+    }
+
+    public static int transferNodeBaseFe() {
+        return Math.max(0, energyNodeBaseFe);
+    }
+
+    public static int maxFluidCapacity() {
+        return Math.max(0, maxFluidCapacity);
+    }
+
+    public static int maxEnergyTransferNode() {
+        return Math.max(0, maxEnergyTransferNode);
+    }
+
+    public static int transferNodeInterval(int overclockCount) {
+        return transferNodeInterval(HeadKind.ITEM, overclockCount);
+    }
+
+    public static int transferNodeInterval(HeadKind kind, int overclockCount) {
+        int count = Math.min(Math.max(0, overclockCount), maxOverclockTransferNode(kind));
+        return effectiveTicks(transferNodeBaseTicks(kind), count);
+    }
+
+    public static int transferNodeFluidAmount(int capacityCount) {
+        return additivePercentOfBase(transferNodeBaseMb(), fluidCapacityBonusPercent(), capacityCount, maxFluidCapacity());
+    }
+
+    public static int transferNodeEnergyAmount(int energyCount) {
+        return additivePercentOfBase(transferNodeBaseFe(), energyBonusPercent(), energyCount, maxEnergyTransferNode());
+    }
+
+    /** 10% of base per upgrade, not compounding. */
+    public static int additivePercentOfBase(int base, int percentPer, int count, int maxCount) {
+        if (base <= 0) {
+            return 0;
+        }
+        int n = Math.min(Math.max(0, count), Math.max(0, maxCount));
+        if (percentPer <= 0 || n <= 0) {
+            return base;
+        }
+        return base + base * percentPer * n / 100;
+    }
+
+    public static int maxProductivity(GeneratorType type) {
+        return Math.max(0, maxProductivityPerType.getOrDefault(type, 0));
+    }
+
+    public static int maxOverclock(GeneratorType type) {
+        return Math.max(0, maxOverclockPerType.getOrDefault(type, 0));
     }
 
     public static boolean upgradesEnabled(GeneratorType type) {
-        return maxPerType(type) > 0;
+        return maxProductivity(type) > 0 || maxOverclock(type) > 0;
     }
 
     /**
@@ -212,63 +350,96 @@ public final class UpgradeConfig {
         productivityBonusPercent = 13;
         overclockSpeedPercent = 9;
         fortuneMeshTreasurePercent = 10;
+        energyBonusPercent = 25;
+        efficiencyBonusPercent = 6;
+        rangeBonus = 1;
         maxFortuneMeshFishnet = 9;
-        maxTreasureMeshFishnet = 1;
         maxProductivityFishnet = 9;
         maxOverclockFishnet = 15;
-        maxOverclockSolarFurnace = 3;
-        maxPerType.clear();
-        maxPerType.put(GeneratorType.BASIC_STONE, 5);
-        maxPerType.put(GeneratorType.INTERMEDIATE_STONE, 10);
-        maxPerType.put(GeneratorType.ADVANCED_STONE, 15);
-        maxPerType.put(GeneratorType.ELITE_STONE, 20);
-        maxPerType.put(GeneratorType.ULTIMATE_STONE, 32);
-        maxPerType.put(GeneratorType.RANDOM_ORE, 10);
-        maxPerType.put(GeneratorType.METAL_BLOCK, 15);
-        maxPerType.put(GeneratorType.CREATIVE_STONE, 0);
-        maxPerType.put(GeneratorType.CREATIVE_RANDOM_ORE, 0);
-        maxPerType.put(GeneratorType.CREATIVE_METAL_BLOCK, 0);
+        maxOverclockSolarFurnace = 17;
+        solarPeakSpeedPercent = 70;
+        maxEnergy = 32;
+        maxEfficiency = 12;
+        maxRange = 16;
+        fluidCapacityBonusPercent = 10;
+        itemNodeBaseTicks = 40;
+        itemNodeMaxOverclock = 40;
+        fluidNodeBaseTicks = 40;
+        fluidNodeBaseMb = 100;
+        fluidNodeMaxOverclock = 40;
+        maxFluidCapacity = 64;
+        energyNodeBaseTicks = 20;
+        energyNodeBaseFe = 50;
+        energyNodeMaxOverclock = 40;
+        maxEnergyTransferNode = 64;
+        maxProductivityPerType.clear();
+        maxOverclockPerType.clear();
+        putGeneratorCaps(GeneratorType.BASIC_STONE, 5, 5);
+        putGeneratorCaps(GeneratorType.INTERMEDIATE_STONE, 10, 10);
+        putGeneratorCaps(GeneratorType.ADVANCED_STONE, 15, 15);
+        putGeneratorCaps(GeneratorType.ELITE_STONE, 20, 20);
+        putGeneratorCaps(GeneratorType.ULTIMATE_STONE, 32, 32);
+        putGeneratorCaps(GeneratorType.RANDOM_ORE, 10, 10);
+        putGeneratorCaps(GeneratorType.METAL_BLOCK, 15, 15);
+        putGeneratorCaps(GeneratorType.CREATIVE_STONE, 0, 0);
+        putGeneratorCaps(GeneratorType.CREATIVE_RANDOM_ORE, 0, 0);
+        putGeneratorCaps(GeneratorType.CREATIVE_METAL_BLOCK, 0, 0);
+    }
+
+    private static void putGeneratorCaps(GeneratorType type, int maxOverclock, int maxProductivity) {
+        maxOverclockPerType.put(type, maxOverclock);
+        maxProductivityPerType.put(type, maxProductivity);
     }
 
     private static void applyJson(JsonObject root) {
         applyBuiltInDefaults();
-        if (root.has("productivity_bonus_percent_per_upgrade")) {
-            productivityBonusPercent = Math.max(0, root.get("productivity_bonus_percent_per_upgrade").getAsInt());
-        } else if (root.has("capacity_bonus_percent_per_upgrade")) {
-            productivityBonusPercent = Math.max(0, root.get("capacity_bonus_percent_per_upgrade").getAsInt());
-        }
-        if (root.has("overclock_speed_percent_per_upgrade")) {
-            overclockSpeedPercent = Math.max(0, root.get("overclock_speed_percent_per_upgrade").getAsInt());
-        }
+        applyBonuses(root);
         applyGeneratorCaps(root);
         applySolarFurnace(root);
         applyFishnet(root);
+        applyPoweredMachines(root);
+        applyTransferNode(root);
+    }
+
+    private static void applyBonuses(JsonObject root) {
+        JsonObject bonuses = root.getAsJsonObject("bonuses_percent_per_upgrade");
+        if (bonuses == null) {
+            bonuses = root.getAsJsonObject("bonuses");
+        }
+        if (bonuses == null) {
+            return;
+        }
+        productivityBonusPercent = intOrKeys(bonuses, productivityBonusPercent, "productivity", "productivity_percent_per_upgrade");
+        overclockSpeedPercent = intOrKeys(bonuses, overclockSpeedPercent, "overclock", "overclock_speed_percent_per_upgrade");
+        fortuneMeshTreasurePercent = intOrKeys(bonuses, fortuneMeshTreasurePercent, "treasure", "treasure_percent_per_upgrade");
+        energyBonusPercent = intOr(bonuses, "energy", energyBonusPercent);
+        efficiencyBonusPercent = intOr(bonuses, "efficiency", efficiencyBonusPercent);
+        rangeBonus = intOr(bonuses, "range", rangeBonus);
+        fluidCapacityBonusPercent = intOr(bonuses, "fluid_capacity", fluidCapacityBonusPercent);
     }
 
     private static void applyGeneratorCaps(JsonObject root) {
         JsonObject generators = root.getAsJsonObject("generators");
-        if (generators != null) {
-            for (GeneratorType type : GeneratorType.values()) {
-                JsonElement element = generators.get(type.id());
-                if (element == null) {
-                    continue;
-                }
-                if (element.isJsonObject() && element.getAsJsonObject().has("max_upgrades")) {
-                    maxPerType.put(type, Math.max(0, element.getAsJsonObject().get("max_upgrades").getAsInt()));
-                } else if (element.isJsonPrimitive()) {
-                    maxPerType.put(type, Math.max(0, element.getAsInt()));
-                }
-            }
-            return;
-        }
-        JsonObject caps = root.getAsJsonObject("max_upgrades_per_type");
-        if (caps == null) {
+        if (generators == null) {
             return;
         }
         for (GeneratorType type : GeneratorType.values()) {
-            JsonElement element = caps.get(type.id());
-            if (element != null && element.isJsonPrimitive()) {
-                maxPerType.put(type, Math.max(0, element.getAsInt()));
+            JsonElement element = generators.get(type.id());
+            if (element == null) {
+                continue;
+            }
+            if (element.isJsonObject()) {
+                JsonObject object = element.getAsJsonObject();
+                if (object.has("max_productivity") || object.has("max_overclock")) {
+                    maxProductivityPerType.put(type, intOr(object, "max_productivity", maxProductivity(type)));
+                    maxOverclockPerType.put(type, intOr(object, "max_overclock", maxOverclock(type)));
+                } else if (object.has("max_upgrades")) {
+                    int cap = intOr(object, "max_upgrades", 0);
+                    putGeneratorCaps(type, cap, cap);
+                }
+            } else if (element.isJsonPrimitive()) {
+                int cap = Math.max(0, element.getAsInt());
+                putGeneratorCaps(type, cap, cap);
             }
         }
     }
@@ -277,39 +448,66 @@ public final class UpgradeConfig {
         JsonObject solar = root.getAsJsonObject("solar_furnace");
         if (solar != null) {
             maxOverclockSolarFurnace = intOr(solar, "max_overclock", maxOverclockSolarFurnace);
+            solarPeakSpeedPercent = intOr(solar, "peak_speed_percent", solarPeakSpeedPercent);
+        }
+    }
+
+    private static void applyPoweredMachines(JsonObject root) {
+        JsonObject powered = root.getAsJsonObject("powered_machines");
+        if (powered != null) {
+            maxEnergy = intOr(powered, "max_energy", maxEnergy);
+            maxEfficiency = intOr(powered, "max_efficiency", maxEfficiency);
+            maxRange = intOr(powered, "max_range", maxRange);
+        }
+    }
+
+    private static void applyTransferNode(JsonObject root) {
+        JsonObject legacy = root.getAsJsonObject("transfer_node");
+        if (legacy != null) {
+            int ticks = Math.max(1, intOr(legacy, "base_ticks", itemNodeBaseTicks));
+            int overclock = intOr(legacy, "max_overclock", itemNodeMaxOverclock);
+            itemNodeBaseTicks = ticks;
+            fluidNodeBaseTicks = ticks;
+            energyNodeBaseTicks = ticks;
+            itemNodeMaxOverclock = overclock;
+            fluidNodeMaxOverclock = overclock;
+            energyNodeMaxOverclock = overclock;
+        }
+        JsonObject item = root.getAsJsonObject("transfer_node_item");
+        if (item != null) {
+            itemNodeBaseTicks = Math.max(1, intOr(item, "base_ticks", itemNodeBaseTicks));
+            itemNodeMaxOverclock = intOr(item, "max_overclock", itemNodeMaxOverclock);
+        }
+        JsonObject fluid = root.getAsJsonObject("transfer_node_fluid");
+        if (fluid != null) {
+            fluidNodeBaseTicks = Math.max(1, intOr(fluid, "base_ticks", fluidNodeBaseTicks));
+            fluidNodeBaseMb = intOr(fluid, "base_mb", fluidNodeBaseMb);
+            fluidNodeMaxOverclock = intOr(fluid, "max_overclock", fluidNodeMaxOverclock);
+            maxFluidCapacity = intOr(fluid, "max_fluid_capacity", maxFluidCapacity);
+        }
+        JsonObject energy = root.getAsJsonObject("transfer_node_energy");
+        if (energy != null) {
+            energyNodeBaseTicks = Math.max(1, intOr(energy, "base_ticks", energyNodeBaseTicks));
+            energyNodeBaseFe = intOr(energy, "base_fe", energyNodeBaseFe);
+            energyNodeMaxOverclock = intOr(energy, "max_overclock", energyNodeMaxOverclock);
+            maxEnergyTransferNode = intOr(energy, "max_energy", maxEnergyTransferNode);
         }
     }
 
     private static void applyFishnet(JsonObject root) {
         JsonObject fishnet = root.getAsJsonObject("fishnet");
-        if (fishnet != null) {
-            maxProductivityFishnet = intOr(fishnet, "max_productivity", maxProductivityFishnet);
-            maxOverclockFishnet = intOr(fishnet, "max_overclock", maxOverclockFishnet);
-            JsonObject fortune = fishnet.getAsJsonObject("fortune_mesh");
-            if (fortune != null) {
-                fortuneMeshTreasurePercent = intOr(fortune, "treasure_percent_per_upgrade", fortuneMeshTreasurePercent);
-                maxFortuneMeshFishnet = intOr(fortune, "max", maxFortuneMeshFishnet);
-            }
-            JsonObject treasure = fishnet.getAsJsonObject("treasure_mesh");
-            if (treasure != null) {
-                maxTreasureMeshFishnet = intOr(treasure, "max", maxTreasureMeshFishnet);
-            }
+        if (fishnet == null) {
             return;
         }
-        JsonObject fortuneMesh = root.getAsJsonObject("fortune_mesh_upgrade");
-        if (fortuneMesh != null) {
-            fortuneMeshTreasurePercent = intOr(fortuneMesh, "treasure_percent_per_upgrade", fortuneMeshTreasurePercent);
-            maxFortuneMeshFishnet = intOr(fortuneMesh, "max_per_fishnet", maxFortuneMeshFishnet);
-        } else if (root.has("fortune_mesh_treasure_percent_per_upgrade")) {
-            fortuneMeshTreasurePercent = Math.max(0, root.get("fortune_mesh_treasure_percent_per_upgrade").getAsInt());
-        }
-        JsonObject treasureMesh = root.getAsJsonObject("treasure_mesh_upgrade");
-        if (treasureMesh != null) {
-            maxTreasureMeshFishnet = intOr(treasureMesh, "max_per_fishnet", maxTreasureMeshFishnet);
-        }
-        JsonObject caps = root.getAsJsonObject("max_upgrades_per_type");
-        if (fortuneMesh == null && caps != null && caps.has("fishnet") && caps.get("fishnet").isJsonPrimitive()) {
-            maxFortuneMeshFishnet = Math.max(0, caps.get("fishnet").getAsInt());
+        maxProductivityFishnet = intOr(fishnet, "max_productivity", maxProductivityFishnet);
+        maxOverclockFishnet = intOr(fishnet, "max_overclock", maxOverclockFishnet);
+        maxFortuneMeshFishnet = intOrKeys(fishnet, maxFortuneMeshFishnet, "max_treasure");
+        JsonObject fortune = fishnet.getAsJsonObject("fortune_mesh");
+        if (fortune != null) {
+            if (!fishnet.has("max_treasure")) {
+                maxFortuneMeshFishnet = intOr(fortune, "max", maxFortuneMeshFishnet);
+            }
+            fortuneMeshTreasurePercent = intOr(fortune, "treasure_percent_per_upgrade", fortuneMeshTreasurePercent);
         }
     }
 
@@ -318,5 +516,17 @@ public final class UpgradeConfig {
             return fallback;
         }
         return Math.max(0, object.get(key).getAsInt());
+    }
+
+    private static int intOrKeys(JsonObject object, int fallback, String... keys) {
+        if (object == null) {
+            return fallback;
+        }
+        for (String key : keys) {
+            if (object.has(key) && object.get(key).isJsonPrimitive()) {
+                return Math.max(0, object.get(key).getAsInt());
+            }
+        }
+        return fallback;
     }
 }

@@ -1,0 +1,11 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "dopasrandomutilities:item/transfer_pipe",
+    "tints": [
+      {
+        "type": "dopasrandomutilities:transfer_pipe_color"
+      }
+    ]
+  }
+}

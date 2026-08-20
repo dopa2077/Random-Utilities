@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "P": "minecraft:paper",
+    "R": "#c:dusts/redstone",
+    "S": "minecraft:stick"
+  },
+  "pattern": [
+    "SPS",
+    "PRP",
+    "SPS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:filter"
+  }
+}

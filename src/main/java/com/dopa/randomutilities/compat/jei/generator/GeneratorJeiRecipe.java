@@ -1,10 +1,10 @@
 package com.dopa.randomutilities.compat.jei.generator;
 
-import com.dopa.randomutilities.machine.generator.config.GeneratorOutputMode;
-import com.dopa.randomutilities.machine.generator.config.GeneratorRecipe;
-import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
-import com.dopa.randomutilities.machine.generator.config.GeneratorResource;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.config.GeneratorOutputMode;
+import com.dopa.randomutilities.generator.config.GeneratorRecipe;
+import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.generator.config.GeneratorResource;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.BuiltInRegistries;

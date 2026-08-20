@@ -86,6 +86,11 @@ public class RedstoneClockBlock extends BaseEntityBlock {
     }
 
     @Override
+    public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+        return true;
+    }
+
+    @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(RUNNING, POWERED);
     }

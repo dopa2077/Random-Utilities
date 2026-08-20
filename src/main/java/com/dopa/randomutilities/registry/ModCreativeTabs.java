@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import net.minecraft.core.registries.Registries;
@@ -28,6 +28,20 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ADVANCED_ITEM_COLLECTOR.get());
                         output.accept(ModItems.SOLAR_FURNACE.get());
                         output.accept(ModItems.FISHNET.get());
+                        output.accept(ModItems.SIMPLE_BLOCK_BREAKER.get());
+                        output.accept(ModItems.ADVANCED_BLOCK_BREAKER.get());
+                        output.accept(ModItems.SIMPLE_BLOCK_PLACER.get());
+                        output.accept(ModItems.ADVANCED_BLOCK_PLACER.get());
+                        output.accept(ModItems.SIMPLE_FRAME.get());
+                        output.accept(ModItems.TINY_TNT.get());
+                        output.accept(ModItems.WOOD_CHIP.get());
+                        for (var pipe : ModItems.pipes()) {
+                            output.accept(pipe.get());
+                        }
+                        output.accept(ModItems.TRANSFER_NODE.get());
+                        output.accept(ModItems.TRANSFER_NODE_FLUID.get());
+                        output.accept(ModItems.TRANSFER_NODE_ENERGY.get());
+                        output.accept(ModItems.FILTER.get());
                         for (GeneratorType type : GeneratorType.values()) {
                             output.accept(ModItems.forType(type).get());
                         }
@@ -44,6 +58,11 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.OVERCLOCK_UPGRADE.get());
                         output.accept(ModItems.FORTUNE_MESH_UPGRADE.get());
                         output.accept(ModItems.TREASURE_MESH_UPGRADE.get());
+                        output.accept(ModItems.ENERGY_UPGRADE.get());
+                        output.accept(ModItems.FLUID_CAPACITY_UPGRADE.get());
+                        output.accept(ModItems.EFFICIENCY_UPGRADE.get());
+                        output.accept(ModItems.RANGE_UPGRADE.get());
+                        output.accept(ModItems.STACK_UPGRADE.get());
                     })
                     .build());
 
