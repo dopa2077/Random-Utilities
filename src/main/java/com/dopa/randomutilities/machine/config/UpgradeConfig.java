@@ -46,21 +46,24 @@ public final class UpgradeConfig {
     private static int maxFortuneMeshFishnet = 9;
     private static int maxProductivityFishnet = 9;
     private static int maxOverclockFishnet = 15;
-    private static int maxOverclockSolarFurnace = 17;
+    private static int maxOverclockSolarFurnace = 10;
     private static int solarPeakSpeedPercent = 70;
-    private static int maxEnergy = 32;
-    private static int maxEfficiency = 12;
+    private static int maxEnergy = 64;
+    private static int maxEfficiency = 15;
     private static int maxRange = 16;
+    private static int maxOverclockPowered = 11;
+    private static int poweredBaseTicks = 40;
+    private static double overclockCostExponent = 1.09;
     private static int fluidCapacityBonusPercent = 10;
     private static int itemNodeBaseTicks = 40;
-    private static int itemNodeMaxOverclock = 40;
-    private static int fluidNodeBaseTicks = 40;
+    private static int itemNodeMaxOverclock = 11;
+    private static int fluidNodeBaseTicks = 60;
     private static int fluidNodeBaseMb = 100;
-    private static int fluidNodeMaxOverclock = 40;
+    private static int fluidNodeMaxOverclock = 11;
     private static int maxFluidCapacity = 64;
-    private static int energyNodeBaseTicks = 20;
-    private static int energyNodeBaseFe = 50;
-    private static int energyNodeMaxOverclock = 40;
+    private static int energyNodeBaseTicks = 80;
+    private static int energyNodeBaseFe = 200;
+    private static int energyNodeMaxOverclock = 11;
     private static int maxEnergyTransferNode = 64;
     private static final Map<GeneratorType, Integer> maxProductivityPerType = new EnumMap<>(GeneratorType.class);
     private static final Map<GeneratorType, Integer> maxOverclockPerType = new EnumMap<>(GeneratorType.class);
@@ -176,6 +179,18 @@ public final class UpgradeConfig {
         return Math.max(0, maxRange);
     }
 
+    public static int maxOverclockPoweredMachines() {
+        return Math.max(0, maxOverclockPowered);
+    }
+
+    public static int poweredBaseTicks() {
+        return Math.max(1, poweredBaseTicks);
+    }
+
+    public static double overclockCostExponent() {
+        return Math.max(0.0, overclockCostExponent);
+    }
+
     public static int fluidCapacityBonusPercent() {
         return fluidCapacityBonusPercent;
     }
@@ -234,7 +249,8 @@ public final class UpgradeConfig {
     }
 
     public static int transferNodeEnergyAmount(int energyCount) {
-        return additivePercentOfBase(transferNodeBaseFe(), energyBonusPercent(), energyCount, maxEnergyTransferNode());
+        int n = Math.min(Math.max(0, energyCount), maxEnergyTransferNode());
+        return transferNodeBaseFe() * (1 + n);
     }
 
     /** 10% of base per upgrade, not compounding. */
@@ -293,20 +309,16 @@ public final class UpgradeConfig {
     }
 
     /**
-     * Speed multiplier from overclocks. Below 100% total this matches the old
-     * "shorten duration by X%" curve (50% → 2×, 90% → 10×). At 100% and beyond,
-     * extra percent keeps adding speed instead of going negative (100% → 100×,
-     * 135% → 135×).
+     * Additive craft-speed multiplier for resource generators.
+     * Base is 1×; each overclock adds {@link #overclockSpeedPercent()}% of base
+     * (32 × 9% → 1 + 2.88 = 3.88×).
      */
     public static float overclockSpeed(int overclockCount) {
-        int reduction = overclockSpeedPercent * Math.max(0, overclockCount);
-        if (reduction <= 0) {
+        int count = Math.max(0, overclockCount);
+        if (count <= 0) {
             return 1.0F;
         }
-        if (reduction < 100) {
-            return 100.0F / (100 - reduction);
-        }
-        return reduction;
+        return 1.0F + (overclockSpeedPercent * count) / 100.0F;
     }
 
     public static int effectiveTicks(int recipeTicks, int overclockCount) {
@@ -356,21 +368,24 @@ public final class UpgradeConfig {
         maxFortuneMeshFishnet = 9;
         maxProductivityFishnet = 9;
         maxOverclockFishnet = 15;
-        maxOverclockSolarFurnace = 17;
+        maxOverclockSolarFurnace = 10;
         solarPeakSpeedPercent = 70;
-        maxEnergy = 32;
-        maxEfficiency = 12;
+        maxEnergy = 64;
+        maxEfficiency = 15;
         maxRange = 16;
+        maxOverclockPowered = 11;
+        poweredBaseTicks = 40;
+        overclockCostExponent = 1.09;
         fluidCapacityBonusPercent = 10;
         itemNodeBaseTicks = 40;
-        itemNodeMaxOverclock = 40;
-        fluidNodeBaseTicks = 40;
+        itemNodeMaxOverclock = 11;
+        fluidNodeBaseTicks = 60;
         fluidNodeBaseMb = 100;
-        fluidNodeMaxOverclock = 40;
+        fluidNodeMaxOverclock = 11;
         maxFluidCapacity = 64;
-        energyNodeBaseTicks = 20;
-        energyNodeBaseFe = 50;
-        energyNodeMaxOverclock = 40;
+        energyNodeBaseTicks = 80;
+        energyNodeBaseFe = 200;
+        energyNodeMaxOverclock = 11;
         maxEnergyTransferNode = 64;
         maxProductivityPerType.clear();
         maxOverclockPerType.clear();
@@ -458,6 +473,9 @@ public final class UpgradeConfig {
             maxEnergy = intOr(powered, "max_energy", maxEnergy);
             maxEfficiency = intOr(powered, "max_efficiency", maxEfficiency);
             maxRange = intOr(powered, "max_range", maxRange);
+            maxOverclockPowered = intOr(powered, "max_overclock", maxOverclockPowered);
+            poweredBaseTicks = Math.max(1, intOr(powered, "base_ticks", poweredBaseTicks));
+            overclockCostExponent = doubleOr(powered, "overclock_cost_exponent", overclockCostExponent);
         }
     }
 
@@ -516,6 +534,13 @@ public final class UpgradeConfig {
             return fallback;
         }
         return Math.max(0, object.get(key).getAsInt());
+    }
+
+    private static double doubleOr(JsonObject object, String key, double fallback) {
+        if (object == null || !object.has(key) || !object.get(key).isJsonPrimitive()) {
+            return fallback;
+        }
+        return Math.max(0.0, object.get(key).getAsDouble());
     }
 
     private static int intOrKeys(JsonObject object, int fallback, String... keys) {

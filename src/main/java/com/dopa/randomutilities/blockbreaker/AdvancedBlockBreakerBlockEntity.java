@@ -284,7 +284,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         if (redstoneMode.allowsOperation(level.getBestNeighborSignal(pos))) {
             boolean[] worked = {false};
             if (emptyScanBackoff <= 0) {
-                energy.runReadyCycles(() -> {
+                energy.runReadyCycles(upgrades.overclockCount(), () -> {
                     if (!tryBreak(level, pos, state)) {
                         emptyScanBackoff = EMPTY_VOLUME_BACKOFF;
                         return false;
@@ -329,7 +329,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         int efficiency = virtualTool ? 0 : BreakerMining.efficiency(level, tool);
         int hitsNeeded = BreakerMining.hitsNeeded(hardness, efficiency);
         // Charge hardness-scaled FE once on break — not again on every intermediate hit.
-        int cost = energy.operationCost(pos, target, upgrades.efficiencyCount())
+        int cost = energy.operationCost(pos, target, upgrades.efficiencyCount(), upgrades.overclockCount())
                 * BreakerMining.energyMultiplier(hardness);
         if (energy.stored() < cost) {
             breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);

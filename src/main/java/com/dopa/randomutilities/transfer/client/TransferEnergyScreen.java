@@ -7,6 +7,8 @@ import com.dopa.randomutilities.gui.panel.PanelAnchor;
 import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.machine.RedstoneMode;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.transfer.HeadKind;
 import com.dopa.randomutilities.transfer.menu.TransferEnergyMenu;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -127,7 +129,8 @@ public class TransferEnergyScreen extends AbstractContainerScreen<TransferEnergy
         );
         Component extraction = Component.translatable(
                 "gui.dopasrandomutilities.transfer_node_energy.extraction",
-                menu.energyPullRate()
+                menu.energyPullRate(),
+                UpgradeConfig.transferNodeInterval(HeadKind.ENERGY, menu.upgrades().overclockCount())
         );
         int overlayLeft = leftPos + OVERLAY_X;
         int overlayTop = topPos + OVERLAY_Y;

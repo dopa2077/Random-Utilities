@@ -114,18 +114,21 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         return !stack.isEmpty()
                 && (stack.is(ModItems.ENERGY_UPGRADE.get())
                         || stack.is(ModItems.EFFICIENCY_UPGRADE.get())
-                        || stack.is(ModItems.RANGE_UPGRADE.get()));
+                        || stack.is(ModItems.RANGE_UPGRADE.get())
+                        || stack.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
 
     public static boolean isEnergyMachineUpgrade(ItemResource resource) {
         return !resource.isEmpty()
                 && (resource.is(ModItems.ENERGY_UPGRADE.get())
                         || resource.is(ModItems.EFFICIENCY_UPGRADE.get())
-                        || resource.is(ModItems.RANGE_UPGRADE.get()));
+                        || resource.is(ModItems.RANGE_UPGRADE.get())
+                        || resource.is(ModItems.OVERCLOCK_UPGRADE.get()));
     }
 
     public static boolean isCollectorUpgrade(ItemStack stack) {
-        return !stack.isEmpty() && stack.is(ModItems.RANGE_UPGRADE.get());
+        return !stack.isEmpty()
+                && (stack.is(ModItems.RANGE_UPGRADE.get()) || stack.is(ModItems.STACK_UPGRADE.get()));
     }
 
     /** Shared machine upgrades (generators / solar furnace). Fortune Mesh is fishnet-only. */

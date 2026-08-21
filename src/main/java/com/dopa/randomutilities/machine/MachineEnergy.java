@@ -13,17 +13,15 @@ import net.neoforged.neoforge.transfer.transaction.Transaction;
 import java.util.function.BooleanSupplier;
 
 /**
- * FE buffer for powered machines. Capacity and intake scale with energy upgrades
- * (configured percent of the default per upgrade, not compounding).
- * Speed and per-operation cost scale with stored FE / {@link #DEFAULT_CAPACITY}
- * once above a full default tank. Extra stored energy from upgrades goes faster
- * and costs more per cycle; installing upgrades does not slow a 100k charge.
+ * FE buffer for powered machines. Capacity and intake grow by one default chunk
+ * per energy upgrade. Cycle speed comes from overclock upgrades (base ticks from
+ * config); operation cost scales with distance, {@code (baseTicks/ticks)^exponent},
+ * and efficiency — not with stored FE.
  */
 public final class MachineEnergy extends SimpleEnergyHandler {
-    public static final int DEFAULT_CAPACITY = 100_000;
-    public static final int DEFAULT_MAX_RECEIVE = 2_000;
+    public static final int DEFAULT_CAPACITY = 20_000;
+    public static final int DEFAULT_MAX_RECEIVE = 500;
     public static final int FE_PER_DISTANCE = 100;
-    private static final int MAX_CYCLES_PER_TICK = 8;
 
     private double progress;
     private int lastTickUsage;
@@ -38,14 +36,12 @@ public final class MachineEnergy extends SimpleEnergyHandler {
 
     public static int capacityFor(int energyCount) {
         int count = Mth.clamp(energyCount, 0, UpgradeConfig.maxEnergy());
-        double bonus = UpgradeConfig.energyBonusPercent() / 100.0;
-        return DEFAULT_CAPACITY + (int) Math.round(DEFAULT_CAPACITY * bonus * count);
+        return DEFAULT_CAPACITY * (1 + count);
     }
 
     public static int maxReceiveFor(int energyCount) {
         int count = Mth.clamp(energyCount, 0, UpgradeConfig.maxEnergy());
-        double bonus = UpgradeConfig.energyBonusPercent() / 100.0;
-        return DEFAULT_MAX_RECEIVE + (int) Math.round(DEFAULT_MAX_RECEIVE * bonus * count);
+        return DEFAULT_MAX_RECEIVE * (1 + count);
     }
 
     public static boolean wouldVoidEnergy(int stored, int energyCountAfter) {
@@ -85,27 +81,23 @@ public final class MachineEnergy extends SimpleEnergyHandler {
         lastTickUsage = 0;
     }
 
-    public double speedFactor() {
-        if (energy <= 0) {
-            return 0.0;
-        }
-        return (double) energy / (double) DEFAULT_CAPACITY;
-    }
-
     /**
-     * Runs {@code operation} once per ready cycle this tick. Extra stored FE above the
-     * default buffer can complete several cycles in one tick.
+     * Advances one cycle interval this tick and runs {@code operation} at most once
+     * when progress reaches a full cycle.
      */
-    public void runReadyCycles(BooleanSupplier operation) {
-        progress += speedFactor();
-        int guard = 0;
-        while (progress >= 1.0 && guard++ < MAX_CYCLES_PER_TICK) {
-            if (operation.getAsBoolean()) {
-                consumeCycle();
-            } else {
-                holdReadyCycle();
-                return;
-            }
+    public void runReadyCycles(int overclockCount, BooleanSupplier operation) {
+        int interval = UpgradeConfig.effectiveTicks(
+                UpgradeConfig.poweredBaseTicks(),
+                Mth.clamp(overclockCount, 0, UpgradeConfig.maxOverclockPoweredMachines())
+        );
+        progress += 1.0 / (double) interval;
+        if (progress < 1.0) {
+            return;
+        }
+        if (operation.getAsBoolean()) {
+            consumeCycle();
+        } else {
+            holdReadyCycle();
         }
     }
 
@@ -123,13 +115,20 @@ public final class MachineEnergy extends SimpleEnergyHandler {
         }
     }
 
-    public int operationCost(BlockPos machine, BlockPos target, int efficiencyCount) {
+    public int operationCost(BlockPos machine, BlockPos target, int efficiencyCount, int overclockCount) {
         int distance = Math.max(1, WorkingVolume.chebyshev(machine, target));
         int base = FE_PER_DISTANCE * distance;
-        int count = Mth.clamp(efficiencyCount, 0, UpgradeConfig.maxEfficiency());
-        double remaining = 1.0 - (UpgradeConfig.efficiencyBonusPercent() / 100.0) * count;
-        double overclock = Math.max(1.0, (double) energy / (double) DEFAULT_CAPACITY);
-        return Math.max(1, (int) Math.round(base * remaining * overclock));
+        int baseTicks = UpgradeConfig.poweredBaseTicks();
+        int ticks = UpgradeConfig.effectiveTicks(
+                baseTicks,
+                Mth.clamp(overclockCount, 0, UpgradeConfig.maxOverclockPoweredMachines())
+        );
+        double speedFactor = (double) baseTicks / (double) ticks;
+        double tax = Math.pow(speedFactor, UpgradeConfig.overclockCostExponent());
+        int effCount = Mth.clamp(efficiencyCount, 0, UpgradeConfig.maxEfficiency());
+        double remaining = 1.0 - (UpgradeConfig.efficiencyBonusPercent() / 100.0) * effCount;
+        remaining = Math.max(0.0, remaining);
+        return Math.max(1, (int) Math.round(base * tax * remaining));
     }
 
     public boolean tryConsume(int amount) {

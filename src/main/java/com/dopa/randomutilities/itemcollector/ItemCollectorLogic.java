@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -50,6 +51,8 @@ final class ItemCollectorLogic {
         }
 
         int remaining = be.pickupBatch();
+        boolean mixTypes = be.upgrades().stackCount() > 0;
+        Item lockedType = null;
 
         for (ItemEntity entity : entities) {
             if (remaining <= 0) {
@@ -61,6 +64,15 @@ final class ItemCollectorLogic {
             ItemStack stack = entity.getItem();
             if (!GhostItemFilter.allows(stack, be.filterSlots(), be.whitelistMode())) {
                 continue;
+            }
+
+            Item type = stack.getItem();
+            if (!mixTypes) {
+                if (lockedType == null) {
+                    lockedType = type;
+                } else if (type != lockedType) {
+                    continue;
+                }
             }
 
             int moved = tryInsert(handler, stack, remaining);

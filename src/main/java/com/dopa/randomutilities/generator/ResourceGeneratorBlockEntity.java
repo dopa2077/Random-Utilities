@@ -48,8 +48,10 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     private static final int EFFECT_INTERVAL = 20;
     private static final int REMATCH_INTERVAL = 4;
     private static final int SAVE_INTERVAL = 20;
+    /** Cap crafts per tick when overclock speed exceeds recipe duration. */
+    private static final int MAX_CRAFTS_PER_TICK = 256;
 
-    private int tickProgress;
+    private double craftProgress;
     private int effectTimer;
     private int rematchCooldown;
     private int saveTimer;
@@ -110,14 +112,14 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     }
 
     public int tickProgress() {
-        return tickProgress;
-    }
-
-    public int effectiveTicks() {
         if (activeRecipeTicks <= 0) {
             return 0;
         }
-        return UpgradeConfig.effectiveTicks(activeRecipeTicks, upgrades.overclockCount());
+        return (int) Math.min(activeRecipeTicks, Math.floor(craftProgress));
+    }
+
+    public int effectiveTicks() {
+        return Math.max(0, activeRecipeTicks);
     }
 
     public boolean hasActiveMatch() {
@@ -285,7 +287,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
 
         GeneratorRecipe.Match match = resolveMatch(level, type);
         if (match == null) {
-            if (hasActiveMatch || tickProgress > 0) {
+            if (hasActiveMatch || craftProgress > 0.0) {
                 resetProgress();
                 setChanged();
             }
@@ -293,26 +295,31 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         }
 
         int baseAmount = match.recipe().amount();
-        int produceAmount = UpgradeConfig.peekBoostedAmount(baseAmount, upgrades.productivityCount(), productivityBonusBank);
         Block outputOverride = lockedOutputBlock(match.recipe());
 
         if (outputBlocked) {
-            if (!ResourceGeneratorOutput.canStart(level, worldPosition, type, match.recipe(), produceAmount, outputOverride)) {
+            int previewAmount = UpgradeConfig.peekBoostedAmount(
+                    baseAmount, upgrades.productivityCount(), productivityBonusBank);
+            if (!ResourceGeneratorOutput.canStart(level, worldPosition, type, match.recipe(), previewAmount, outputOverride)) {
                 return;
             }
             outputBlocked = false;
-        } else if (!ResourceGeneratorOutput.canStart(level, worldPosition, type, match.recipe(), produceAmount, outputOverride)) {
-            outputBlocked = true;
-            if (hasActiveMatch || tickProgress > 0) {
-                resetProgress();
-                setChanged();
+        } else {
+            int previewAmount = UpgradeConfig.peekBoostedAmount(
+                    baseAmount, upgrades.productivityCount(), productivityBonusBank);
+            if (!ResourceGeneratorOutput.canStart(level, worldPosition, type, match.recipe(), previewAmount, outputOverride)) {
+                outputBlocked = true;
+                if (hasActiveMatch || craftProgress > 0.0) {
+                    resetProgress();
+                    setChanged();
+                }
+                return;
             }
-            return;
         }
 
         if (!sameMatch(match)) {
             applyMatch(match);
-            tickProgress = 0;
+            craftProgress = 0.0;
             if (!outputLocked || lockedResultId.isEmpty()) {
                 if (match.recipe().isFluidResult()) {
                     setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(match.recipe().resultFluid()));
@@ -325,7 +332,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             setChanged();
         }
 
-        tickProgress++;
+        craftProgress += UpgradeConfig.overclockSpeed(upgrades.overclockCount());
         tickEffects(level);
 
         if (++saveTimer >= SAVE_INTERVAL) {
@@ -333,9 +340,37 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             setChanged();
         }
 
-        int neededTicks = UpgradeConfig.effectiveTicks(match.recipe().ticks(), upgrades.overclockCount());
-        if (tickProgress < neededTicks) {
-            return;
+        int neededTicks = Math.max(1, match.recipe().ticks());
+        int crafts = 0;
+        while (craftProgress >= neededTicks && crafts++ < MAX_CRAFTS_PER_TICK) {
+            if (!completeCraft(level, type, match, baseAmount, outputOverride)) {
+                return;
+            }
+            craftProgress -= neededTicks;
+        }
+        if (craftProgress > neededTicks) {
+            craftProgress = neededTicks;
+        }
+        setChanged();
+    }
+
+    /**
+     * Finishes one craft cycle. Returns false when output/input fails (progress held for retry).
+     */
+    private boolean completeCraft(
+            ServerLevel level,
+            GeneratorType type,
+            GeneratorRecipe.Match match,
+            int baseAmount,
+            @Nullable Block outputOverride
+    ) {
+        int produceAmount = UpgradeConfig.peekBoostedAmount(
+                baseAmount, upgrades.productivityCount(), productivityBonusBank);
+        if (!ResourceGeneratorOutput.canStart(level, worldPosition, type, match.recipe(), produceAmount, outputOverride)) {
+            outputBlocked = true;
+            craftProgress = Math.min(craftProgress, Math.max(1, match.recipe().ticks()));
+            setChanged();
+            return false;
         }
 
         int produced;
@@ -346,9 +381,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             produced = ResourceGeneratorOutput.insertFluid(level, worldPosition, fluid, produceAmount, false);
             if (fluid == null || produced <= 0) {
                 outputBlocked = true;
-                resetProgress();
+                craftProgress = Math.min(craftProgress, Math.max(1, match.recipe().ticks()));
                 setChanged();
-                return;
+                return false;
             }
             setDisplayResult(ResourceGeneratorOutput.displayBlockForFluid(fluid));
             rememberNonFree(match.recipe(), null);
@@ -360,9 +395,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                     level, worldPosition, item, requested, match.recipe().outputMode(), false);
             if (item == null || produced <= 0) {
                 outputBlocked = true;
-                resetProgress();
+                craftProgress = Math.min(craftProgress, Math.max(1, match.recipe().ticks()));
                 setChanged();
-                return;
+                return false;
             }
             setDisplayResult(item);
             rememberNonFree(match.recipe(), itemId(item));
@@ -376,9 +411,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
                     level, worldPosition, result, requested, match.recipe().outputMode(), false);
             if (result == null || produced <= 0) {
                 outputBlocked = true;
-                resetProgress();
+                craftProgress = Math.min(craftProgress, Math.max(1, match.recipe().ticks()));
                 setChanged();
-                return;
+                return false;
             }
             setDisplayResult(result);
             rememberNonFree(match.recipe(), blockId(result));
@@ -390,8 +425,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             productivityBonusBank = UpgradeConfig.advanceProductivityBank(
                     baseAmount, upgrades.productivityCount(), productivityBonusBank);
         }
-        tickProgress = 0;
-        setChanged();
+        return true;
     }
 
     private void pinLockFromCurrent(GeneratorRecipe recipe) {
@@ -644,7 +678,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     }
 
     private void resetProgress() {
-        tickProgress = 0;
+        craftProgress = 0.0;
         effectTimer = 0;
         saveTimer = 0;
         hasActiveMatch = false;
@@ -660,7 +694,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        tickProgress = input.getIntOr("TickProgress", 0);
+        craftProgress = input.getDoubleOr("CraftProgress", input.getIntOr("TickProgress", 0));
         displayResultId = input.getStringOr("DisplayResultId", "");
         outputLocked = input.getBooleanOr("OutputLocked", false);
         lockedResultId = input.getStringOr("LockedResultId", "");
@@ -687,7 +721,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
-        output.putInt("TickProgress", tickProgress);
+        if (craftProgress != 0.0) {
+            output.putDouble("CraftProgress", craftProgress);
+        }
         if (!displayResultId.isEmpty()) {
             output.putString("DisplayResultId", displayResultId);
         }

@@ -255,7 +255,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         if (emptyScanBackoff > 0) {
             return;
         }
-        energy.runReadyCycles(() -> {
+        energy.runReadyCycles(upgrades.overclockCount(), () -> {
             if (!tryPlace(level, pos, state)) {
                 emptyScanBackoff = EMPTY_VOLUME_BACKOFF;
                 return false;
@@ -275,7 +275,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         if (slot < 0) {
             return false;
         }
-        int cost = energy.operationCost(pos, target, upgrades.efficiencyCount());
+        int cost = energy.operationCost(pos, target, upgrades.efficiencyCount(), upgrades.overclockCount());
         if (energy.stored() < cost) {
             return false;
         }

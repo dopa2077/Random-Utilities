@@ -1,23 +1,36 @@
 package com.dopa.randomutilities.itemcollector;
 
 import com.dopa.randomutilities.machine.UpgradeInventory;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModItems;
 
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.function.IntSupplier;
 
-/** Collectors accept range upgrades only. Cap comes from {@link ItemCollectorType}. */
+/** Collectors accept Range and Stack upgrades. Range cap comes from {@link ItemCollectorType}. */
 public final class CollectorUpgradeInventory extends UpgradeInventory {
     private final IntSupplier maxRangeUpgrades;
 
     public CollectorUpgradeInventory(int size, IntSupplier maxRangeUpgrades) {
-        super(size, maxRangeUpgrades);
+        super(size, item -> Math.max(maxRangeUpgrades.getAsInt(), UpgradeConfig.MAX_STACK_UPGRADE));
         this.maxRangeUpgrades = maxRangeUpgrades;
     }
 
-    private int maxCap() {
+    private int maxRangeCap() {
         return Math.max(0, maxRangeUpgrades.getAsInt());
+    }
+
+    @Override
+    public int maxFor(Item item) {
+        if (item == ModItems.RANGE_UPGRADE.get()) {
+            return maxRangeCap();
+        }
+        if (item == ModItems.STACK_UPGRADE.get()) {
+            return UpgradeConfig.MAX_STACK_UPGRADE;
+        }
+        return 0;
     }
 
     @Override
@@ -25,16 +38,14 @@ public final class CollectorUpgradeInventory extends UpgradeInventory {
         if (resource.isEmpty()) {
             return true;
         }
-        if (!resource.is(ModItems.RANGE_UPGRADE.get())) {
-            return false;
-        }
-        int max = maxCap();
+        Item item = resource.getItem();
+        int max = maxFor(item);
         if (max <= 0) {
             return false;
         }
-        int existing = countOf(ModItems.RANGE_UPGRADE.get());
+        int existing = countOf(item);
         ItemResource current = getResource(index);
-        if (!current.isEmpty() && current.is(ModItems.RANGE_UPGRADE.get())) {
+        if (!current.isEmpty() && current.is(item)) {
             existing -= getAmountAsInt(index);
         }
         return existing < max;
@@ -44,15 +55,16 @@ public final class CollectorUpgradeInventory extends UpgradeInventory {
     protected int getCapacity(int index, ItemResource resource) {
         ItemResource effective = resource.isEmpty() ? getResource(index) : resource;
         if (effective.isEmpty()) {
-            return maxCap();
+            return Math.max(maxRangeCap(), UpgradeConfig.MAX_STACK_UPGRADE);
         }
-        if (!effective.is(ModItems.RANGE_UPGRADE.get())) {
+        Item item = effective.getItem();
+        int max = maxFor(item);
+        if (max <= 0) {
             return 0;
         }
-        int max = maxCap();
-        int existing = countOf(ModItems.RANGE_UPGRADE.get());
+        int existing = countOf(item);
         ItemResource current = getResource(index);
-        if (!current.isEmpty() && current.is(ModItems.RANGE_UPGRADE.get())) {
+        if (!current.isEmpty() && current.is(item)) {
             existing -= getAmountAsInt(index);
         }
         return Math.max(0, max - existing);
@@ -60,7 +72,7 @@ public final class CollectorUpgradeInventory extends UpgradeInventory {
 
     /** Drops excess range upgrades when the type cap shrinks (world migration). */
     public void trimToCap() {
-        int max = maxCap();
+        int max = maxRangeCap();
         int total = countOf(ModItems.RANGE_UPGRADE.get());
         if (total <= max) {
             return;

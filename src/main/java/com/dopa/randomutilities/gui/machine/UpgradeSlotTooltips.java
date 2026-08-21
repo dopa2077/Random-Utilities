@@ -147,15 +147,6 @@ public final class UpgradeSlotTooltips {
                         .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH);
             }
             lines.add(description);
-            if (upgrade.kind() == MachineUpgradeItem.Kind.ENERGY) {
-                Component extra = Component.translatable("item.dopasrandomutilities.energy_upgrade.tooltip_node")
-                        .withStyle(ChatFormatting.GRAY);
-                if (strikethroughStats) {
-                    extra = Component.literal(extra.getString())
-                            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH);
-                }
-                lines.add(extra);
-            }
         }
         if (extras != null) {
             lines.addAll(extras);
@@ -217,6 +208,7 @@ public final class UpgradeSlotTooltips {
         return switch (kind) {
             case RANGE -> "+" + (used * UpgradeConfig.rangeBonus());
             case FORTUNE_MESH -> UpgradeConfig.fortuneMeshChancePercent(used) + "%";
+            case ENERGY -> (used * 100) + "%";
             case STACK, TREASURE_MESH -> null;
             default -> (used * kind.percent()) + "%";
         };

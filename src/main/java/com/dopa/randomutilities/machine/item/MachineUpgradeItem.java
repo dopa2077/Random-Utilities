@@ -50,8 +50,8 @@ public class MachineUpgradeItem extends Item {
         ),
         ENERGY(
                 "item.dopasrandomutilities.energy_upgrade.tooltip",
-                UpgradeConfig::energyBonusPercent,
-                true
+                () -> 100,
+                false
         ),
         EFFICIENCY(
                 "item.dopasrandomutilities.efficiency_upgrade.tooltip",
@@ -116,6 +116,12 @@ public class MachineUpgradeItem extends Item {
                     Component.literal(Integer.toString(kind.percent())).withStyle(ChatFormatting.GREEN)
             ).withStyle(ChatFormatting.GRAY);
         }
+        if (kind == Kind.ENERGY) {
+            return Component.translatable(
+                    kind.tooltipKey(),
+                    Component.literal("+1x").withStyle(ChatFormatting.GREEN)
+            ).withStyle(ChatFormatting.GRAY);
+        }
         MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
         if (kind.showsPercent()) {
             line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
@@ -148,9 +154,5 @@ public class MachineUpgradeItem extends Item {
             TooltipFlag flag
     ) {
         tooltip.accept(descriptionLine());
-        if (kind == Kind.ENERGY) {
-            tooltip.accept(Component.translatable("item.dopasrandomutilities.energy_upgrade.tooltip_node")
-                    .withStyle(ChatFormatting.GRAY));
-        }
     }
 }

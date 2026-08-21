@@ -32,7 +32,8 @@ public class TransferPipeItem extends DescribedBlockItem {
             return TransferNodeBlock.installPipe(
                     level, clickedPos, clicked, context.getPlayer(), context.getItemInHand());
         }
-        if (!node && towardNode && !towardHasPipe) {
+        // Standalone pipe OR pipe-bodied node: click a face toward an empty plate to fill that plate.
+        if (towardNode && !towardHasPipe && (!node || hasPipe)) {
             return TransferNodeBlock.installPipe(
                     level, toward, towardState, context.getPlayer(), context.getItemInHand());
         }

@@ -22,7 +22,7 @@
   },
   "solar_furnace": {
     "peak_speed_percent": 70,
-    "max_overclock": 17
+    "max_overclock": 10
   },
   "fishnet": {
     "max_productivity": 9,
@@ -30,24 +30,27 @@
     "max_treasure": 9
   },
   "powered_machines": {
-    "max_energy": 32,
-    "max_efficiency": 12,
-    "max_range": 16
+    "max_energy": 64,
+    "max_efficiency": 15,
+    "max_range": 16,
+    "max_overclock": 11,
+    "base_ticks": 40,
+    "overclock_cost_exponent": 1.09
   },
   "transfer_node_item": {
     "base_ticks": 40,
-    "max_overclock": 40
+    "max_overclock": 11
   },
   "transfer_node_fluid": {
-    "base_ticks": 40,
+    "base_ticks": 60,
     "base_mb": 100,
-    "max_overclock": 40,
+    "max_overclock": 11,
     "max_fluid_capacity": 64
   },
   "transfer_node_energy": {
-    "base_ticks": 20,
-    "base_fe": 50,
-    "max_overclock": 40,
+    "base_ticks": 80,
+    "base_fe": 200,
+    "max_overclock": 11,
     "max_energy": 64
   }
 }

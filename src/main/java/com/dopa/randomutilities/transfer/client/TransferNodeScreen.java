@@ -12,6 +12,7 @@ import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
 import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
 import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.transfer.HeadKind;
+import com.dopa.randomutilities.transfer.TransferNodeItem;
 import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
 import com.dopa.randomutilities.transfer.network.TransferNodeSettingPayload;
 
@@ -24,6 +25,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -194,14 +196,11 @@ public class TransferNodeScreen extends AbstractContainerScreen<TransferNodeMenu
             return;
         }
         if (hoveredSlot != null && menu.isDisplaySlot(hoveredSlot) && !hoveredSlot.hasItem()) {
-            graphics.setTooltipForNextFrame(
-                    font,
-                    Component.translatable(menu.kind() == HeadKind.FLUID
-                            ? "gui.dopasrandomutilities.transfer_node_fluid.visual"
-                            : "gui.dopasrandomutilities.transfer_node.visual"),
-                    mouseX,
-                    mouseY
-            );
+            List<FormattedCharSequence> lines = new ArrayList<>();
+            for (Component line : displaySlotTooltipLines()) {
+                lines.add(line.getVisualOrderText());
+            }
+            graphics.setTooltipForNextFrame(font, lines, mouseX, mouseY);
             return;
         }
         UpgradeSlotTooltips.applyHover(
@@ -220,12 +219,25 @@ public class TransferNodeScreen extends AbstractContainerScreen<TransferNodeMenu
     protected List<Component> getTooltipFromContainerItem(ItemStack itemStack) {
         List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(itemStack));
         if (hoveredSlot != null && menu.isDisplaySlot(hoveredSlot)) {
-            tooltip.add(Component.translatable(menu.kind() == HeadKind.FLUID
-                    ? "gui.dopasrandomutilities.transfer_node_fluid.visual"
-                    : "gui.dopasrandomutilities.transfer_node.visual")
-                    .withStyle(ChatFormatting.GRAY));
+            tooltip.addAll(displaySlotTooltipLines());
         }
         return tooltip;
+    }
+
+    private List<Component> displaySlotTooltipLines() {
+        List<Component> lines = new ArrayList<>(2);
+        lines.add(Component.translatable(menu.kind() == HeadKind.FLUID
+                        ? "gui.dopasrandomutilities.transfer_node_fluid.visual"
+                        : "gui.dopasrandomutilities.transfer_node.visual")
+                .withStyle(ChatFormatting.GRAY));
+        var upgrades = menu.upgrades();
+        lines.add(TransferNodeItem.rateLine(
+                menu.kind(),
+                upgrades.overclockCount(),
+                upgrades.stackCount(),
+                upgrades.fluidCapacityCount()
+        ));
+        return lines;
     }
 
     private void tintGhostSlot(GuiGraphicsExtractor graphics, Slot slot) {

@@ -6,7 +6,7 @@ import com.dopa.randomutilities.registry.ModItems;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
-/** Energy, efficiency, and range upgrades for powered volume machines. */
+/** Energy, efficiency, range, and overclock upgrades for powered volume machines. */
 public final class EnergyMachineUpgradeInventory extends UpgradeInventory {
     public EnergyMachineUpgradeInventory(int size) {
         super(size, EnergyMachineUpgradeInventory::largestCap);
@@ -15,7 +15,10 @@ public final class EnergyMachineUpgradeInventory extends UpgradeInventory {
     private static int largestCap() {
         return Math.max(
                 UpgradeConfig.maxEnergy(),
-                Math.max(UpgradeConfig.maxEfficiency(), UpgradeConfig.maxRange())
+                Math.max(
+                        UpgradeConfig.maxEfficiency(),
+                        Math.max(UpgradeConfig.maxRange(), UpgradeConfig.maxOverclockPoweredMachines())
+                )
         );
     }
 
@@ -29,6 +32,9 @@ public final class EnergyMachineUpgradeInventory extends UpgradeInventory {
         }
         if (item == ModItems.RANGE_UPGRADE.get()) {
             return UpgradeConfig.maxRange();
+        }
+        if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
+            return UpgradeConfig.maxOverclockPoweredMachines();
         }
         return 0;
     }
@@ -80,5 +86,6 @@ public final class EnergyMachineUpgradeInventory extends UpgradeInventory {
         trimToCap(ModItems.ENERGY_UPGRADE.get());
         trimToCap(ModItems.EFFICIENCY_UPGRADE.get());
         trimToCap(ModItems.RANGE_UPGRADE.get());
+        trimToCap(ModItems.OVERCLOCK_UPGRADE.get());
     }
 }

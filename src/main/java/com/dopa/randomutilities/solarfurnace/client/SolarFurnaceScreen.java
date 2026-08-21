@@ -228,10 +228,10 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
                 && this.menu.isUpgradeSlotIndex(this.hoveredSlot.index)
                 && this.hoveredSlot.hasItem()) {
             int used = this.menu.blockEntity().upgrades().countOf(this.hoveredSlot.getItem().getItem());
-            Component peak = Component.translatable(
-                    "gui.dopasrandomutilities.solar_furnace.peak_speed",
-                    UpgradeConfig.solarPeakPercent(used)
-            ).withStyle(ChatFormatting.GRAY);
+            Component peak = Component.translatable("gui.dopasrandomutilities.solar_furnace.peak_speed")
+                    .withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal(UpgradeConfig.solarPeakPercent(used) + "%")
+                            .withStyle(ChatFormatting.GREEN));
             UpgradeSlotTooltips.applyHover(
                     graphics,
                     this.font,

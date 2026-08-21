@@ -42,10 +42,11 @@ public final class TransferNetworks {
     }
 
     public static boolean isPipeHub(BlockState state) {
-        // Any transfer node participates in island membership (heads need destination lists).
-        // Inventory nozzles are still only collected from faces marked INVENTORY.
+        // Pipe bodies and pipe-bodied nodes only. Plate-only nodes are not hubs
+        // (pipes still reach headed faces via detect's hasHead branch).
         return state.getBlock() instanceof TransferPipeBlock
-                || state.getBlock() instanceof TransferNodeBlock;
+                || (state.getBlock() instanceof TransferNodeBlock
+                        && state.getValue(TransferNodeBlock.HAS_PIPE));
     }
 
     public static boolean linksToward(BlockState state, Direction direction) {
