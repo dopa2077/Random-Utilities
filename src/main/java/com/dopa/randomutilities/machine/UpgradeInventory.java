@@ -14,6 +14,8 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntSupplier;
 import java.util.function.ToIntFunction;
 
@@ -33,6 +35,45 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
 
     public int maxFor(Item item) {
         return Math.max(0, capFor.applyAsInt(item));
+    }
+
+    /**
+     * Upgrade items this inventory accepts ({@code maxFor > 0}).
+     * Overclock and productivity are listed first when present.
+     */
+    public List<Item> supportedUpgradeItems() {
+        List<Item> supported = new ArrayList<>();
+        Item overclock = ModItems.OVERCLOCK_UPGRADE.get();
+        Item productivity = ModItems.PRODUCTIVITY_UPGRADE.get();
+        if (maxFor(overclock) > 0) {
+            supported.add(overclock);
+        }
+        if (maxFor(productivity) > 0) {
+            supported.add(productivity);
+        }
+        for (Item item : upgradeCatalog()) {
+            if (item == overclock || item == productivity) {
+                continue;
+            }
+            if (maxFor(item) > 0) {
+                supported.add(item);
+            }
+        }
+        return supported;
+    }
+
+    private static Item[] upgradeCatalog() {
+        return new Item[] {
+                ModItems.OVERCLOCK_UPGRADE.get(),
+                ModItems.PRODUCTIVITY_UPGRADE.get(),
+                ModItems.FORTUNE_MESH_UPGRADE.get(),
+                ModItems.TREASURE_MESH_UPGRADE.get(),
+                ModItems.ENERGY_UPGRADE.get(),
+                ModItems.EFFICIENCY_UPGRADE.get(),
+                ModItems.RANGE_UPGRADE.get(),
+                ModItems.STACK_UPGRADE.get(),
+                ModItems.FLUID_CAPACITY_UPGRADE.get()
+        };
     }
 
     public void setOnChanged(Runnable onChanged) {

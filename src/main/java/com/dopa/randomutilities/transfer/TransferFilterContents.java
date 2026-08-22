@@ -17,6 +17,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 public record TransferFilterContents(
         List<ItemStack> slots,
@@ -126,6 +127,26 @@ public record TransferFilterContents(
         return false;
     }
 
+    public static boolean allows(ItemResource candidate, ItemStack filter, int depth) {
+        if (candidate.isEmpty() || !isFilter(filter) || depth >= FilterNesting.MAX_DEPTH) {
+            return false;
+        }
+        TransferFilterContents contents = get(filter);
+        for (ItemStack slot : contents.slots()) {
+            if (slot.isEmpty()) {
+                continue;
+            }
+            if (isFilter(slot)) {
+                if (allows(candidate, slot, depth + 1)) {
+                    return true;
+                }
+            } else if (matchesGhost(candidate, slot, contents)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static boolean matchesGhost(ItemStack candidate, ItemStack ghost, TransferFilterContents flags) {
         if (candidate.isEmpty() || ghost.isEmpty()) {
             return false;
@@ -142,6 +163,16 @@ public record TransferFilterContents(
             return sameMeta(candidate, ghost);
         }
         return true;
+    }
+
+    static boolean matchesGhost(ItemResource candidate, ItemStack ghost, TransferFilterContents flags) {
+        if (candidate.isEmpty() || ghost.isEmpty()) {
+            return false;
+        }
+        if (flags.matchNbt() || flags.matchMeta() || flags.matchOreDict()) {
+            return matchesGhost(candidate.toStack(1), ghost, flags);
+        }
+        return candidate.equals(ItemResource.of(ghost));
     }
 
     private static boolean sharesAnyTag(ItemStack candidate, ItemStack ghost) {

@@ -21,11 +21,6 @@ public class TransferFilterScreen extends AbstractContainerScreen<TransferFilter
     /** Inner 16×16 of the packed red-guide well (plain slot, no paper). */
     private static final int OCCUPIED_U = 177;
     private static final int OCCUPIED_V = 1;
-    private static final int BUTTON_X = 96;
-    private static final int BUTTON_WIDTH = 72;
-    /** Three buttons + two gaps fill the 64px 4×4 grid height. */
-    private static final int BUTTON_HEIGHT = 18;
-    private static final int BUTTON_GAP = 5;
 
     private Button nbtButton;
     private Button metaButton;
@@ -48,9 +43,9 @@ public class TransferFilterScreen extends AbstractContainerScreen<TransferFilter
     @Override
     protected void init() {
         super.init();
-        int x = leftPos + BUTTON_X;
-        int y = topPos + TransferFilterMenu.GRID_Y;
-        int step = BUTTON_HEIGHT + BUTTON_GAP;
+        int x = leftPos + TransferFilterMenu.BUTTON_X;
+        int y = topPos + TransferFilterMenu.BUTTON_PANEL_Y;
+        int step = TransferFilterMenu.BUTTON_HEIGHT + TransferFilterMenu.BUTTON_GAP;
         nbtButton = toggleButton(x, y, nbtLabel(), TransferFilterMenu.BTN_NBT);
         metaButton = toggleButton(x, y + step, metaLabel(), TransferFilterMenu.BTN_META);
         oreDictButton = toggleButton(x, y + step * 2, oreDictLabel(), TransferFilterMenu.BTN_ORE_DICT);
@@ -58,7 +53,7 @@ public class TransferFilterScreen extends AbstractContainerScreen<TransferFilter
 
     private Button toggleButton(int x, int y, Component label, int buttonId) {
         Button button = Button.builder(label, b -> click(buttonId))
-                .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .bounds(x, y, TransferFilterMenu.BUTTON_WIDTH, TransferFilterMenu.BUTTON_HEIGHT)
                 .build();
         // Hover/press only — do not keep the highlighted sprite while focused after click.
         button.setOverrideRenderHighlightedSprite(button::isHovered);

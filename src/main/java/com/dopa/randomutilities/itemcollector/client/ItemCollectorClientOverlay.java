@@ -1,56 +1,41 @@
 package com.dopa.randomutilities.itemcollector.client;
 
+import com.dopa.randomutilities.client.WorkingVolumeOverlay;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
-/** Client-only tracker for which collectors should draw their range overlay. */
+/**
+ * Collector range overlay tracker — delegates to {@link WorkingVolumeOverlay}
+ * so volume machines and collectors share one client set.
+ */
 public final class ItemCollectorClientOverlay {
-    private static final Map<ResourceKey<Level>, Set<BlockPos>> ENABLED = new ConcurrentHashMap<>();
-
     private ItemCollectorClientOverlay() {}
 
     public static boolean isEnabled(ResourceKey<Level> dimension, BlockPos pos) {
-        Set<BlockPos> set = ENABLED.get(dimension);
-        return set != null && set.contains(pos.immutable());
+        return WorkingVolumeOverlay.isEnabled(dimension, pos);
     }
 
     public static void setEnabled(ResourceKey<Level> dimension, BlockPos pos, boolean enabled) {
-        BlockPos key = pos.immutable();
-        if (enabled) {
-            ENABLED.computeIfAbsent(dimension, d -> ConcurrentHashMap.newKeySet()).add(key);
-        } else {
-            Set<BlockPos> set = ENABLED.get(dimension);
-            if (set != null) {
-                set.remove(key);
-                if (set.isEmpty()) {
-                    ENABLED.remove(dimension);
-                }
-            }
-        }
+        WorkingVolumeOverlay.setEnabled(dimension, pos, enabled);
     }
 
     public static void toggle(ResourceKey<Level> dimension, BlockPos pos) {
-        setEnabled(dimension, pos, !isEnabled(dimension, pos));
+        WorkingVolumeOverlay.toggle(dimension, pos);
     }
 
     public static void clear(ResourceKey<Level> dimension, BlockPos pos) {
-        setEnabled(dimension, pos, false);
+        WorkingVolumeOverlay.setEnabled(dimension, pos, false);
     }
 
     public static Set<BlockPos> enabledPositions(ResourceKey<Level> dimension) {
-        Set<BlockPos> set = ENABLED.get(dimension);
-        return set == null ? Set.of() : set;
+        return WorkingVolumeOverlay.enabledPositions(dimension);
     }
 
     public static void dropIfEmpty(ResourceKey<Level> dimension) {
-        Set<BlockPos> set = ENABLED.get(dimension);
-        if (set != null && set.isEmpty()) {
-            ENABLED.remove(dimension);
-        }
+        WorkingVolumeOverlay.dropIfEmpty(dimension);
     }
 }

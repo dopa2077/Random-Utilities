@@ -3,7 +3,7 @@ package com.dopa.randomutilities.fishnet.client;
 import com.dopa.randomutilities.gui.panel.PanelAnchor;
 import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.fishnet.client.panel.FishnetCosmeticPanel;
-import com.dopa.randomutilities.fishnet.client.panel.FishnetInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
@@ -87,7 +87,7 @@ public class FishnetScreen extends AbstractContainerScreen<FishnetMenu> implemen
         redstonePanel = null;
         cosmeticPanel = null;
 
-        panelHost.add(new FishnetInformativePanel(tabYBias));
+        panelHost.add(new ScrollingInfoPanel(tabYBias, "gui.dopasrandomutilities.panel.info.fishnet.intro"));
         cosmeticPanel = new FishnetCosmeticPanel(this, tabYBias);
         panelHost.add(cosmeticPanel);
         cosmeticPanel.initWidgets();

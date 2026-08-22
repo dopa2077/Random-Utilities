@@ -70,8 +70,8 @@ public class MachineUpgradeItem extends Item {
         ),
         FLUID_CAPACITY(
                 "item.dopasrandomutilities.fluid_capacity_upgrade.tooltip",
-                UpgradeConfig::fluidCapacityBonusPercent,
-                true
+                () -> 100,
+                false
         );
 
         private final String tooltipKey;
@@ -108,6 +108,11 @@ public class MachineUpgradeItem extends Item {
         return kind;
     }
 
+    /** Display name without the "Upgrade" suffix (empty-slot supported lists). */
+    public Component shortName() {
+        return Component.translatable(getDescriptionId() + ".short");
+    }
+
     /** Gray description used both in the inventory hover and in installed-slot tooltips. */
     public Component descriptionLine() {
         if (kind == Kind.RANGE) {
@@ -116,7 +121,7 @@ public class MachineUpgradeItem extends Item {
                     Component.literal(Integer.toString(kind.percent())).withStyle(ChatFormatting.GREEN)
             ).withStyle(ChatFormatting.GRAY);
         }
-        if (kind == Kind.ENERGY) {
+        if (kind == Kind.ENERGY || kind == Kind.FLUID_CAPACITY) {
             return Component.translatable(
                     kind.tooltipKey(),
                     Component.literal("+1x").withStyle(ChatFormatting.GREEN)

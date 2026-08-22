@@ -2,6 +2,7 @@ package com.dopa.randomutilities.blockbreaker.network;
 
 import com.dopa.randomutilities.blockbreaker.menu.AdvancedBlockBreakerMenu;
 import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.util.GhostFilterPayloads;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -31,7 +32,7 @@ public record AdvancedBlockBreakerFilterPayload(int slotIndex, ItemStack filterI
     public static void handle(AdvancedBlockBreakerFilterPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof AdvancedBlockBreakerMenu menu)) {
+            if (!(player.containerMenu instanceof AdvancedBlockBreakerMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             if (payload.filterItem().isEmpty()) {
@@ -40,7 +41,7 @@ public record AdvancedBlockBreakerFilterPayload(int slotIndex, ItemStack filterI
             if (payload.slotIndex() < 0 || payload.slotIndex() >= AdvancedBlockBreakerMenu.FILTER_SLOT_COUNT) {
                 return;
             }
-            menu.setFilterSlot(payload.slotIndex(), payload.filterItem().copyWithCount(1));
+            menu.setFilterSlot(payload.slotIndex(), GhostFilterPayloads.sanitizeGhost(payload.filterItem()));
         });
     }
 }

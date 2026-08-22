@@ -1,6 +1,6 @@
 package com.dopa.randomutilities.blockplacer.client;
 
-import com.dopa.randomutilities.blockplacer.client.panel.SimpleBlockPlacerInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.blockplacer.menu.SimpleBlockPlacerMenu;
 import com.dopa.randomutilities.gui.panel.PanelHost;
 
@@ -48,7 +48,7 @@ public class SimpleBlockPlacerScreen extends AbstractContainerScreen<SimpleBlock
     protected void init() {
         super.init();
         panelHost.clear();
-        panelHost.add(new SimpleBlockPlacerInformativePanel(tabYBias));
+        panelHost.add(new ScrollingInfoPanel(tabYBias, "gui.dopasrandomutilities.panel.info.simple_block_placer.intro"));
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
     }
 

@@ -61,7 +61,7 @@ public final class UpgradeConfig {
     private static int fluidNodeBaseMb = 100;
     private static int fluidNodeMaxOverclock = 11;
     private static int maxFluidCapacity = 64;
-    private static int energyNodeBaseTicks = 80;
+    private static int energyNodeBaseTicks = 20;
     private static int energyNodeBaseFe = 200;
     private static int energyNodeMaxOverclock = 11;
     private static int maxEnergyTransferNode = 64;
@@ -245,7 +245,8 @@ public final class UpgradeConfig {
     }
 
     public static int transferNodeFluidAmount(int capacityCount) {
-        return additivePercentOfBase(transferNodeBaseMb(), fluidCapacityBonusPercent(), capacityCount, maxFluidCapacity());
+        int n = Math.min(Math.max(0, capacityCount), maxFluidCapacity());
+        return transferNodeBaseMb() * (1 + n);
     }
 
     public static int transferNodeEnergyAmount(int energyCount) {
@@ -383,7 +384,7 @@ public final class UpgradeConfig {
         fluidNodeBaseMb = 100;
         fluidNodeMaxOverclock = 11;
         maxFluidCapacity = 64;
-        energyNodeBaseTicks = 80;
+        energyNodeBaseTicks = 20;
         energyNodeBaseFe = 200;
         energyNodeMaxOverclock = 11;
         maxEnergyTransferNode = 64;

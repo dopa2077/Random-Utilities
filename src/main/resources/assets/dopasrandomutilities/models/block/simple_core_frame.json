@@ -4,8 +4,8 @@
   "gui_light": "side",
   "textures": {
     "1": "minecraft:block/glass",
-    "2": "dopasrandomutilities:block/simple_frame",
-    "particle": "dopasrandomutilities:block/simple_frame"
+    "2": "dopasrandomutilities:block/simple_core_frame",
+    "particle": "dopasrandomutilities:block/simple_core_frame"
   },
   "elements": [
     {

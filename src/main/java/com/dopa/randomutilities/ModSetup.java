@@ -2,6 +2,7 @@ package com.dopa.randomutilities;
 
 import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerNetwork;
 import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerNetwork;
+import com.dopa.randomutilities.compat.ModCompat;
 import com.dopa.randomutilities.filter.FilterNetwork;
 import com.dopa.randomutilities.filter.FilterRegistry;
 import com.dopa.randomutilities.filter.FilterStorage;
@@ -38,6 +39,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 public final class ModSetup {
     private static final Identifier GENERATOR_RECIPES_LISTENER =
@@ -63,6 +65,7 @@ public final class ModSetup {
         ModMenus.MENUS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        modEventBus.addListener(ModCompat::onInterModEnqueue);
         GhostItemFilter.setNestedItemFilter(new GhostItemFilter.NestedItemFilter() {
             @Override
             public boolean isFilter(ItemStack stack) {
@@ -71,6 +74,17 @@ public final class ModSetup {
 
             @Override
             public boolean allows(ItemStack candidate, ItemStack filter, int depth) {
+                if (TransferFilterContents.isFilter(filter)) {
+                    return TransferFilterContents.allows(candidate, filter, depth);
+                }
+                if (FilterRegistry.isFilterItem(filter)) {
+                    return FilterStorage.matchesNested(candidate, filter, depth);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean allows(ItemResource candidate, ItemStack filter, int depth) {
                 if (TransferFilterContents.isFilter(filter)) {
                     return TransferFilterContents.allows(candidate, filter, depth);
                 }

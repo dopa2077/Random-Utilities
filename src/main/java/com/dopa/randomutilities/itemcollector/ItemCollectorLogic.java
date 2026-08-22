@@ -36,6 +36,10 @@ final class ItemCollectorLogic {
             return;
         }
         be.tickCounter = 0;
+        if (be.emptySweepBackoff() > 0) {
+            be.tickEmptySweepBackoff();
+            return;
+        }
 
         Direction facing = state.getValue(ItemCollectorBlock.FACING);
         BlockPos supportPos = pos.relative(facing.getOpposite());
@@ -47,12 +51,14 @@ final class ItemCollectorLogic {
         AABB scanBox = be.scanBox();
         List<ItemEntity> entities = level.getEntitiesOfClass(ItemEntity.class, scanBox);
         if (entities.isEmpty()) {
+            be.onEmptySweep();
             return;
         }
 
         int remaining = be.pickupBatch();
         boolean mixTypes = be.upgrades().stackCount() > 0;
         Item lockedType = null;
+        boolean movedAny = false;
 
         for (ItemEntity entity : entities) {
             if (remaining <= 0) {
@@ -79,6 +85,7 @@ final class ItemCollectorLogic {
             if (moved <= 0) {
                 continue;
             }
+            movedAny = true;
 
             stack.shrink(moved);
             if (stack.isEmpty()) {
@@ -102,6 +109,11 @@ final class ItemCollectorLogic {
                         0.02
                 );
             }
+        }
+        if (!movedAny) {
+            be.onEmptySweep();
+        } else {
+            be.onSuccessfulSweep();
         }
     }
 

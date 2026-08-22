@@ -12,18 +12,29 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared scrolling informative panel used by the advanced breaker and placer. */
+/** Shared scrolling informative panel used across machine GUIs. */
 public final class ScrollingInfoPanel extends AttachedPanel {
     private static final int BG = 0xFF3A3A3A;
     private static final int BODY_TEXT = 0xFFFFFFFF;
     private static final ItemStack BOOK_ICON = new ItemStack(Items.BOOK);
 
     private final String[] paragraphKeys;
+    private final int tabYBias;
     private final PanelTextScrollbar scrollbar = new PanelTextScrollbar();
 
     public ScrollingInfoPanel(String... paragraphKeys) {
+        this(0, paragraphKeys);
+    }
+
+    public ScrollingInfoPanel(int tabYBias, String... paragraphKeys) {
         super(PanelAnchor.LEFT_TOP, 122, 90, BG, Component.translatable("gui.dopasrandomutilities.panel.info"));
+        this.tabYBias = tabYBias;
         this.paragraphKeys = paragraphKeys;
+    }
+
+    @Override
+    public int tabOffsetY() {
+        return super.tabOffsetY() + tabYBias;
     }
 
     @Override

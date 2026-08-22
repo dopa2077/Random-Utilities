@@ -11,7 +11,8 @@ import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.itemcollector.network.ItemCollectorSettingPayload;
 import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorConfigPanel;
 import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorCosmeticPanel;
-import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
+import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
@@ -121,7 +122,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         cosmeticPanel = null;
         redstonePanel = null;
 
-        panelHost.add(new ItemCollectorInformativePanel(menu.collectorType()));
+        panelHost.add(new ScrollingInfoPanel(infoParagraphKeys(menu.collectorType())));
 
         configPanel = new ItemCollectorConfigPanel(this);
         panelHost.add(configPanel);
@@ -430,5 +431,18 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
                 && mouseY >= widget.getY()
                 && mouseX < widget.getX() + widget.getWidth()
                 && mouseY < widget.getY() + widget.getHeight();
+    }
+
+    private static String[] infoParagraphKeys(ItemCollectorType type) {
+        if (type == ItemCollectorType.BASIC) {
+            return new String[] {
+                    "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                    "gui.dopasrandomutilities.panel.info.item_collector.basic"
+            };
+        }
+        return new String[] {
+                "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                "gui.dopasrandomutilities.panel.info.item_collector.advanced"
+        };
     }
 }

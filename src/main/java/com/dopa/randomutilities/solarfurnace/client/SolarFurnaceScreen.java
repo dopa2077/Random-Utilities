@@ -8,7 +8,7 @@ import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
 import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.solarfurnace.SolarPower;
-import com.dopa.randomutilities.solarfurnace.client.panel.SolarFurnaceInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
 
 import net.minecraft.ChatFormatting;
@@ -106,7 +106,11 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
         this.panelHost.clear();
         this.redstonePanel = null;
 
-        this.panelHost.add(new SolarFurnaceInformativePanel(tabYBias));
+        this.panelHost.add(new ScrollingInfoPanel(
+                tabYBias,
+                "gui.dopasrandomutilities.panel.info.solar_furnace.intro",
+                "gui.dopasrandomutilities.panel.info.solar_furnace.sun"
+        ));
         this.panelHost.add(new MachineUpgradePanel(
                 this.menu.getUpgradeSlots(), PanelAnchor.RIGHT_TOP, tabYBias));
         this.redstonePanel = new MachineRedstonePanel(this, PanelAnchor.RIGHT_BELOW, tabYBias);
@@ -224,14 +228,15 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
             graphics.setTooltipForNextFrame(this.font, tabTooltip, mouseX, mouseY);
             return;
         }
-        if (this.hoveredSlot != null
-                && this.menu.isUpgradeSlotIndex(this.hoveredSlot.index)
-                && this.hoveredSlot.hasItem()) {
-            int used = this.menu.blockEntity().upgrades().countOf(this.hoveredSlot.getItem().getItem());
-            Component peak = Component.translatable("gui.dopasrandomutilities.solar_furnace.peak_speed")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal(UpgradeConfig.solarPeakPercent(used) + "%")
-                            .withStyle(ChatFormatting.GREEN));
+        if (this.hoveredSlot != null && this.menu.isUpgradeSlotIndex(this.hoveredSlot.index)) {
+            Component peak = null;
+            if (this.hoveredSlot.hasItem()) {
+                int used = this.menu.blockEntity().upgrades().countOf(this.hoveredSlot.getItem().getItem());
+                peak = Component.translatable("gui.dopasrandomutilities.solar_furnace.peak_speed")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(UpgradeConfig.solarPeakPercent(used) + "%")
+                                .withStyle(ChatFormatting.GREEN));
+            }
             UpgradeSlotTooltips.applyHover(
                     graphics,
                     this.font,

@@ -25,6 +25,8 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.model.data.ModelData;
 import net.neoforged.neoforge.model.data.ModelProperty;
 import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 
@@ -368,6 +370,10 @@ public class TransferNodeBlockEntity extends BlockEntity {
         @Nullable
         private ResourceHandler<ItemResource>[] destHandlers;
         @Nullable
+        private ResourceHandler<FluidResource>[] destFluidHandlers;
+        @Nullable
+        private EnergyHandler[] destEnergyHandlers;
+        @Nullable
         private BlockEntity[] destBlockEntities;
         @Nullable
         private BlockState[] destBlockStates;
@@ -451,6 +457,8 @@ public class TransferNodeBlockEntity extends BlockEntity {
             destinations = List.copyOf(next);
             int size = next.size();
             destHandlers = size == 0 ? null : (ResourceHandler<ItemResource>[]) new ResourceHandler<?>[size];
+            destFluidHandlers = size == 0 ? null : (ResourceHandler<FluidResource>[]) new ResourceHandler<?>[size];
+            destEnergyHandlers = size == 0 ? null : new EnergyHandler[size];
             destBlockEntities = size == 0 ? null : new BlockEntity[size];
             destBlockStates = size == 0 ? null : new BlockState[size];
             destCursor = size == 0 ? 0 : Math.floorMod(destCursor, size);
@@ -463,6 +471,26 @@ public class TransferNodeBlockEntity extends BlockEntity {
 
         @Nullable
         ResourceHandler<ItemResource> handlerAt(Level level, int index) {
+            return cacheCapability(level, index, Capabilities.Item.BLOCK, destHandlers);
+        }
+
+        @Nullable
+        ResourceHandler<FluidResource> fluidHandlerAt(Level level, int index) {
+            return cacheCapability(level, index, Capabilities.Fluid.BLOCK, destFluidHandlers);
+        }
+
+        @Nullable
+        EnergyHandler energyHandlerAt(Level level, int index) {
+            return cacheCapability(level, index, Capabilities.Energy.BLOCK, destEnergyHandlers);
+        }
+
+        @Nullable
+        private <T> T cacheCapability(
+                Level level,
+                int index,
+                net.neoforged.neoforge.capabilities.BlockCapability<T, Direction> capability,
+                @Nullable T[] handlers
+        ) {
             List<TransferNetworks.Destination> dests = destinations;
             if (index < 0 || index >= dests.size()) {
                 return null;
@@ -470,7 +498,6 @@ public class TransferNodeBlockEntity extends BlockEntity {
             TransferNetworks.Destination dest = dests.get(index);
             BlockPos pos = dest.inventoryPos();
             BlockEntity be = level.getBlockEntity(pos);
-            ResourceHandler<ItemResource>[] handlers = destHandlers;
             BlockEntity[] cachedBes = destBlockEntities;
             BlockState[] cachedStates = destBlockStates;
             if (handlers != null && handlers[index] != null && cachedBes != null && cachedStates != null) {
@@ -482,22 +509,14 @@ public class TransferNodeBlockEntity extends BlockEntity {
                     return handlers[index];
                 }
             }
-            ResourceHandler<ItemResource> handler = level.getCapability(
-                    Capabilities.Item.BLOCK,
-                    pos,
-                    dest.insertFace()
-            );
+            T handler = level.getCapability(capability, pos, dest.insertFace());
             if (handlers == null || cachedBes == null || cachedStates == null) {
                 return handler;
             }
             if (handler == null) {
                 handlers[index] = null;
-                if (cachedBes != null) {
-                    cachedBes[index] = null;
-                }
-                if (cachedStates != null) {
-                    cachedStates[index] = null;
-                }
+                cachedBes[index] = null;
+                cachedStates[index] = null;
                 return null;
             }
             handlers[index] = handler;

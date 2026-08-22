@@ -49,7 +49,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     private static final int REMATCH_INTERVAL = 4;
     private static final int SAVE_INTERVAL = 20;
     /** Cap crafts per tick when overclock speed exceeds recipe duration. */
-    private static final int MAX_CRAFTS_PER_TICK = 256;
+    private static final int MAX_CRAFTS_PER_TICK = 32;
 
     private double craftProgress;
     private int effectTimer;
@@ -71,6 +71,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
     private final boolean[] hasResource = new boolean[GeneratorRecipe.SIDE_COUNT];
     @Nullable
     private GeneratorRecipe.Match cachedMatch;
+    private transient @Nullable Block cachedDisplayBlock;
+    private transient String cachedDisplayBlockId = "";
 
     private final UpgradeInventory upgrades = new UpgradeInventory(
             UpgradeConfig.UPGRADE_SLOT_COUNT,
@@ -335,6 +337,7 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         craftProgress += UpgradeConfig.overclockSpeed(upgrades.overclockCount());
         tickEffects(level);
 
+        // Progress is saved on an interval (and on match/craft/blocked transitions), not every tick.
         if (++saveTimer >= SAVE_INTERVAL) {
             saveTimer = 0;
             setChanged();
@@ -351,7 +354,9 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
         if (craftProgress > neededTicks) {
             craftProgress = neededTicks;
         }
-        setChanged();
+        if (crafts > 0) {
+            setChanged();
+        }
     }
 
     /**
@@ -587,6 +592,8 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return;
         }
         displayResultId = newId;
+        cachedDisplayBlock = null;
+        cachedDisplayBlockId = "";
         setChanged();
         syncDisplay();
     }
@@ -613,6 +620,15 @@ public class ResourceGeneratorBlockEntity extends BlockEntity implements Redston
             return Optional.of(ResourceGeneratorOutput.previewBlockForItem(BuiltInRegistries.ITEM.getValue(id)));
         }
         return Optional.empty();
+    }
+
+    public Block resolveDisplayBlock() {
+        if (displayResultId.equals(cachedDisplayBlockId) && cachedDisplayBlock != null) {
+            return cachedDisplayBlock;
+        }
+        cachedDisplayBlockId = displayResultId;
+        cachedDisplayBlock = getDisplayResultBlock().orElse(defaultDisplayBlock());
+        return cachedDisplayBlock;
     }
 
     public Block defaultDisplayBlock() {

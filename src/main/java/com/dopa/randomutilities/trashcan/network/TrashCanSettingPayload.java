@@ -28,7 +28,7 @@ public record TrashCanSettingPayload(boolean whitelistMode) implements CustomPac
     public static void handle(TrashCanSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof TrashCanMenu menu) {
+            if (player.containerMenu instanceof TrashCanMenu menu && menu.stillValid(player)) {
                 menu.setWhitelistMode(payload.whitelistMode());
             }
         });

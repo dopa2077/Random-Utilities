@@ -28,7 +28,7 @@ public record TransferNodeSettingPayload(boolean whitelistMode) implements Custo
     public static void handle(TransferNodeSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof TransferNodeMenu menu) {
+            if (player.containerMenu instanceof TransferNodeMenu menu && menu.stillValid(player)) {
                 menu.setWhitelistMode(payload.whitelistMode());
             }
         });

@@ -102,10 +102,17 @@ public final class ModBlocks {
             props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
     );
 
-    public static final DeferredBlock<SimpleFrameBlock> SIMPLE_FRAME = BLOCKS.registerBlock(
-            "simple_frame",
+    public static final DeferredBlock<SimpleFrameBlock> SIMPLE_CORE_FRAME = BLOCKS.registerBlock(
+            "simple_core_frame",
             SimpleFrameBlock::new,
             props -> props.mapColor(MapColor.METAL).strength(3.0F, 6.0F).sound(SoundType.GLASS).noOcclusion()
+                    .isRedstoneConductor((state, level, pos) -> false)
+    );
+
+    public static final DeferredBlock<SimpleFrameBlock> ADVANCED_CORE_FRAME = BLOCKS.registerBlock(
+            "advanced_core_frame",
+            SimpleFrameBlock::new,
+            props -> props.mapColor(MapColor.METAL).strength(4.0F, 45.0F).sound(SoundType.GLASS).noOcclusion()
                     .isRedstoneConductor((state, level, pos) -> false)
     );
 

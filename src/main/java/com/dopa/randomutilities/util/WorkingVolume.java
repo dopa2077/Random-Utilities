@@ -185,6 +185,43 @@ public final class WorkingVolume {
         }
     }
 
+    /** Inclusive AABB cell count before chebyshev clip (upper bound on work). */
+    public int boxCellCount(BlockPos machine) {
+        ensureBounds(machine);
+        if (minX > maxX || minY > maxY || minZ > maxZ) {
+            return 0;
+        }
+        return (maxX - minX + 1) * (maxY - minY + 1) * (maxZ - minZ + 1);
+    }
+
+    /**
+     * Visits up to {@code budget} box cells starting at {@code startIndex} (wrapping),
+     * skipping those outside the chebyshev range. Avoids full-volume scans each tick.
+     */
+    public void forEachCellWindow(BlockPos machine, int startIndex, int budget, Consumer<BlockPos> consumer) {
+        ensureBounds(machine);
+        int sizeX = maxX - minX + 1;
+        int sizeY = maxY - minY + 1;
+        int sizeZ = maxZ - minZ + 1;
+        if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0 || budget <= 0) {
+            return;
+        }
+        long total = (long) sizeX * sizeY * sizeZ;
+        int toVisit = (int) Math.min(budget, total);
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int i = 0; i < toVisit; i++) {
+            long idx = Math.floorMod((long) startIndex + i, total);
+            int z = (int) (idx % sizeZ);
+            long t = idx / sizeZ;
+            int y = (int) (t % sizeY);
+            int x = (int) (t / sizeY);
+            cursor.set(minX + x, minY + y, minZ + z);
+            if (chebyshev(machine, cursor) <= maxRange) {
+                consumer.accept(cursor);
+            }
+        }
+    }
+
     private void ensureBounds(BlockPos machine) {
         if (!boundsDirty
                 && boundsMachineX == machine.getX()

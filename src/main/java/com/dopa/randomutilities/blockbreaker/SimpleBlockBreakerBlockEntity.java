@@ -1,11 +1,14 @@
 package com.dopa.randomutilities.blockbreaker;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.machine.ClaimActionGate;
+import com.dopa.randomutilities.machine.MachineActors;
+import com.dopa.randomutilities.machine.MachineOwnerProfiles;
+import com.dopa.randomutilities.machine.OwnableMachine;
+import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.ActionCooldownFeedback;
 import com.dopa.randomutilities.util.BlockOrientations;
 import com.dopa.randomutilities.util.RedstonePulse;
-import com.mojang.authlib.GameProfile;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,7 +17,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -29,31 +31,28 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.transfer.item.ContainerOrHandler;
 import net.neoforged.neoforge.transfer.item.ItemUtil;
 
-import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class SimpleBlockBreakerBlockEntity extends BlockEntity {
+public class SimpleBlockBreakerBlockEntity extends BlockEntity implements OwnableMachine {
     private static final int TRIGGERED_TICKS = 8;
     private static final int DISPENSE_ACCURACY = 6;
     private static final double DISPENSE_OFFSET = 0.7;
-
-    private static final GameProfile BREAKER_PROFILE = new GameProfile(
-            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":simple_block_breaker").getBytes(StandardCharsets.UTF_8)),
-            "[Block Breaker]"
-    );
 
     private final RedstonePulse pulse = new RedstonePulse();
     private final BreakerMining mining = new BreakerMining();
     private int triggeredTicks;
     private int actionCooldown;
+    @Nullable
+    private UUID ownerUuid;
 
     public SimpleBlockBreakerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SIMPLE_BLOCK_BREAKER.get(), pos, state);
@@ -71,8 +70,10 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
         }
         boolean powered = level.getBestNeighborSignal(pos) > 0;
         if (pulse.risingEdge(powered)) {
-            if (actionCooldown > 0) {
-                ActionCooldownFeedback.smoke(level, pos);
+            if (OwnerRequiredFeedback.blockRisingEdge(level, pos, this, actionCooldown)) {
+                if (!hasOwner()) {
+                    actionCooldown = OwnerRequiredFeedback.cooldownAfterNoOwnerBlock(actionCooldown);
+                }
             } else if (tryBreak(level, pos, state)) {
                 actionCooldown = ActionCooldownFeedback.DEFAULT_COOLDOWN_TICKS;
                 setTriggered(level, pos, true);
@@ -97,24 +98,28 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
             mining.clear(level, destroyId());
             return false;
         }
+        FakePlayer breaker = MachineActors.actor(level, ownerUuid, pos, facing).orElse(null);
+        if (breaker == null) {
+            return false;
+        }
+        if (!ClaimActionGate.canBreak(level, breaker, target)) {
+            mining.clear(level, destroyId());
+            return false;
+        }
         float hardness = targetState.getDestroySpeed(level, target);
         int hitsNeeded = BreakerMining.hitsNeeded(hardness, 0);
         if (!mining.completeAfterHit(level, destroyId(), target, hitsNeeded)) {
             BreakerMining.playHit(level, target, targetState);
             return true;
         }
-        FakePlayer breaker = breaker(level);
-        positionPlayer(breaker, pos, facing);
         ItemStack tool = new ItemStack(Items.IRON_PICKAXE);
         breaker.setItemInHand(InteractionHand.MAIN_HAND, tool);
-        BlockEntity targetBe = level.getBlockEntity(target);
-        List<ItemStack> drops = new ArrayList<>(Block.getDrops(targetState, level, target, targetBe, breaker, tool));
+        List<ItemStack> drops = new ArrayList<>();
         AABB capture = new AABB(target).inflate(0.5);
         Set<UUID> existing = itemEntityIds(level, capture);
-        boolean broken = level.destroyBlock(target, false);
+        boolean broken = breaker.gameMode.destroyBlock(target);
         if (broken) {
-            targetState.spawnAfterBreak(level, target, tool, true);
-            collectNewItemEntities(level, capture, existing, drops);
+            BreakerDropCapture.collectFresh(level, capture, existing, drops);
             ejectFromBack(level, pos, facing.getOpposite(), drops);
         }
         breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -171,22 +176,16 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
         return ids;
     }
 
-    private static void collectNewItemEntities(
-            ServerLevel level,
-            AABB area,
-            Set<UUID> existing,
-            List<ItemStack> drops
-    ) {
-        for (ItemEntity entity : level.getEntitiesOfClass(ItemEntity.class, area)) {
-            if (existing.contains(entity.getUUID())) {
-                continue;
-            }
-            ItemStack stack = entity.getItem();
-            if (!stack.isEmpty()) {
-                drops.add(stack.copy());
-            }
-            entity.discard();
-        }
+    @Override
+    @Nullable
+    public UUID ownerUuid() {
+        return ownerUuid;
+    }
+
+    @Override
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.ownerUuid = uuid;
+        setChanged();
     }
 
     private static boolean canHarvest(ServerLevel level, BlockPos pos, BlockState state) {
@@ -207,24 +206,6 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
         }
     }
 
-    private FakePlayer breaker(ServerLevel level) {
-        return FakePlayerFactory.get(level, BREAKER_PROFILE);
-    }
-
-    private static void positionPlayer(Player player, BlockPos pos, Direction facing) {
-        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-        player.setYRot(facing.toYRot());
-        player.setXRot(pitchFor(facing));
-    }
-
-    private static float pitchFor(Direction facing) {
-        return switch (facing) {
-            case UP -> -90.0F;
-            case DOWN -> 90.0F;
-            default -> 0.0F;
-        };
-    }
-
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
         if (level instanceof ServerLevel server) {
@@ -239,6 +220,7 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
         pulse.setWasPowered(input.getBooleanOr("WasPowered", false));
         triggeredTicks = Math.max(0, input.getIntOr("TriggeredTicks", 0));
         actionCooldown = Math.max(0, input.getIntOr("ActionCooldown", 0));
+        ownerUuid = MachineOwnerProfiles.load(input);
         mining.load(input);
     }
 
@@ -253,6 +235,9 @@ public class SimpleBlockBreakerBlockEntity extends BlockEntity {
         }
         if (actionCooldown > 0) {
             output.putInt("ActionCooldown", actionCooldown);
+        }
+        if (ownerUuid != null) {
+            MachineOwnerProfiles.save(output, ownerUuid);
         }
         mining.save(output);
     }

@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.blockbreaker;
 
 import com.dopa.randomutilities.blockbreaker.menu.AdvancedBlockBreakerMenu;
+import com.dopa.randomutilities.machine.OwnableMachine;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.BlockOrientations;
@@ -17,6 +18,7 @@ import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -84,6 +86,14 @@ public class AdvancedBlockBreakerBlock extends BaseEntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ORIENTATION, TRIGGERED);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.getBlockEntity(pos) instanceof BlockEntity be) {
+            OwnableMachine.bindPlacer(be, placer);
+        }
     }
 
     @Nullable

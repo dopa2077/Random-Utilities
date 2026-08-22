@@ -355,9 +355,13 @@ public class TransferPipeBlock extends Block {
         }
         if (level instanceof Level world) {
             Direction insert = towardNeighbor.getOpposite();
-            if (world.getCapability(Capabilities.Item.BLOCK, neighborPos, insert) != null
-                    || world.getCapability(Capabilities.Fluid.BLOCK, neighborPos, insert) != null
-                    || world.getCapability(Capabilities.Energy.BLOCK, neighborPos, insert) != null) {
+            if (world.getCapability(Capabilities.Item.BLOCK, neighborPos, insert) != null) {
+                return TransferPipeFace.INVENTORY;
+            }
+            if (world.getCapability(Capabilities.Fluid.BLOCK, neighborPos, insert) != null) {
+                return TransferPipeFace.INVENTORY;
+            }
+            if (world.getCapability(Capabilities.Energy.BLOCK, neighborPos, insert) != null) {
                 return TransferPipeFace.INVENTORY;
             }
         }

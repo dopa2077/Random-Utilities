@@ -23,8 +23,18 @@ public class TransferFilterMenu extends AbstractContainerMenu {
     public static final int GRID = 4;
     /** 16×16 wells (1px smaller than a vanilla 18×18 slot), pitched 16. */
     public static final int SLOT = 16;
-    public static final int GRID_X = 25;
-    public static final int GRID_Y = 20;
+    /** Aligned to filter.png ghost wells (one slot left of the previous layout). */
+    public static final int GRID_X = 7;
+    public static final int GRID_Y = 21;
+    /** Baked button panel on filter.png (right of the 4×4 grid). */
+    public static final int BUTTON_PANEL_X = 89;
+    public static final int BUTTON_PANEL_Y = 21;
+    public static final int BUTTON_PANEL_WIDTH = 79;
+    public static final int BUTTON_PANEL_HEIGHT = 62;
+    public static final int BUTTON_WIDTH = 77;
+    public static final int BUTTON_HEIGHT = 18;
+    public static final int BUTTON_GAP = 4;
+    public static final int BUTTON_X = BUTTON_PANEL_X + (BUTTON_PANEL_WIDTH - BUTTON_WIDTH) / 2;
     public static final int PLAYER_INV_Y = 102;
     public static final int IMAGE_WIDTH = 176;
     public static final int IMAGE_HEIGHT = 184;

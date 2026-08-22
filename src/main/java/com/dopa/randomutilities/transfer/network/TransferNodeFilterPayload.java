@@ -2,6 +2,7 @@ package com.dopa.randomutilities.transfer.network;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
+import com.dopa.randomutilities.util.GhostFilterPayloads;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -30,7 +31,7 @@ public record TransferNodeFilterPayload(int slotIndex, ItemStack filterItem) imp
     public static void handle(TransferNodeFilterPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof TransferNodeMenu menu)) {
+            if (!(player.containerMenu instanceof TransferNodeMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             if (payload.slotIndex() < 0 || payload.slotIndex() >= TransferNodeMenu.FILTER_SLOT_COUNT) {
@@ -40,7 +41,7 @@ public record TransferNodeFilterPayload(int slotIndex, ItemStack filterItem) imp
                 menu.setFilterSlot(payload.slotIndex(), ItemStack.EMPTY);
                 return;
             }
-            menu.setFilterSlot(payload.slotIndex(), payload.filterItem().copyWithCount(1));
+            menu.setFilterSlot(payload.slotIndex(), GhostFilterPayloads.sanitizeGhost(payload.filterItem()));
         });
     }
 }

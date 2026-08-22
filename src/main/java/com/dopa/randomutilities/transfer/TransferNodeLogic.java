@@ -289,12 +289,7 @@ final class TransferNodeLogic {
             int thisRound = 0;
             for (int offset = 0; offset < count; offset++) {
                 int index = Math.floorMod(start + offset, count);
-                TransferNetworks.Destination dest = destinations.get(index);
-                ResourceHandler<FluidResource> handler = level.getCapability(
-                        Capabilities.Fluid.BLOCK,
-                        dest.inventoryPos(),
-                        dest.insertFace()
-                );
+                ResourceHandler<FluidResource> handler = head.fluidHandlerAt(level, index);
                 if (handler == null) {
                     continue;
                 }
@@ -363,12 +358,7 @@ final class TransferNodeLogic {
         int count = destinations.size();
         for (int offset = 0; offset < count; offset++) {
             int index = Math.floorMod(start + offset, count);
-            TransferNetworks.Destination dest = destinations.get(index);
-            EnergyHandler handler = level.getCapability(
-                    Capabilities.Energy.BLOCK,
-                    dest.inventoryPos(),
-                    dest.insertFace()
-            );
+            EnergyHandler handler = head.energyHandlerAt(level, index);
             if (handler == null) {
                 continue;
             }

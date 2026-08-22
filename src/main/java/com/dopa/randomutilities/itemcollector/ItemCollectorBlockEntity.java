@@ -42,6 +42,7 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int overlayColor = DEFAULT_OVERLAY_COLOR;
     private boolean particlesEnabled = true;
+    private int emptySweepBackoff;
     @Nullable
     private AABB cachedScanBox;
 
@@ -153,6 +154,25 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
 
     public int pickupBatch() {
         return pickupBatch;
+    }
+
+    int emptySweepBackoff() {
+        return emptySweepBackoff;
+    }
+
+    void tickEmptySweepBackoff() {
+        if (emptySweepBackoff > 0) {
+            emptySweepBackoff--;
+        }
+    }
+
+    void onEmptySweep() {
+        // Extra delay before the next AABB entity query when nothing was picked up.
+        emptySweepBackoff = Math.min(4, Math.max(1, pickupDelay / 20));
+    }
+
+    void onSuccessfulSweep() {
+        emptySweepBackoff = 0;
     }
 
     public int overlayColor() {

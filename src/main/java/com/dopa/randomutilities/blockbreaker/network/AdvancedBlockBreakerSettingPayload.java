@@ -29,7 +29,7 @@ public record AdvancedBlockBreakerSettingPayload(byte kind, int value) implement
     public static void handle(AdvancedBlockBreakerSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof AdvancedBlockBreakerMenu menu) {
+            if (player.containerMenu instanceof AdvancedBlockBreakerMenu menu && menu.stillValid(player)) {
                 menu.applySetting(payload.kind(), payload.value());
             }
         });

@@ -1,8 +1,12 @@
 package com.dopa.randomutilities.blockbreaker;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.machine.ClaimActionGate;
 import com.dopa.randomutilities.machine.EnergyMachineUpgradeInventory;
+import com.dopa.randomutilities.machine.MachineActors;
 import com.dopa.randomutilities.machine.MachineEnergy;
+import com.dopa.randomutilities.machine.MachineOwnerProfiles;
+import com.dopa.randomutilities.machine.OwnableMachine;
+import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
@@ -11,8 +15,6 @@ import com.dopa.randomutilities.util.BlockOrientations;
 import com.dopa.randomutilities.util.GhostItemFilter;
 import com.dopa.randomutilities.util.WorkingVolume;
 import com.dopa.randomutilities.util.WorkingVolumeSource;
-import com.mojang.authlib.GameProfile;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -30,7 +32,6 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -45,33 +46,30 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.transfer.item.ContainerOrHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemUtil;
 
-import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements RedstoneControl, WorkingVolumeSource {
+public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements OwnableMachine, RedstoneControl, WorkingVolumeSource {
     public static final int FILTER_SLOTS = 8;
     public static final int OVERLAY_COLOR = 0xE64D33;
 
     private static final int TRIGGERED_TICKS = 8;
     private static final int DISPENSE_ACCURACY = 6;
     private static final double DISPENSE_OFFSET = 0.7;
-    /** Skip full-volume scans for a few ticks after finding no harvestable cell. */
+    /** Skip volume scans for a few ticks after finding no harvestable cell. */
     private static final int EMPTY_VOLUME_BACKOFF = 10;
-
-    private static final GameProfile BREAKER_PROFILE = new GameProfile(
-            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":advanced_block_breaker").getBytes(StandardCharsets.UTF_8)),
-            "[Advanced Block Breaker]"
-    );
+    /** Max box cells inspected per random-target attempt. */
+    private static final int VOLUME_SCAN_BUDGET = 512;
 
     private final ItemStacksResourceHandler pickaxe = new ItemStacksResourceHandler(1) {
         @Override
@@ -101,7 +99,11 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int triggeredTicks;
     private int emptyScanBackoff;
+    private int ownerFeedbackCooldown;
+    private int volumeScanCursor;
     private boolean filtersConfigured;
+    @Nullable
+    private UUID ownerUuid;
 
     public AdvancedBlockBreakerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ADVANCED_BLOCK_BREAKER.get(), pos, state);
@@ -278,15 +280,30 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
 
     private void tick(ServerLevel level, BlockPos pos, BlockState state) {
         energy.beginTick();
+        ownerFeedbackCooldown = OwnerRequiredFeedback.tickOwnerFeedbackCooldown(ownerFeedbackCooldown);
         if (emptyScanBackoff > 0) {
             emptyScanBackoff--;
         }
-        if (redstoneMode.allowsOperation(level.getBestNeighborSignal(pos))) {
+        boolean powered = redstoneMode.allowsOperation(level.getBestNeighborSignal(pos));
+        if (OwnerRequiredFeedback.blockWhilePowered(level, pos, this, powered, ownerFeedbackCooldown)) {
+            if (!hasOwner() && ownerFeedbackCooldown <= 0) {
+                ownerFeedbackCooldown = OwnerRequiredFeedback.cooldownAfterPoweredBlock();
+            }
+            if (triggeredTicks > 0) {
+                triggeredTicks--;
+                if (triggeredTicks == 0) {
+                    setTriggered(level, pos, false);
+                    setChanged();
+                }
+            }
+            return;
+        }
+        if (powered) {
             boolean[] worked = {false};
             if (emptyScanBackoff <= 0) {
                 energy.runReadyCycles(upgrades.overclockCount(), () -> {
                     if (!tryBreak(level, pos, state)) {
-                        emptyScanBackoff = EMPTY_VOLUME_BACKOFF;
+                        emptyScanBackoff = emptyVolumeBackoff();
                         return false;
                     }
                     emptyScanBackoff = 0;
@@ -314,8 +331,10 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         ItemStack stored = pickaxeStack();
         boolean virtualTool = stored.isEmpty();
         ItemStack tool = virtualTool ? new ItemStack(Items.DIAMOND_PICKAXE) : stored.copy();
-        FakePlayer breaker = breaker(level);
-        positionPlayer(breaker, pos, facing);
+        FakePlayer breaker = MachineActors.actor(level, ownerUuid, pos, facing).orElse(null);
+        if (breaker == null) {
+            return false;
+        }
         breaker.setItemInHand(InteractionHand.MAIN_HAND, tool);
 
         BlockPos target = selectTarget(level, breaker, virtualTool);
@@ -345,31 +364,16 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         }
         energy.tryConsume(cost);
 
-        BlockEntity targetBe = level.getBlockEntity(target);
+        // Always break via gameMode so claims/protection apply; mute only suppresses FX.
         List<ItemStack> drops = new ArrayList<>();
-        boolean broken;
-        if (mute) {
-            drops.addAll(Block.getDrops(targetState, level, target, targetBe, breaker, tool));
-            if (!virtualTool) {
-                tool.hurtAndBreak(1, level, breaker, brokenTool -> {});
-            }
-            broken = level.removeBlock(target, false);
-            if (broken) {
-                targetState.spawnAfterBreak(level, target, tool, true);
-            }
-        } else {
-            AABB capture = new AABB(target).inflate(0.5);
-            Set<UUID> existing = itemEntityIds(level, capture);
-            broken = breaker.gameMode.destroyBlock(target);
-            if (broken) {
-                collectNewItemEntities(level, capture, existing, drops);
-            }
-            if (!virtualTool) {
-                tool = breaker.getItemInHand(InteractionHand.MAIN_HAND);
-            }
+        AABB capture = new AABB(target).inflate(0.5);
+        Set<UUID> existing = itemEntityIds(level, capture);
+        boolean broken = breaker.gameMode.destroyBlock(target);
+        if (broken) {
+            BreakerDropCapture.collectFresh(level, capture, existing, drops);
         }
-
         if (!virtualTool) {
+            tool = breaker.getItemInHand(InteractionHand.MAIN_HAND);
             writePickaxeBack(tool);
         }
         breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -396,7 +400,10 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         if (!canHarvest(level, cell, cellState, breaker, virtualTool)) {
             return false;
         }
-        return allowsBlock(cellState);
+        if (!allowsBlock(cellState)) {
+            return false;
+        }
+        return ClaimActionGate.canBreak(level, breaker, cell);
     }
 
     private int destroyId() {
@@ -406,7 +413,9 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
     private BlockPos pickRandomCell(ServerLevel level, FakePlayer breaker, boolean virtualTool) {
         int[] seen = {0};
         BlockPos[] chosen = {null};
-        volume.forEachCell(worldPosition, cell -> {
+        int boxCells = volume.boxCellCount(worldPosition);
+        int budget = Math.min(VOLUME_SCAN_BUDGET, Math.max(1, boxCells));
+        volume.forEachCellWindow(worldPosition, volumeScanCursor, budget, cell -> {
             BlockState cellState = level.getBlockState(cell);
             if (!canHarvest(level, cell, cellState, breaker, virtualTool)) {
                 return;
@@ -414,12 +423,23 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
             if (!allowsBlock(cellState)) {
                 return;
             }
+            if (!ClaimActionGate.canBreak(level, breaker, cell)) {
+                return;
+            }
             seen[0]++;
             if (level.getRandom().nextInt(seen[0]) == 0) {
                 chosen[0] = cell.immutable();
             }
         });
+        if (boxCells > 0) {
+            volumeScanCursor = Math.floorMod(volumeScanCursor + budget, boxCells);
+        }
         return chosen[0];
+    }
+
+    private int emptyVolumeBackoff() {
+        int cells = volume.boxCellCount(worldPosition);
+        return Math.min(100, Math.max(EMPTY_VOLUME_BACKOFF, cells / 64));
     }
 
     private static boolean canHarvest(
@@ -495,22 +515,16 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         return ids;
     }
 
-    private static void collectNewItemEntities(
-            ServerLevel level,
-            AABB area,
-            Set<UUID> existing,
-            List<ItemStack> drops
-    ) {
-        for (ItemEntity entity : level.getEntitiesOfClass(ItemEntity.class, area)) {
-            if (existing.contains(entity.getUUID())) {
-                continue;
-            }
-            ItemStack stack = entity.getItem();
-            if (!stack.isEmpty()) {
-                drops.add(stack.copy());
-            }
-            entity.discard();
-        }
+    @Override
+    @Nullable
+    public UUID ownerUuid() {
+        return ownerUuid;
+    }
+
+    @Override
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.ownerUuid = uuid;
+        setChanged();
     }
 
     private static void setTriggered(ServerLevel level, BlockPos pos, boolean triggered) {
@@ -519,24 +533,6 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
                 && state.getValue(AdvancedBlockBreakerBlock.TRIGGERED) != triggered) {
             level.setBlock(pos, state.setValue(AdvancedBlockBreakerBlock.TRIGGERED, triggered), Block.UPDATE_CLIENTS);
         }
-    }
-
-    private FakePlayer breaker(ServerLevel level) {
-        return FakePlayerFactory.get(level, BREAKER_PROFILE);
-    }
-
-    private static void positionPlayer(Player player, BlockPos pos, Direction facing) {
-        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-        player.setYRot(facing.toYRot());
-        player.setXRot(pitchFor(facing));
-    }
-
-    private static float pitchFor(Direction facing) {
-        return switch (facing) {
-            case UP -> -90.0F;
-            case DOWN -> 90.0F;
-            default -> 0.0F;
-        };
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -592,6 +588,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         volume.load(input);
         mining.load(input);
         triggeredTicks = Math.max(0, input.getIntOr("TriggeredTicks", 0));
+        ownerUuid = MachineOwnerProfiles.load(input);
     }
 
     @Override
@@ -617,6 +614,9 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Reds
         mining.save(output);
         if (triggeredTicks > 0) {
             output.putInt("TriggeredTicks", triggeredTicks);
+        }
+        if (ownerUuid != null) {
+            MachineOwnerProfiles.save(output, ownerUuid);
         }
     }
 

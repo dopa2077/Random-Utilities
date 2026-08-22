@@ -3,6 +3,7 @@ package com.dopa.randomutilities.solarfurnace;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.registry.ModItems;
 
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.function.IntSupplier;
@@ -11,6 +12,14 @@ import java.util.function.IntSupplier;
 public final class OverclockUpgradeInventory extends UpgradeInventory {
     public OverclockUpgradeInventory(int size, IntSupplier maxPerType) {
         super(size, maxPerType);
+    }
+
+    @Override
+    public int maxFor(Item item) {
+        if (item != ModItems.OVERCLOCK_UPGRADE.get()) {
+            return 0;
+        }
+        return super.maxFor(item);
     }
 
     @Override

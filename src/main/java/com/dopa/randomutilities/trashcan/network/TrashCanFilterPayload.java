@@ -2,6 +2,7 @@ package com.dopa.randomutilities.trashcan.network;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
+import com.dopa.randomutilities.util.GhostFilterPayloads;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -30,7 +31,7 @@ public record TrashCanFilterPayload(int slotIndex, ItemStack filterItem) impleme
     public static void handle(TrashCanFilterPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof TrashCanMenu menu)) {
+            if (!(player.containerMenu instanceof TrashCanMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             if (payload.filterItem().isEmpty()) {
@@ -39,7 +40,7 @@ public record TrashCanFilterPayload(int slotIndex, ItemStack filterItem) impleme
             if (payload.slotIndex() < 0 || payload.slotIndex() >= TrashCanMenu.FILTER_SLOT_COUNT) {
                 return;
             }
-            menu.setFilterSlot(payload.slotIndex(), payload.filterItem().copyWithCount(1));
+            menu.setFilterSlot(payload.slotIndex(), GhostFilterPayloads.sanitizeGhost(payload.filterItem()));
         });
     }
 }

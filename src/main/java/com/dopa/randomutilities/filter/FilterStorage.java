@@ -347,9 +347,12 @@ public final class FilterStorage {
             return false;
         }
         FilterContents contents = peek(host);
-        ItemStack stack = resource.toStack(1);
         for (int i = 0; i < contents.slotCount(); i++) {
-            if (contents.slot(i).matches(stack)) {
+            FilterContents.Slot slot = contents.slot(i);
+            if (slot.isEmpty()) {
+                continue;
+            }
+            if (GhostItemFilter.slotMatches(slot.toStack(), resource)) {
                 return true;
             }
         }
@@ -361,6 +364,13 @@ public final class FilterStorage {
      * (including further nested filters via {@link GhostItemFilter}).
      */
     public static boolean matchesNested(ItemStack candidate, ItemStack host, int depth) {
+        if (candidate.isEmpty() || !FilterRegistry.isFilterItem(host) || depth >= FilterNesting.MAX_DEPTH) {
+            return false;
+        }
+        return matchesNested(ItemResource.of(candidate), host, depth);
+    }
+
+    public static boolean matchesNested(ItemResource candidate, ItemStack host, int depth) {
         if (candidate.isEmpty() || !FilterRegistry.isFilterItem(host) || depth >= FilterNesting.MAX_DEPTH) {
             return false;
         }

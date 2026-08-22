@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": "dopasrandomutilities:simple_core_frame",
+    "O": "minecraft:obsidian",
+    "D": "#c:gems/diamond"
+  },
+  "pattern": [
+    "ODO",
+    "DFD",
+    "ODO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:advanced_core_frame"
+  }
+}

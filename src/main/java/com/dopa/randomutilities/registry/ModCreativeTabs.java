@@ -32,7 +32,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ADVANCED_BLOCK_BREAKER.get());
                         output.accept(ModItems.SIMPLE_BLOCK_PLACER.get());
                         output.accept(ModItems.ADVANCED_BLOCK_PLACER.get());
-                        output.accept(ModItems.SIMPLE_FRAME.get());
+                        output.accept(ModItems.SIMPLE_CORE_FRAME.get());
+                        output.accept(ModItems.ADVANCED_CORE_FRAME.get());
                         output.accept(ModItems.TINY_TNT.get());
                         output.accept(ModItems.WOOD_CHIP.get());
                         for (var pipe : ModItems.pipes()) {

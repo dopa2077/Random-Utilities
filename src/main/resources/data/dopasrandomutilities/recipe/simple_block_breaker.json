@@ -3,13 +3,13 @@
   "category": "misc",
   "key": {
     "C": "#c:cobblestones",
-    "D": "minecraft:dispenser",
+    "F": "dopasrandomutilities:simple_core_frame",
     "I": "#c:ingots/iron",
     "K": "minecraft:iron_pickaxe"
   },
   "pattern": [
     "ICC",
-    "KDC",
+    "KFC",
     "ICC"
   ],
   "result": {

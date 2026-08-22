@@ -1,8 +1,12 @@
 package com.dopa.randomutilities.blockplacer;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.machine.ClaimActionGate;
 import com.dopa.randomutilities.machine.EnergyMachineUpgradeInventory;
+import com.dopa.randomutilities.machine.MachineActors;
 import com.dopa.randomutilities.machine.MachineEnergy;
+import com.dopa.randomutilities.machine.MachineOwnerProfiles;
+import com.dopa.randomutilities.machine.OwnableMachine;
+import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
@@ -11,8 +15,6 @@ import com.dopa.randomutilities.util.BlockOrientations;
 import com.dopa.randomutilities.util.GhostItemFilter;
 import com.dopa.randomutilities.util.WorkingVolume;
 import com.dopa.randomutilities.util.WorkingVolumeSource;
-import com.mojang.authlib.GameProfile;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -24,43 +26,35 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 
-import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.UUID;
 
-public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements RedstoneControl, WorkingVolumeSource {
+public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements OwnableMachine, RedstoneControl, WorkingVolumeSource {
     public static final int SLOT_COUNT = 9;
     public static final int FILTER_SLOTS = 8;
     public static final int OVERLAY_COLOR = 0x33E6E6;
     private static final int EMPTY_VOLUME_BACKOFF = 10;
-
-    private static final GameProfile PLACER_PROFILE = new GameProfile(
-            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":advanced_block_placer").getBytes(StandardCharsets.UTF_8)),
-            "[Advanced Block Placer]"
-    );
+    private static final int VOLUME_SCAN_BUDGET = 512;
 
     private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(SLOT_COUNT) {
         @Override
@@ -79,6 +73,10 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
     private int overlayColor = OVERLAY_COLOR;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int emptyScanBackoff;
+    private int ownerFeedbackCooldown;
+    private int volumeScanCursor;
+    @Nullable
+    private UUID ownerUuid;
 
     public AdvancedBlockPlacerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ADVANCED_BLOCK_PLACER.get(), pos, state);
@@ -246,10 +244,18 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
 
     private void tick(ServerLevel level, BlockPos pos, BlockState state) {
         energy.beginTick();
+        ownerFeedbackCooldown = OwnerRequiredFeedback.tickOwnerFeedbackCooldown(ownerFeedbackCooldown);
         if (emptyScanBackoff > 0) {
             emptyScanBackoff--;
         }
-        if (!redstoneMode.allowsOperation(level.getBestNeighborSignal(pos))) {
+        boolean powered = redstoneMode.allowsOperation(level.getBestNeighborSignal(pos));
+        if (OwnerRequiredFeedback.blockWhilePowered(level, pos, this, powered, ownerFeedbackCooldown)) {
+            if (!hasOwner() && ownerFeedbackCooldown <= 0) {
+                ownerFeedbackCooldown = OwnerRequiredFeedback.cooldownAfterPoweredBlock();
+            }
+            return;
+        }
+        if (!powered) {
             return;
         }
         if (emptyScanBackoff > 0) {
@@ -257,7 +263,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         }
         energy.runReadyCycles(upgrades.overclockCount(), () -> {
             if (!tryPlace(level, pos, state)) {
-                emptyScanBackoff = EMPTY_VOLUME_BACKOFF;
+                emptyScanBackoff = emptyVolumeBackoff();
                 return false;
             }
             emptyScanBackoff = 0;
@@ -283,8 +289,13 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         if (!(stack.getItem() instanceof BlockItem blockItem)) {
             return false;
         }
-        FakePlayer placer = placer(level);
-        positionPlayer(placer, pos, facing);
+        FakePlayer placer = MachineActors.actor(level, ownerUuid, pos, facing).orElse(null);
+        if (placer == null) {
+            return false;
+        }
+        if (!ClaimActionGate.canPlace(level, placer, target, stack)) {
+            return false;
+        }
         ItemStack held = stack.copy();
         placer.setItemInHand(InteractionHand.MAIN_HAND, held);
         Vec3 hitLoc = Vec3.atCenterOf(target).subtract(
@@ -294,7 +305,8 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         );
         BlockHitResult hit = new BlockHitResult(hitLoc, facing.getOpposite(), target, false);
         BlockPlaceContext context = new BlockPlaceContext(placer, InteractionHand.MAIN_HAND, held, hit);
-        boolean placed = placeBlock(level, target, blockItem, context, held);
+        // BlockItem.place fires claim/protection hooks; mute only skips our extra FX (none beyond BlockItem).
+        InteractionResult result = blockItem.place(context);
         ItemStack remaining = placer.getItemInHand(InteractionHand.MAIN_HAND);
         if (remaining.isEmpty()) {
             items.set(slot, ItemResource.EMPTY, 0);
@@ -302,52 +314,20 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
             items.set(slot, ItemResource.of(remaining), remaining.getCount());
         }
         placer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-        if (placed) {
+        if (result.consumesAction()) {
             energy.tryConsume(cost);
             setChanged();
+            return true;
         }
-        return placed;
-    }
-
-    private boolean placeBlock(
-            ServerLevel level,
-            BlockPos target,
-            BlockItem blockItem,
-            BlockPlaceContext context,
-            ItemStack held
-    ) {
-        if (!context.canPlace()) {
-            return false;
-        }
-        BlockState toPlace = blockItem.getBlock().getStateForPlacement(context);
-        if (toPlace == null || !toPlace.canSurvive(level, target)) {
-            return false;
-        }
-        if (!level.setBlock(target, toPlace, Block.UPDATE_ALL)) {
-            return false;
-        }
-        BlockState placed = level.getBlockState(target);
-        blockItem.getBlock().setPlacedBy(level, target, placed, context.getPlayer(), held);
-        level.gameEvent(GameEvent.BLOCK_PLACE, target, GameEvent.Context.of(context.getPlayer(), placed));
-        if (!mute) {
-            SoundType sound = placed.getSoundType();
-            level.playSound(
-                    null,
-                    target,
-                    sound.getPlaceSound(),
-                    SoundSource.BLOCKS,
-                    (sound.getVolume() + 1.0F) / 2.0F,
-                    sound.getPitch() * 0.8F
-            );
-        }
-        held.shrink(1);
-        return true;
+        return false;
     }
 
     private BlockPos pickRandomCell(RandomSource random, java.util.function.Predicate<BlockPos> valid) {
         int[] seen = {0};
         BlockPos[] chosen = {null};
-        volume.forEachCell(worldPosition, cell -> {
+        int boxCells = volume.boxCellCount(worldPosition);
+        int budget = Math.min(VOLUME_SCAN_BUDGET, Math.max(1, boxCells));
+        volume.forEachCellWindow(worldPosition, volumeScanCursor, budget, cell -> {
             if (!valid.test(cell)) {
                 return;
             }
@@ -356,7 +336,15 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
                 chosen[0] = cell.immutable();
             }
         });
+        if (boxCells > 0) {
+            volumeScanCursor = Math.floorMod(volumeScanCursor + budget, boxCells);
+        }
         return chosen[0];
+    }
+
+    private int emptyVolumeBackoff() {
+        int cells = volume.boxCellCount(worldPosition);
+        return Math.min(100, Math.max(EMPTY_VOLUME_BACKOFF, cells / 64));
     }
 
     private int pickRandomBlockSlot(RandomSource random) {
@@ -378,22 +366,16 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         return chosen;
     }
 
-    private FakePlayer placer(ServerLevel level) {
-        return FakePlayerFactory.get(level, PLACER_PROFILE);
+    @Override
+    @Nullable
+    public UUID ownerUuid() {
+        return ownerUuid;
     }
 
-    private static void positionPlayer(Player player, BlockPos pos, Direction facing) {
-        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-        player.setYRot(facing.toYRot());
-        player.setXRot(pitchFor(facing));
-    }
-
-    private static float pitchFor(Direction facing) {
-        return switch (facing) {
-            case UP -> -90.0F;
-            case DOWN -> 90.0F;
-            default -> 0.0F;
-        };
+    @Override
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.ownerUuid = uuid;
+        setChanged();
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -449,6 +431,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         onUpgradesChanged();
         energy.load(input);
         volume.load(input);
+        ownerUuid = MachineOwnerProfiles.load(input);
     }
 
     @Override
@@ -473,6 +456,9 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Redst
         upgrades.saveSlots(output);
         energy.save(output);
         volume.save(output);
+        if (ownerUuid != null) {
+            MachineOwnerProfiles.save(output, ownerUuid);
+        }
     }
 
     @Override

@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "A": "dopasrandomutilities:advanced_core_frame",
     "C": "minecraft:cobbled_deepslate",
-    "K": "minecraft:diamond_pickaxe",
     "S": "dopasrandomutilities:simple_block_breaker"
   },
   "pattern": [
     "CCC",
-    "CSC",
-    "CKC"
+    "CAC",
+    "CSC"
   ],
   "result": {
     "count": 1,

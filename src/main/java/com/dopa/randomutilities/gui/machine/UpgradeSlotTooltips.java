@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Installed-upgrade hover lines (total + available) shared by machine screens. */
+/** Upgrade-slot hover lines (empty supported list, or installed totals) shared by machine screens. */
 public final class UpgradeSlotTooltips {
     private UpgradeSlotTooltips() {}
 
@@ -103,8 +103,28 @@ public final class UpgradeSlotTooltips {
             @Nullable Component totalOverride,
             boolean strikethroughStats
     ) {
-        if (hovered == null || !upgradeSlot || !hovered.hasItem()) {
+        if (hovered == null || !upgradeSlot) {
             return false;
+        }
+        if (!hovered.hasItem()) {
+            List<Item> supported = upgrades.supportedUpgradeItems();
+            if (supported.isEmpty()) {
+                return false;
+            }
+            List<FormattedCharSequence> lines = new ArrayList<>();
+            lines.add(Component.translatable("gui.dopasrandomutilities.upgrade.supported")
+                    .withStyle(ChatFormatting.GRAY)
+                    .getVisualOrderText());
+            for (Item item : supported) {
+                Component name = item instanceof MachineUpgradeItem upgrade
+                        ? upgrade.shortName()
+                        : new ItemStack(item).getHoverName();
+                lines.add(Component.translatable("gui.dopasrandomutilities.upgrade.supported_line", name)
+                        .withStyle(ChatFormatting.GRAY)
+                        .getVisualOrderText());
+            }
+            graphics.setTooltipForNextFrame(font, lines, mouseX, mouseY);
+            return true;
         }
         List<FormattedCharSequence> lines = new ArrayList<>();
         if (energyVoidConfirm) {

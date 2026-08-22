@@ -40,7 +40,7 @@ public record ItemCollectorSettingPayload(byte kind, int value) implements Custo
     public static void handle(ItemCollectorSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof ItemCollectorMenu menu)) {
+            if (!(player.containerMenu instanceof ItemCollectorMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             switch (payload.kind()) {

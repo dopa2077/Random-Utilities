@@ -47,7 +47,7 @@ public class ResourceGeneratorRenderer
             return;
         }
 
-        Block display = blockEntity.getDisplayResultBlock().orElseGet(blockEntity::defaultDisplayBlock);
+        Block display = blockEntity.resolveDisplayBlock();
         BlockState blockState = display.defaultBlockState();
         if (blockState.getRenderShape() != RenderShape.MODEL) {
             blockState = blockEntity.defaultDisplayBlock().defaultBlockState();

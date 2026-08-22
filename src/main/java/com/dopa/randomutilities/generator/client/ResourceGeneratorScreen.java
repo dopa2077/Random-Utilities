@@ -8,7 +8,8 @@ import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
 import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
 import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.generator.client.panel.GeneratorConfigPanel;
-import com.dopa.randomutilities.generator.client.panel.GeneratorInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.generator.menu.ResourceGeneratorMenu;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -115,7 +116,7 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
         this.configPanel = null;
         this.redstonePanel = null;
 
-        this.panelHost.add(new GeneratorInformativePanel(tabYBias, this.menu.generatorType().mode()));
+        this.panelHost.add(new ScrollingInfoPanel(tabYBias, infoParagraphKeys(this.menu.generatorType().mode())));
 
         if (this.menu.supportsLockOutput()) {
             this.configPanel = new GeneratorConfigPanel(this, tabYBias);
@@ -373,5 +374,23 @@ public class ResourceGeneratorScreen extends AbstractContainerScreen<ResourceGen
                 && mouseY >= widget.getY()
                 && mouseX < widget.getX() + widget.getWidth()
                 && mouseY < widget.getY() + widget.getHeight();
+    }
+
+    private static String[] infoParagraphKeys(GeneratorType.Mode mode) {
+        return switch (mode) {
+            case RANDOM_ORE -> new String[] {
+                    "gui.dopasrandomutilities.panel.info.generator.visual",
+                    "gui.dopasrandomutilities.panel.info.generator.random_ore.howto"
+            };
+            case METAL_BLOCK -> new String[] {
+                    "gui.dopasrandomutilities.panel.info.generator.visual",
+                    "gui.dopasrandomutilities.panel.info.generator.metal_block.howto"
+            };
+            default -> new String[] {
+                    "gui.dopasrandomutilities.panel.info.generator.visual",
+                    "gui.dopasrandomutilities.panel.info.generator.howto",
+                    "gui.dopasrandomutilities.panel.info.generator.lock"
+            };
+        };
     }
 }

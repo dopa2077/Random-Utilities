@@ -46,7 +46,7 @@ public record RedstoneClockSettingPayload(byte kind, int value) implements Custo
     public static void handle(RedstoneClockSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof RedstoneClockMenu menu)) {
+            if (!(player.containerMenu instanceof RedstoneClockMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             switch (payload.kind()) {

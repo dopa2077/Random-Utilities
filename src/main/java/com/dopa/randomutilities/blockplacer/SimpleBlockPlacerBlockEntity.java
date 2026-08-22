@@ -1,11 +1,14 @@
 package com.dopa.randomutilities.blockplacer;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.machine.ClaimActionGate;
+import com.dopa.randomutilities.machine.MachineActors;
+import com.dopa.randomutilities.machine.MachineOwnerProfiles;
+import com.dopa.randomutilities.machine.OwnableMachine;
+import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.ActionCooldownFeedback;
 import com.dopa.randomutilities.util.BlockOrientations;
 import com.dopa.randomutilities.util.RedstonePulse;
-import com.mojang.authlib.GameProfile;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,7 +19,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -28,20 +30,15 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 
-import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.UUID;
 
-public class SimpleBlockPlacerBlockEntity extends BlockEntity {
+public class SimpleBlockPlacerBlockEntity extends BlockEntity implements OwnableMachine {
     public static final int SLOT_COUNT = 9;
-
-    private static final GameProfile PLACER_PROFILE = new GameProfile(
-            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":simple_block_placer").getBytes(StandardCharsets.UTF_8)),
-            "[Block Placer]"
-    );
 
     private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(SLOT_COUNT) {
         @Override
@@ -52,6 +49,8 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
 
     private final RedstonePulse pulse = new RedstonePulse();
     private int actionCooldown;
+    @Nullable
+    private UUID ownerUuid;
 
     public SimpleBlockPlacerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SIMPLE_BLOCK_PLACER.get(), pos, state);
@@ -100,8 +99,10 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         if (!pulse.risingEdge(powered)) {
             return;
         }
-        if (actionCooldown > 0) {
-            ActionCooldownFeedback.smoke(level, pos);
+        if (OwnerRequiredFeedback.blockRisingEdge(level, pos, this, actionCooldown)) {
+            if (!hasOwner()) {
+                actionCooldown = OwnerRequiredFeedback.cooldownAfterNoOwnerBlock(actionCooldown);
+            }
             return;
         }
         if (tryPlace(level, pos, state)) {
@@ -123,8 +124,13 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         if (!(stack.getItem() instanceof BlockItem blockItem)) {
             return false;
         }
-        FakePlayer placer = placer(level);
-        positionPlayer(placer, pos, facing);
+        FakePlayer placer = MachineActors.actor(level, ownerUuid, pos, facing).orElse(null);
+        if (placer == null) {
+            return false;
+        }
+        if (!ClaimActionGate.canPlace(level, placer, front, stack)) {
+            return false;
+        }
         ItemStack held = stack.copy();
         placer.setItemInHand(InteractionHand.MAIN_HAND, held);
         Vec3 hitLoc = Vec3.atCenterOf(front).subtract(
@@ -149,7 +155,6 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         return false;
     }
 
-    /** Reservoir sample among slots that hold a placeable block. */
     private int pickRandomBlockSlot(RandomSource random) {
         int chosen = -1;
         int seen = 0;
@@ -166,22 +171,16 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         return chosen;
     }
 
-    private FakePlayer placer(ServerLevel level) {
-        return FakePlayerFactory.get(level, PLACER_PROFILE);
+    @Override
+    @Nullable
+    public UUID ownerUuid() {
+        return ownerUuid;
     }
 
-    private static void positionPlayer(Player player, BlockPos pos, Direction facing) {
-        player.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-        player.setYRot(facing.toYRot());
-        player.setXRot(pitchFor(facing));
-    }
-
-    private static float pitchFor(Direction facing) {
-        return switch (facing) {
-            case UP -> -90.0F;
-            case DOWN -> 90.0F;
-            default -> 0.0F;
-        };
+    @Override
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.ownerUuid = uuid;
+        setChanged();
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -215,6 +214,7 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         }
         pulse.setWasPowered(input.getBooleanOr("WasPowered", false));
         actionCooldown = Math.max(0, input.getIntOr("ActionCooldown", 0));
+        ownerUuid = MachineOwnerProfiles.load(input);
     }
 
     @Override
@@ -231,6 +231,9 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity {
         }
         if (actionCooldown > 0) {
             output.putInt("ActionCooldown", actionCooldown);
+        }
+        if (ownerUuid != null) {
+            MachineOwnerProfiles.save(output, ownerUuid);
         }
     }
 }

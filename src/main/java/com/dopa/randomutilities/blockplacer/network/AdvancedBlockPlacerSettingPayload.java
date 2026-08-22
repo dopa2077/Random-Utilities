@@ -29,7 +29,7 @@ public record AdvancedBlockPlacerSettingPayload(byte kind, int value) implements
     public static void handle(AdvancedBlockPlacerSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof AdvancedBlockPlacerMenu menu) {
+            if (player.containerMenu instanceof AdvancedBlockPlacerMenu menu && menu.stillValid(player)) {
                 menu.applySetting(payload.kind(), payload.value());
             }
         });

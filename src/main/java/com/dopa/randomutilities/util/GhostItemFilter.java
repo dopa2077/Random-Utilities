@@ -40,12 +40,16 @@ public final class GhostItemFilter {
     }
 
     public static boolean slotMatches(ItemStack ghost, ItemResource candidate) {
+        return slotMatches(ghost, candidate, 0);
+    }
+
+    public static boolean slotMatches(ItemStack ghost, ItemResource candidate, int depth) {
         if (ghost.isEmpty() || candidate.isEmpty()) {
             return false;
         }
         NestedItemFilter nested = nestedItemFilter;
         if (nested != null && nested.isFilter(ghost)) {
-            return nested.allows(candidate.toStack(1), ghost, 0);
+            return nested.allows(candidate, ghost, depth);
         }
         return ItemResource.of(ghost).equals(candidate);
     }
@@ -98,5 +102,10 @@ public final class GhostItemFilter {
         boolean isFilter(ItemStack stack);
 
         boolean allows(ItemStack candidate, ItemStack filter, int depth);
+
+        /** Prefer this on hot paths to avoid {@code ItemResource.toStack(1)}. */
+        default boolean allows(ItemResource candidate, ItemStack filter, int depth) {
+            return allows(candidate.toStack(1), filter, depth);
+        }
     }
 }

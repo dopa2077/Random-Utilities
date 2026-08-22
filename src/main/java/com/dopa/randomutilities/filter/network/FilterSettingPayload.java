@@ -46,7 +46,7 @@ public record FilterSettingPayload(byte kind, int value) implements CustomPacket
     public static void handle(FilterSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof FilterMenu menu) {
+            if (player.containerMenu instanceof FilterMenu menu && menu.stillValid(player)) {
                 if (payload.kind() == KIND_COLOR) {
                     menu.setColorSetting(payload.value() & 0xFFFFFF);
                 } else if (payload.kind() == KIND_MAX_STACK) {

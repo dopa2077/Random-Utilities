@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "A": "dopasrandomutilities:advanced_core_frame",
     "C": "minecraft:cobbled_deepslate",
-    "D": "minecraft:dispenser",
     "S": "dopasrandomutilities:simple_block_placer"
   },
   "pattern": [
     "CCC",
-    "CSC",
-    "CDC"
+    "CAC",
+    "CSC"
   ],
   "result": {
     "count": 1,

@@ -1,15 +1,17 @@
 package com.dopa.randomutilities.fishnet;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.fishnet.config.FishnetConfig;
 import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
 import com.dopa.randomutilities.fishnet.network.FishnetApproachPayload;
+import com.dopa.randomutilities.machine.MachineActors;
+import com.dopa.randomutilities.machine.MachineOwnerProfiles;
+import com.dopa.randomutilities.machine.OwnableMachine;
+import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModItemTags;
-import com.mojang.authlib.GameProfile;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,19 +39,17 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
+public class FishnetBlockEntity extends BlockEntity implements OwnableMachine, RedstoneControl {
     public static final int CATCH_SLOT_COUNT = 9;
     public static final int BASE_CATCH_TICKS = 600;
     private static final int SAVE_INTERVAL = 20;
@@ -65,11 +65,6 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
 
     /** Vanilla hooked approach lasts ~20–80 ticks; only then are fishing ripples shown. */
     private static final int HOOKED_PHASE_TICKS = 60;
-
-    private static final GameProfile FISHER_PROFILE = new GameProfile(
-            UUID.nameUUIDFromBytes((dOPasRandomUtilities.MOD_ID + ":fishnet").getBytes(StandardCharsets.UTF_8)),
-            "[Fishnet]"
-    );
 
     private final ItemStacksResourceHandler rod = new ItemStacksResourceHandler(1) {
         @Override
@@ -112,6 +107,9 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     private boolean approachSent;
     /** Catch that could not fit; fishing stays paused until these can be stored. */
     private final List<ItemStack> pendingCatch = new ArrayList<>();
+    private int ownerFeedbackCooldown;
+    @Nullable
+    private UUID ownerUuid;
 
     public FishnetBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.FISHNET.get(), pos, state);
@@ -246,9 +244,24 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
     private void tick(ServerLevel level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         underwater = canCatchHere(level, pos, state);
+        ownerFeedbackCooldown = OwnerRequiredFeedback.tickOwnerFeedbackCooldown(ownerFeedbackCooldown);
 
-        FakePlayer fisher = fisher(level);
         ItemStack rodStack = rodStack();
+        boolean powered = redstoneMode.allowsOperation(level.getBestNeighborSignal(pos));
+        boolean wouldRun = underwater && isFishingRod(rodStack) && powered;
+        if (OwnerRequiredFeedback.blockWhilePowered(level, pos, this, wouldRun, ownerFeedbackCooldown)) {
+            if (!hasOwner() && ownerFeedbackCooldown <= 0) {
+                ownerFeedbackCooldown = OwnerRequiredFeedback.cooldownAfterPoweredBlock();
+            }
+            stopApproachVfx(level, pos);
+            return;
+        }
+
+        FakePlayer fisher = MachineActors.actor(level, ownerUuid, pos, Direction.NORTH).orElse(null);
+        if (fisher == null) {
+            return;
+        }
+
         int lureBonus = 0;
         if (isFishingRod(rodStack)) {
             lureBonus = (int) (EnchantmentHelper.getFishingTimeReduction(level, rodStack, fisher) * 20.0F);
@@ -260,8 +273,6 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
             catchProgress = Math.min(catchProgress, catchTotal);
             setChanged();
         }
-
-        boolean powered = redstoneMode.allowsOperation(level.getBestNeighborSignal(pos));
 
         // Wait for room for the held catch — do not start another fishing cycle.
         if (!pendingCatch.isEmpty()) {
@@ -315,8 +326,16 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         }
     }
 
-    private FakePlayer fisher(ServerLevel level) {
-        return FakePlayerFactory.get(level, FISHER_PROFILE);
+    @Override
+    @Nullable
+    public UUID ownerUuid() {
+        return ownerUuid;
+    }
+
+    @Override
+    public void setOwnerUuid(@Nullable UUID uuid) {
+        this.ownerUuid = uuid;
+        setChanged();
     }
 
     private int hookedPhaseTicks() {
@@ -697,6 +716,7 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         productivityBonusBank = Math.max(0, input.getIntOr("ProductivityBonusBank", 0));
         particlesEnabled = input.getBooleanOr("ParticlesEnabled", true);
         soundEnabled = input.getBooleanOr("SoundEnabled", true);
+        ownerUuid = MachineOwnerProfiles.load(input);
     }
 
     @Override
@@ -740,6 +760,9 @@ public class FishnetBlockEntity extends BlockEntity implements RedstoneControl {
         }
         if (!soundEnabled) {
             output.putBoolean("SoundEnabled", false);
+        }
+        if (ownerUuid != null) {
+            MachineOwnerProfiles.save(output, ownerUuid);
         }
     }
 }

@@ -40,7 +40,7 @@ public record FishnetSettingPayload(byte kind, int value) implements CustomPacke
     public static void handle(FishnetSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof FishnetMenu menu)) {
+            if (!(player.containerMenu instanceof FishnetMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             switch (payload.kind()) {

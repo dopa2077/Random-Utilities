@@ -20,7 +20,8 @@
     "dopasrandomutilities:simple_block_placer",
     "dopasrandomutilities:advanced_block_breaker",
     "dopasrandomutilities:advanced_block_placer",
-    "dopasrandomutilities:simple_frame",
+    "dopasrandomutilities:simple_core_frame",
+    "dopasrandomutilities:advanced_core_frame",
     "#dopasrandomutilities:transfer_pipes",
     "dopasrandomutilities:transfer_node"
   ]

@@ -70,8 +70,11 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> ADVANCED_BLOCK_PLACER =
             describedBlock(ModBlocks.ADVANCED_BLOCK_PLACER, "block.dopasrandomutilities.advanced_block_placer.tooltip");
 
-    public static final DeferredItem<BlockItem> SIMPLE_FRAME =
-            ITEMS.registerSimpleBlockItem(ModBlocks.SIMPLE_FRAME);
+    public static final DeferredItem<BlockItem> SIMPLE_CORE_FRAME =
+            ITEMS.registerSimpleBlockItem(ModBlocks.SIMPLE_CORE_FRAME);
+
+    public static final DeferredItem<BlockItem> ADVANCED_CORE_FRAME =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ADVANCED_CORE_FRAME);
 
     public static final DeferredItem<BlockItem> TINY_TNT =
             ITEMS.registerSimpleBlockItem(ModBlocks.TINY_TNT);

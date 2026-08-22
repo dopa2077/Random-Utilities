@@ -37,12 +37,15 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
     public static final int SLOT_OUTPUT = 1;
     public static final int SLOT_COUNT = 2;
     private static final int SAVE_INTERVAL = 20;
+    private static final int SOLAR_EVAL_INTERVAL = 10;
 
     private final ItemStacksResourceHandler items = new ItemStacksResourceHandler(SLOT_COUNT) {
         @Override
         protected void onContentsChanged(int index, ItemStack previousContents) {
             if (!loading && index == SLOT_INPUT) {
                 cookingProgress = 0.0F;
+                cachedRecipeInput = ItemStack.EMPTY;
+                cachedRecipe = null;
                 refreshCookTotal();
             }
             if (!loading) {
@@ -75,9 +78,13 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
     private float cookingProgress;
     private int cookingTotalTime;
     private int saveTimer;
+    private int solarEvalCooldown;
     private float storedExperience;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private SolarPower.Snapshot solarSnapshot = new SolarPower.Snapshot(0.0F, SolarPower.Status.NO_SUN);
+    private ItemStack cachedRecipeInput = ItemStack.EMPTY;
+    @Nullable
+    private RecipeHolder<? extends AbstractCookingRecipe> cachedRecipe;
 
     public SolarFurnaceBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SOLAR_FURNACE.get(), pos, state);
@@ -159,14 +166,16 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
                 level.setBlock(pos, state.setValue(SolarFurnaceBlock.LIT, false), 3);
                 setChanged();
             }
-            solarSnapshot = SolarPower.evaluate(level, pos);
+            tickSolarSnapshot(level, pos);
             return;
         }
 
-        solarSnapshot = SolarPower.evaluate(level, pos);
+        tickSolarSnapshot(level, pos);
 
         ItemStack input = stackInSlot(SLOT_INPUT);
         if (input.isEmpty()) {
+            cachedRecipeInput = ItemStack.EMPTY;
+            cachedRecipe = null;
             if (cookingProgress > 0.0F || cookingTotalTime > 0) {
                 cookingProgress = 0.0F;
                 cookingTotalTime = 0;
@@ -183,11 +192,9 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
             return;
         }
 
-        SingleRecipeInput recipeInput = new SingleRecipeInput(input);
-        RecipeHolder<? extends AbstractCookingRecipe> recipe =
-                quickCheck.getRecipeFor(recipeInput, level).orElse(null);
+        RecipeHolder<? extends AbstractCookingRecipe> recipe = resolveRecipe(level, input);
         if (recipe != null) {
-            ItemStack result = recipe.value().assemble(recipeInput);
+            ItemStack result = recipe.value().assemble(new SingleRecipeInput(input));
             int needed = recipe.value().cookingTime();
             if (cookingTotalTime != needed) {
                 cookingTotalTime = needed;
@@ -229,6 +236,29 @@ public class SolarFurnaceBlockEntity extends BlockEntity implements RedstoneCont
         if (changed) {
             setChanged();
         }
+    }
+
+    private void tickSolarSnapshot(ServerLevel level, BlockPos pos) {
+        if (solarEvalCooldown > 0) {
+            solarEvalCooldown--;
+            return;
+        }
+        solarSnapshot = SolarPower.evaluate(level, pos);
+        solarEvalCooldown = SOLAR_EVAL_INTERVAL;
+    }
+
+    @Nullable
+    private RecipeHolder<? extends AbstractCookingRecipe> resolveRecipe(ServerLevel level, ItemStack input) {
+        if (ItemStack.isSameItemSameComponents(input, cachedRecipeInput)) {
+            return cachedRecipe;
+        }
+        cachedRecipeInput = input.copy();
+        if (input.isEmpty()) {
+            cachedRecipe = null;
+            return null;
+        }
+        cachedRecipe = quickCheck.getRecipeFor(new SingleRecipeInput(input), level).orElse(null);
+        return cachedRecipe;
     }
 
     private void refreshCookTotal() {

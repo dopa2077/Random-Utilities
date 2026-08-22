@@ -2,11 +2,14 @@ package com.dopa.randomutilities.blockbreaker;
 
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.BlockOrientations;
+import com.dopa.randomutilities.machine.OwnableMachine;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.FrontAndTop;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -71,6 +74,14 @@ public class SimpleBlockBreakerBlock extends BaseEntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ORIENTATION, TRIGGERED);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.getBlockEntity(pos) instanceof BlockEntity be) {
+            OwnableMachine.bindPlacer(be, placer);
+        }
     }
 
     @Nullable

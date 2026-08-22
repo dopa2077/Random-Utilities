@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.blockplacer;
 
 import com.dopa.randomutilities.blockplacer.menu.SimpleBlockPlacerMenu;
+import com.dopa.randomutilities.machine.OwnableMachine;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.BlockOrientations;
 import com.mojang.serialization.MapCodec;
@@ -13,7 +14,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -74,6 +77,14 @@ public class SimpleBlockPlacerBlock extends BaseEntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ORIENTATION);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.getBlockEntity(pos) instanceof BlockEntity be) {
+            OwnableMachine.bindPlacer(be, placer);
+        }
     }
 
     @Nullable
