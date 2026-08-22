@@ -1,5 +1,7 @@
 package com.dopa.randomutilities.transfer;
 
+import com.dopa.randomutilities.machine.ClaimActionGate;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -212,10 +214,6 @@ public final class TransferNetworks {
         );
     }
 
-    static List<Destination> collectInventories(ServerLevel level, Set<BlockPos> members) {
-        return collectDestinations(level, members, Capabilities.Item.BLOCK);
-    }
-
     private static List<Destination> collectDestinations(
             ServerLevel level,
             Set<BlockPos> members,
@@ -241,6 +239,9 @@ public final class TransferNetworks {
                 }
                 Direction insertFace = direction.getOpposite();
                 if (level.getCapability(capability, neighbor, insertFace) == null) {
+                    continue;
+                }
+                if (!ClaimActionGate.canInsertInto(level, neighbor)) {
                     continue;
                 }
                 long key = neighbor.asLong() << 3 | (long) insertFace.ordinal();
@@ -269,18 +270,10 @@ public final class TransferNetworks {
             }
         }
 
-        int pipes = 0;
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
             BlockState state = level.getBlockState(current);
             if (!isPipeHub(state)) {
-                continue;
-            }
-            boolean pipe = state.getBlock() instanceof TransferPipeBlock;
-            if (pipe) {
-                pipes++;
-            }
-            if (pipe && pipes > MAX_PIPES) {
                 continue;
             }
             for (Direction direction : Direction.values()) {

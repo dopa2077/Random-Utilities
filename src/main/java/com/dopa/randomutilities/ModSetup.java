@@ -3,9 +3,9 @@ package com.dopa.randomutilities;
 import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerNetwork;
 import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerNetwork;
 import com.dopa.randomutilities.compat.ModCompat;
+import com.dopa.randomutilities.config.ModContentRegistration;
 import com.dopa.randomutilities.filter.FilterNetwork;
-import com.dopa.randomutilities.filter.FilterRegistry;
-import com.dopa.randomutilities.filter.FilterStorage;
+import com.dopa.randomutilities.filter.NestedItemFilterBridge;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.itemcollector.ItemCollectorNetwork;
 import com.dopa.randomutilities.transfer.TransferNodeNetwork;
@@ -14,11 +14,13 @@ import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.MachineNetwork;
 import com.dopa.randomutilities.trashcan.TrashCanNetwork;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockNetwork;
-import com.dopa.randomutilities.transfer.TransferFilterContents;
 import com.dopa.randomutilities.util.GhostItemFilter;
 import com.dopa.randomutilities.fishnet.FishnetNetwork;
 import com.dopa.randomutilities.fishnet.config.FishnetConfig;
 import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
+import com.dopa.randomutilities.lasso.config.LassoConfig;
+import com.dopa.randomutilities.magnet.MagnetNetwork;
+import com.dopa.randomutilities.magnet.config.MagnetConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -31,7 +33,8 @@ import com.dopa.randomutilities.registry.ModTriggers;
 
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -39,7 +42,10 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
-import net.neoforged.neoforge.transfer.item.ItemResource;
+import org.jspecify.annotations.Nullable;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public final class ModSetup {
     private static final Identifier GENERATOR_RECIPES_LISTENER =
@@ -52,10 +58,15 @@ public final class ModSetup {
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":fishnet_config");
     private static final Identifier TREASURE_LOOT_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":treasure_loot_config");
+    private static final Identifier LASSO_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":lasso_config");
+    private static final Identifier MAGNET_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":magnet_config");
 
     private ModSetup() {}
 
     public static void register(IEventBus modEventBus) {
+        ModContentRegistration.ensureRegistered();
         ModDataComponents.DATA_COMPONENTS.register(modEventBus);
         ModTriggers.TRIGGER_TYPES.register(modEventBus);
         ModSounds.SOUND_EVENTS.register(modEventBus);
@@ -66,34 +77,7 @@ public final class ModSetup {
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         modEventBus.addListener(ModCompat::onInterModEnqueue);
-        GhostItemFilter.setNestedItemFilter(new GhostItemFilter.NestedItemFilter() {
-            @Override
-            public boolean isFilter(ItemStack stack) {
-                return TransferFilterContents.isFilter(stack) || FilterRegistry.isFilterItem(stack);
-            }
-
-            @Override
-            public boolean allows(ItemStack candidate, ItemStack filter, int depth) {
-                if (TransferFilterContents.isFilter(filter)) {
-                    return TransferFilterContents.allows(candidate, filter, depth);
-                }
-                if (FilterRegistry.isFilterItem(filter)) {
-                    return FilterStorage.matchesNested(candidate, filter, depth);
-                }
-                return false;
-            }
-
-            @Override
-            public boolean allows(ItemResource candidate, ItemStack filter, int depth) {
-                if (TransferFilterContents.isFilter(filter)) {
-                    return TransferFilterContents.allows(candidate, filter, depth);
-                }
-                if (FilterRegistry.isFilterItem(filter)) {
-                    return FilterStorage.matchesNested(candidate, filter, depth);
-                }
-                return false;
-            }
-        });
+        GhostItemFilter.setNestedItemFilter(NestedItemFilterBridge.INSTANCE);
         // Load early so JEI (and other client plugins) see config values, not jar defaults only.
         TreasureLootConfig.load();
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
@@ -102,6 +86,8 @@ public final class ModSetup {
                     UpgradeConfig.load();
                     FishnetConfig.load();
                     TreasureLootConfig.load();
+                    LassoConfig.load();
+                    MagnetConfig.load();
                     GeneratorRecipeConfig.load();
                 }));
         modEventBus.addListener(FilterNetwork::registerCapabilities);
@@ -109,6 +95,7 @@ public final class ModSetup {
         modEventBus.addListener(FilterNetwork::registerPayloads);
         modEventBus.addListener(MachineNetwork::registerPayloads);
         modEventBus.addListener(ItemCollectorNetwork::registerPayloads);
+        modEventBus.addListener(MagnetNetwork::registerPayloads);
         modEventBus.addListener(TransferNodeNetwork::registerPayloads);
         modEventBus.addListener(TrashCanNetwork::registerPayloads);
         modEventBus.addListener(RedstoneClockNetwork::registerPayloads);
@@ -118,51 +105,33 @@ public final class ModSetup {
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.MINI_CHEST.get(),
-                (be, side) -> be.itemHandler()
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.TRASH_CAN.get(),
-                (be, side) -> be.itemHandler()
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.SOLAR_FURNACE.get(),
-                (be, side) -> be.itemHandler(side)
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.FISHNET.get(),
-                (be, side) -> be.itemHandler(side)
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.SIMPLE_BLOCK_PLACER.get(),
-                (be, side) -> be.itemHandler()
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.ADVANCED_BLOCK_PLACER.get(),
-                (be, side) -> be.itemHandler()
-        );
-        event.registerBlockEntity(
-                Capabilities.Item.BLOCK,
-                ModBlockEntities.ADVANCED_BLOCK_BREAKER.get(),
-                (be, side) -> be.pickaxeHandler()
-        );
-        event.registerBlockEntity(
-                Capabilities.Energy.BLOCK,
-                ModBlockEntities.ADVANCED_BLOCK_BREAKER.get(),
-                (be, side) -> be.energy()
-        );
-        event.registerBlockEntity(
-                Capabilities.Energy.BLOCK,
-                ModBlockEntities.ADVANCED_BLOCK_PLACER.get(),
-                (be, side) -> be.energy()
-        );
+        registerIfPresent(ModBlockEntities.MINI_CHEST, type ->
+                event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler()));
+        registerIfPresent(ModBlockEntities.TRASH_CAN, type ->
+                event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler()));
+        registerIfPresent(ModBlockEntities.SOLAR_FURNACE, type ->
+                event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler(side)));
+        registerIfPresent(ModBlockEntities.FISHNET, type ->
+                event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler(side)));
+        registerIfPresent(ModBlockEntities.SIMPLE_BLOCK_PLACER, type ->
+                event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler()));
+        registerIfPresent(ModBlockEntities.ADVANCED_BLOCK_PLACER, type -> {
+            event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler());
+            event.registerBlockEntity(Capabilities.Energy.BLOCK, type, (be, side) -> be.energy());
+        });
+        registerIfPresent(ModBlockEntities.ADVANCED_BLOCK_BREAKER, type -> {
+            event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.pickaxeHandler());
+            event.registerBlockEntity(Capabilities.Energy.BLOCK, type, (be, side) -> be.energy());
+        });
+    }
+
+    private static <T extends BlockEntity> void registerIfPresent(
+            @Nullable Supplier<BlockEntityType<T>> type,
+            Consumer<BlockEntityType<T>> action
+    ) {
+        if (type != null) {
+            action.accept(type.get());
+        }
     }
 
     @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
@@ -193,6 +162,14 @@ public final class ModSetup {
             event.addListener(
                     TREASURE_LOOT_CONFIG_LISTENER,
                     (ResourceManagerReloadListener) resourceManager -> TreasureLootConfig.reload()
+            );
+            event.addListener(
+                    LASSO_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> LassoConfig.reload()
+            );
+            event.addListener(
+                    MAGNET_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> MagnetConfig.reload()
             );
         }
 

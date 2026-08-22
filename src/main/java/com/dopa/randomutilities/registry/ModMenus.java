@@ -10,6 +10,7 @@ import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.minichest.MiniChestMenu;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
+import com.dopa.randomutilities.magnet.menu.MagnetMenu;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockMenu;
 import com.dopa.randomutilities.transfer.menu.TransferEnergyMenu;
@@ -43,6 +44,9 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<ItemCollectorMenu>> ITEM_COLLECTOR =
             MENUS.register("item_collector", () -> IMenuTypeExtension.create(ItemCollectorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<MagnetMenu>> ITEM_MAGNET =
+            MENUS.register("item_magnet", () -> IMenuTypeExtension.create(MagnetMenu::new));
 
     public static final DeferredHolder<MenuType<?>, MenuType<SolarFurnaceMenu>> SOLAR_FURNACE =
             MENUS.register("solar_furnace", () -> IMenuTypeExtension.create(SolarFurnaceMenu::new));

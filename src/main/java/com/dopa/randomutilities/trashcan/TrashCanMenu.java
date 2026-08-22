@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.trashcan;
 
 import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
 import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModMenus;
@@ -21,7 +22,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
-public class TrashCanMenu extends AbstractContainerMenu {
+public class TrashCanMenu extends AbstractContainerMenu implements GhostFilterMenu {
     public static final int DATA_WHITELIST_MODE = 0;
     public static final int DATA_SIZE = 1;
 
@@ -237,5 +238,10 @@ public class TrashCanMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         saveFilters();
+    }
+
+    @Override
+    public int filterSlotCount() {
+        return FILTER_SLOT_COUNT;
     }
 }

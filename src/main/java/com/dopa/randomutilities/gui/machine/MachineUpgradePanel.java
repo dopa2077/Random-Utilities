@@ -19,7 +19,18 @@ import java.util.List;
 public final class MachineUpgradePanel extends AttachedPanel {
     private static final int BG = 0xFF28752E;
     private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
-    private static final ItemStack UPGRADE_ICON = new ItemStack(ModItems.UPGRADE_CASING.get());
+    private static ItemStack upgradeIcon = ItemStack.EMPTY;
+    private static boolean upgradeIconResolved;
+
+    private static ItemStack upgradeIcon() {
+        if (!upgradeIconResolved) {
+            upgradeIcon = ModItems.UPGRADE_CASING != null
+                    ? new ItemStack(ModItems.UPGRADE_CASING.get())
+                    : ItemStack.EMPTY;
+            upgradeIconResolved = true;
+        }
+        return upgradeIcon;
+    }
 
     private final List<MachineUpgradeSlot> upgradeSlots;
     private final int tabYBias;
@@ -43,7 +54,7 @@ public final class MachineUpgradePanel extends AttachedPanel {
 
     @Override
     protected void renderIcon(GuiGraphicsExtractor graphics, Font font, int centerX, int centerY) {
-        graphics.item(UPGRADE_ICON, centerX - 8, centerY - 8, centerX ^ centerY);
+        graphics.item(upgradeIcon(), centerX - 8, centerY - 8, centerX ^ centerY);
     }
 
     @Override

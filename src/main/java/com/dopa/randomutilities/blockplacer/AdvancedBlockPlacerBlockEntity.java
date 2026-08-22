@@ -9,6 +9,8 @@ import com.dopa.randomutilities.machine.OwnableMachine;
 import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
+import com.dopa.randomutilities.machine.AdvancedVolumeMachineHost;
+import com.dopa.randomutilities.machine.AdvancedVolumeMachineSupport;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.BlockOrientations;
@@ -49,7 +51,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements OwnableMachine, RedstoneControl, WorkingVolumeSource {
+public class AdvancedBlockPlacerBlockEntity extends BlockEntity
+        implements OwnableMachine, RedstoneControl, WorkingVolumeSource, AdvancedVolumeMachineHost {
     public static final int SLOT_COUNT = 9;
     public static final int FILTER_SLOTS = 8;
     public static final int OVERLAY_COLOR = 0x33E6E6;
@@ -69,7 +72,6 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
             new EnergyMachineUpgradeInventory(UpgradeConfig.UPGRADE_SLOT_COUNT);
     private final MachineEnergy energy = new MachineEnergy();
     private boolean whitelistMode;
-    private boolean mute = true;
     private int overlayColor = OVERLAY_COLOR;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int emptyScanBackoff;
@@ -153,15 +155,6 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
     public void setWhitelistMode(boolean whitelistMode) {
         this.whitelistMode = whitelistMode;
         wakeVolumeScan();
-        setChanged();
-    }
-
-    public boolean isMuted() {
-        return mute;
-    }
-
-    public void setMuted(boolean mute) {
-        this.mute = mute;
         setChanged();
     }
 
@@ -293,7 +286,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
         if (placer == null) {
             return false;
         }
-        if (!ClaimActionGate.canPlace(level, placer, target, stack)) {
+        if (!ClaimActionGate.canPlace(level, placer, target, stack, facing.getOpposite())) {
             return false;
         }
         ItemStack held = stack.copy();
@@ -323,28 +316,19 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
     }
 
     private BlockPos pickRandomCell(RandomSource random, java.util.function.Predicate<BlockPos> valid) {
-        int[] seen = {0};
-        BlockPos[] chosen = {null};
-        int boxCells = volume.boxCellCount(worldPosition);
-        int budget = Math.min(VOLUME_SCAN_BUDGET, Math.max(1, boxCells));
-        volume.forEachCellWindow(worldPosition, volumeScanCursor, budget, cell -> {
-            if (!valid.test(cell)) {
-                return;
-            }
-            seen[0]++;
-            if (random.nextInt(seen[0]) == 0) {
-                chosen[0] = cell.immutable();
-            }
-        });
-        if (boxCells > 0) {
-            volumeScanCursor = Math.floorMod(volumeScanCursor + budget, boxCells);
-        }
-        return chosen[0];
+        BlockPos chosen = AdvancedVolumeMachineSupport.pickRandomCell(
+                this,
+                volume,
+                volumeScanCursor,
+                random,
+                valid
+        );
+        volumeScanCursor = AdvancedVolumeMachineSupport.advanceScanCursor(volumeScanCursor, volume, worldPosition);
+        return chosen;
     }
 
     private int emptyVolumeBackoff() {
-        int cells = volume.boxCellCount(worldPosition);
-        return Math.min(100, Math.max(EMPTY_VOLUME_BACKOFF, cells / 64));
+        return AdvancedVolumeMachineSupport.emptyVolumeBackoff(this, volume);
     }
 
     private int pickRandomBlockSlot(RandomSource random) {
@@ -393,11 +377,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
     }
 
     private void syncToClient() {
-        setChanged();
-        if (level != null && !level.isClientSide()) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
-        }
+        AdvancedVolumeMachineSupport.syncToClient(this);
     }
 
     @Override
@@ -423,7 +403,6 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
             filterSlots.set(i, input.read("Filter" + i, ItemStack.CODEC).orElse(ItemStack.EMPTY));
         }
         whitelistMode = input.getBooleanOr("WhitelistMode", false);
-        mute = input.getBooleanOr("Mute", true);
         overlayColor = input.getIntOr("OverlayColor", OVERLAY_COLOR) & 0xFFFFFF;
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
         upgrades.loadSlots(input);
@@ -450,7 +429,6 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
             }
         }
         output.putBoolean("WhitelistMode", whitelistMode);
-        output.putBoolean("Mute", mute);
         output.putInt("OverlayColor", overlayColor & 0xFFFFFF);
         output.putInt("RedstoneMode", redstoneMode.ordinal());
         upgrades.saveSlots(output);
@@ -463,16 +441,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("MaxRange", volume.maxRange());
-        tag.putInt("RangeX", volume.rangeX());
-        tag.putInt("RangeY", volume.rangeY());
-        tag.putInt("RangeZ", volume.rangeZ());
-        tag.putInt("OffsetX", volume.offsetX());
-        tag.putInt("OffsetY", volume.offsetY());
-        tag.putInt("OffsetZ", volume.offsetZ());
-        tag.putInt("OverlayColor", overlayColor & 0xFFFFFF);
-        return tag;
+        return AdvancedVolumeMachineSupport.createUpdateTag(volume, overlayColor);
     }
 
     @Override
@@ -490,8 +459,7 @@ public class AdvancedBlockPlacerBlockEntity extends BlockEntity implements Ownab
     }
 
     private void applyClientSync(ValueInput input) {
-        volume.load(input);
-        overlayColor = input.getIntOr("OverlayColor", overlayColor) & 0xFFFFFF;
+        AdvancedVolumeMachineSupport.applyClientSync(input, volume, value -> overlayColor = value, overlayColor);
     }
 
     @Override

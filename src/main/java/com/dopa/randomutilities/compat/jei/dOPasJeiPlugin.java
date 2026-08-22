@@ -2,19 +2,19 @@ package com.dopa.randomutilities.compat.jei;
 
 import com.dopa.randomutilities.blockbreaker.client.AdvancedBlockBreakerScreen;
 import com.dopa.randomutilities.blockbreaker.menu.AdvancedBlockBreakerMenu;
-import com.dopa.randomutilities.blockbreaker.network.AdvancedBlockBreakerFilterPayload;
 import com.dopa.randomutilities.blockplacer.client.AdvancedBlockPlacerScreen;
 import com.dopa.randomutilities.blockplacer.client.SimpleBlockPlacerScreen;
 import com.dopa.randomutilities.blockplacer.menu.AdvancedBlockPlacerMenu;
-import com.dopa.randomutilities.blockplacer.network.AdvancedBlockPlacerFilterPayload;
 import com.dopa.randomutilities.compat.jei.generator.GeneratorJeiRecipe;
+import com.dopa.randomutilities.filter.network.GhostFilterPayload;
 import com.dopa.randomutilities.fishnet.client.FishnetScreen;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
-import com.dopa.randomutilities.itemcollector.network.ItemCollectorFilterPayload;
 import com.dopa.randomutilities.compat.jei.generator.ResourceGeneratorRecipeCategory;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.client.FilterScreen;
 import com.dopa.randomutilities.itemcollector.client.ItemCollectorScreen;
+import com.dopa.randomutilities.magnet.client.MagnetScreen;
+import com.dopa.randomutilities.magnet.menu.MagnetMenu;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.generator.client.ResourceGeneratorScreen;
 import com.dopa.randomutilities.generator.config.GeneratorRecipe;
@@ -22,16 +22,15 @@ import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.solarfurnace.client.SolarFurnaceScreen;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
-import com.dopa.randomutilities.trashcan.network.TrashCanFilterPayload;
 import com.dopa.randomutilities.transfer.client.TransferEnergyScreen;
 import com.dopa.randomutilities.transfer.client.TransferFilterScreen;
 import com.dopa.randomutilities.transfer.client.TransferNodeScreen;
 import com.dopa.randomutilities.transfer.menu.TransferFilterMenu;
 import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
-import com.dopa.randomutilities.transfer.network.TransferFilterPayload;
-import com.dopa.randomutilities.transfer.network.TransferNodeFilterPayload;
 import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
+import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModItems;
+import net.neoforged.neoforge.registries.DeferredItem;
 import com.dopa.randomutilities.registry.ModTags;
 import com.dopa.randomutilities.trashcan.client.TrashCanScreen;
 import com.dopa.randomutilities.redstoneclock.client.RedstoneClockScreen;
@@ -105,6 +104,16 @@ public class dOPasJeiPlugin implements IModPlugin {
         registration.addGuiContainerHandler(ItemCollectorScreen.class, new IGuiContainerHandler<>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(ItemCollectorScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
+        registration.addGuiContainerHandler(MagnetScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(MagnetScreen screen) {
                 return screen.getPanelHost().collectExtraAreas(
                         screen.leftPos(),
                         screen.topPos(),
@@ -201,37 +210,43 @@ public class dOPasJeiPlugin implements IModPlugin {
                 gui -> gui.getMenu().collectorType().filterSlotCount(),
                 gui -> gui.leftPos() + ItemCollectorMenu.filterSlotX(gui.getMenu().collectorType()),
                 gui -> gui.topPos() + ItemCollectorMenu.FILTER_SLOT_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new ItemCollectorFilterPayload(slot, stack))
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
+        ));
+        registration.addGhostIngredientHandler(MagnetScreen.class, new FilterGhostJeiHandler<>(
+                gui -> MagnetMenu.FILTER_SLOT_COUNT,
+                gui -> gui.leftPos() + MagnetMenu.FILTER_SLOT_X,
+                gui -> gui.topPos() + MagnetMenu.FILTER_SLOT_Y,
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
         ));
         registration.addGhostIngredientHandler(TrashCanScreen.class, new FilterGhostJeiHandler<>(
                 gui -> TrashCanMenu.FILTER_SLOT_COUNT,
                 gui -> gui.leftPos() + TrashCanMenu.FILTER_SLOT_X,
                 gui -> gui.topPos() + TrashCanMenu.FILTER_SLOT_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new TrashCanFilterPayload(slot, stack))
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
         ));
         registration.addGhostIngredientHandler(TransferNodeScreen.class, new FilterGhostJeiHandler<>(
                 gui -> TransferNodeMenu.FILTER_SLOT_COUNT,
                 gui -> gui.leftPos() + TransferNodeMenu.FILTER_SLOT_X,
                 gui -> gui.topPos() + TransferNodeMenu.FILTER_SLOT_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new TransferNodeFilterPayload(slot, stack))
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
         ));
         registration.addGhostIngredientHandler(AdvancedBlockPlacerScreen.class, new FilterGhostJeiHandler<>(
                 gui -> AdvancedBlockPlacerMenu.FILTER_SLOT_COUNT,
                 gui -> gui.leftPos() + AdvancedBlockPlacerMenu.FILTER_SLOT_X,
                 gui -> gui.topPos() + AdvancedBlockPlacerMenu.FILTER_SLOT_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new AdvancedBlockPlacerFilterPayload(slot, stack))
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
         ));
         registration.addGhostIngredientHandler(AdvancedBlockBreakerScreen.class, new FilterGhostJeiHandler<>(
                 gui -> AdvancedBlockBreakerMenu.FILTER_SLOT_COUNT,
                 gui -> gui.leftPos() + AdvancedBlockBreakerMenu.FILTER_SLOT_X,
                 gui -> gui.topPos() + AdvancedBlockBreakerMenu.FILTER_SLOT_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new AdvancedBlockBreakerFilterPayload(slot, stack))
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack))
         ));
         registration.addGhostIngredientHandler(TransferFilterScreen.class, new FilterGhostJeiHandler<>(
                 gui -> TransferFilterMenu.SLOT_COUNT,
                 gui -> gui.leftPos() + TransferFilterMenu.GRID_X,
                 gui -> gui.topPos() + TransferFilterMenu.GRID_Y,
-                (slot, stack) -> ClientPacketDistributor.sendToServer(new TransferFilterPayload(slot, stack)),
+                (slot, stack) -> ClientPacketDistributor.sendToServer(new GhostFilterPayload(slot, stack)),
                 TransferFilterMenu.GRID,
                 TransferFilterMenu.SLOT
         ));
@@ -241,13 +256,18 @@ public class dOPasJeiPlugin implements IModPlugin {
     public void registerCategories(IRecipeCategoryRegistration registration) {
         IGuiHelper guiHelper = registration.getJeiHelpers().getGuiHelper();
         for (GeneratorType type : GeneratorType.values()) {
-            registration.addRecipeCategories(new ResourceGeneratorRecipeCategory(guiHelper, type));
+            if (ModBlocks.forType(type) != null) {
+                registration.addRecipeCategories(new ResourceGeneratorRecipeCategory(guiHelper, type));
+            }
         }
     }
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         for (GeneratorType type : GeneratorType.values()) {
+            if (ModBlocks.forType(type) == null) {
+                continue;
+            }
             List<GeneratorJeiRecipe> recipes = new ArrayList<>();
             for (GeneratorRecipe recipe : GeneratorRecipeConfig.getRecipes(type)) {
                 recipes.add(new GeneratorJeiRecipe(type, recipe));
@@ -258,23 +278,27 @@ public class dOPasJeiPlugin implements IModPlugin {
     }
 
     private static void registerIngredientInfos(IRecipeRegistration registration) {
-        info(registration, ModItems.SOLAR_FURNACE.get(), "jei.dopasrandomutilities.solar_furnace.info");
-        info(registration, ModItems.FISHNET.get(), "jei.dopasrandomutilities.fishnet.info");
-        info(registration, ModItems.SIMPLE_BLOCK_BREAKER.get(), "jei.dopasrandomutilities.simple_block_breaker.info");
-        info(registration, ModItems.ADVANCED_BLOCK_BREAKER.get(), "jei.dopasrandomutilities.advanced_block_breaker.info");
-        info(registration, ModItems.SIMPLE_BLOCK_PLACER.get(), "jei.dopasrandomutilities.simple_block_placer.info");
-        info(registration, ModItems.ADVANCED_BLOCK_PLACER.get(), "jei.dopasrandomutilities.advanced_block_placer.info");
-        info(registration, ModItems.DEV_NULL.get(), "jei.dopasrandomutilities.dev_null.info");
-        info(registration, ModItems.ADVANCED_DEV_NULL.get(), "jei.dopasrandomutilities.advanced_dev_null.info");
-        info(registration, ModItems.MINI_CHEST.get(), "jei.dopasrandomutilities.mini_chest.info");
-        info(registration, ModItems.TRASH_CAN.get(), "jei.dopasrandomutilities.trash_can.info");
-        info(registration, ModItems.REDSTONE_CLOCK.get(), "jei.dopasrandomutilities.redstone_clock.info");
-        info(registration, ModItems.BASIC_ITEM_COLLECTOR.get(), "jei.dopasrandomutilities.basic_item_collector.info");
-        info(registration, ModItems.ADVANCED_ITEM_COLLECTOR.get(), "jei.dopasrandomutilities.advanced_item_collector.info");
-        info(registration, ModItems.SIMPLE_CORE_FRAME.get(), "jei.dopasrandomutilities.simple_core_frame.info");
-        info(registration, ModItems.ADVANCED_CORE_FRAME.get(), "jei.dopasrandomutilities.advanced_core_frame.info");
-        info(registration, ModItems.TINY_TNT.get(), "jei.dopasrandomutilities.tiny_tnt.info");
-        info(registration, ModItems.WOOD_CHIP.get(), "jei.dopasrandomutilities.wood_chip.info");
+        infoIfPresent(registration, ModItems.SOLAR_FURNACE, "jei.dopasrandomutilities.solar_furnace.info");
+        infoIfPresent(registration, ModItems.FISHNET, "jei.dopasrandomutilities.fishnet.info");
+        infoIfPresent(registration, ModItems.SIMPLE_BLOCK_BREAKER, "jei.dopasrandomutilities.simple_block_breaker.info");
+        infoIfPresent(registration, ModItems.ADVANCED_BLOCK_BREAKER, "jei.dopasrandomutilities.advanced_block_breaker.info");
+        infoIfPresent(registration, ModItems.SIMPLE_BLOCK_PLACER, "jei.dopasrandomutilities.simple_block_placer.info");
+        infoIfPresent(registration, ModItems.ADVANCED_BLOCK_PLACER, "jei.dopasrandomutilities.advanced_block_placer.info");
+        infoIfPresent(registration, ModItems.DEV_NULL, "jei.dopasrandomutilities.dev_null.info");
+        infoIfPresent(registration, ModItems.ADVANCED_DEV_NULL, "jei.dopasrandomutilities.advanced_dev_null.info");
+        infoIfPresent(registration, ModItems.MINI_CHEST, "jei.dopasrandomutilities.mini_chest.info");
+        infoIfPresent(registration, ModItems.TRASH_CAN, "jei.dopasrandomutilities.trash_can.info");
+        infoIfPresent(registration, ModItems.REDSTONE_CLOCK, "jei.dopasrandomutilities.redstone_clock.info");
+        infoIfPresent(registration, ModItems.BASIC_ITEM_COLLECTOR, "jei.dopasrandomutilities.basic_item_collector.info");
+        infoIfPresent(registration, ModItems.ADVANCED_ITEM_COLLECTOR, "jei.dopasrandomutilities.advanced_item_collector.info");
+        infoIfPresent(registration, ModItems.ITEM_MAGNET, "jei.dopasrandomutilities.item_magnet.info");
+        infoIfPresent(registration, ModItems.SIMPLE_CORE_FRAME, "jei.dopasrandomutilities.simple_core_frame.info");
+        infoIfPresent(registration, ModItems.ADVANCED_CORE_FRAME, "jei.dopasrandomutilities.advanced_core_frame.info");
+        infoIfPresent(registration, ModItems.LASSO, "jei.dopasrandomutilities.lasso.info");
+        infoIfPresent(registration, ModItems.GOLDEN_LASSO, "jei.dopasrandomutilities.golden_lasso.info");
+        infoIfPresent(registration, ModItems.CURSED_LASSO, "jei.dopasrandomutilities.cursed_lasso.info");
+        infoIfPresent(registration, ModItems.TINY_TNT, "jei.dopasrandomutilities.tiny_tnt.info");
+        infoIfPresent(registration, ModItems.WOOD_CHIP, "jei.dopasrandomutilities.wood_chip.info");
         List<ItemStack> transferPipes = new ArrayList<>();
         BuiltInRegistries.ITEM.getTagOrEmpty(ModTags.TRANSFER_PIPES).forEach(holder ->
                 transferPipes.add(new ItemStack(holder.value())));
@@ -284,28 +308,34 @@ public class dOPasJeiPlugin implements IModPlugin {
                     Component.translatable("jei.dopasrandomutilities.transfer_pipe.info")
             );
         }
-        info(registration, ModItems.TRANSFER_NODE.get(), "jei.dopasrandomutilities.transfer_node.info");
-        info(registration, ModItems.TRANSFER_NODE_FLUID.get(), "jei.dopasrandomutilities.transfer_node_fluid.info");
-        info(registration, ModItems.TRANSFER_NODE_ENERGY.get(), "jei.dopasrandomutilities.transfer_node_energy.info");
-        info(registration, ModItems.FILTER.get(), "jei.dopasrandomutilities.filter.info");
-        info(registration, ModItems.UPGRADE_CASING.get(), "jei.dopasrandomutilities.upgrade_casing.info");
-        info(registration, ModItems.PRODUCTIVITY_UPGRADE.get(), "jei.dopasrandomutilities.productivity_upgrade.info");
-        info(registration, ModItems.OVERCLOCK_UPGRADE.get(), "jei.dopasrandomutilities.overclock_upgrade.info");
-        info(registration, ModItems.STACK_UPGRADE.get(), "jei.dopasrandomutilities.stack_upgrade.info");
-        info(registration, ModItems.ENERGY_UPGRADE.get(), "jei.dopasrandomutilities.energy_upgrade.info");
-        info(registration, ModItems.FLUID_CAPACITY_UPGRADE.get(), "jei.dopasrandomutilities.fluid_capacity_upgrade.info");
-        info(registration, ModItems.EFFICIENCY_UPGRADE.get(), "jei.dopasrandomutilities.efficiency_upgrade.info");
-        registration.addIngredientInfo(
-                ModItems.RANGE_UPGRADE.get(),
-                Component.translatable(
-                        "jei.dopasrandomutilities.range_upgrade.info",
-                        Integer.toString(UpgradeConfig.rangeBonus())
-                )
-        );
-        info(registration, ModItems.FORTUNE_MESH_UPGRADE.get(), "jei.dopasrandomutilities.fortune_mesh_upgrade.info");
+        infoIfPresent(registration, ModItems.TRANSFER_NODE, "jei.dopasrandomutilities.transfer_node.info");
+        infoIfPresent(registration, ModItems.TRANSFER_NODE_FLUID, "jei.dopasrandomutilities.transfer_node_fluid.info");
+        infoIfPresent(registration, ModItems.TRANSFER_NODE_ENERGY, "jei.dopasrandomutilities.transfer_node_energy.info");
+        infoIfPresent(registration, ModItems.FILTER, "jei.dopasrandomutilities.filter.info");
+        infoIfPresent(registration, ModItems.UPGRADE_CASING, "jei.dopasrandomutilities.upgrade_casing.info");
+        infoIfPresent(registration, ModItems.PRODUCTIVITY_UPGRADE, "jei.dopasrandomutilities.productivity_upgrade.info");
+        infoIfPresent(registration, ModItems.OVERCLOCK_UPGRADE, "jei.dopasrandomutilities.overclock_upgrade.info");
+        infoIfPresent(registration, ModItems.STACK_UPGRADE, "jei.dopasrandomutilities.stack_upgrade.info");
+        infoIfPresent(registration, ModItems.ENERGY_UPGRADE, "jei.dopasrandomutilities.energy_upgrade.info");
+        infoIfPresent(registration, ModItems.FLUID_CAPACITY_UPGRADE, "jei.dopasrandomutilities.fluid_capacity_upgrade.info");
+        infoIfPresent(registration, ModItems.EFFICIENCY_UPGRADE, "jei.dopasrandomutilities.efficiency_upgrade.info");
+        if (ModItems.RANGE_UPGRADE != null) {
+            registration.addIngredientInfo(
+                    ModItems.RANGE_UPGRADE.get(),
+                    Component.translatable(
+                            "jei.dopasrandomutilities.range_upgrade.info",
+                            Integer.toString(UpgradeConfig.rangeBonus())
+                    )
+            );
+        }
+        infoIfPresent(registration, ModItems.FORTUNE_MESH_UPGRADE, "jei.dopasrandomutilities.fortune_mesh_upgrade.info");
         registerTreasureMeshInfo(registration);
 
         for (GeneratorType type : GeneratorType.values()) {
+            DeferredItem<?> generatorItem = ModItems.forType(type);
+            if (generatorItem == null) {
+                continue;
+            }
             String modeKey = switch (type.mode()) {
                 case RECIPE -> "jei.dopasrandomutilities.generator.stone.info";
                 case RANDOM_ORE -> "jei.dopasrandomutilities.generator.random_ore.info";
@@ -316,22 +346,31 @@ public class dOPasJeiPlugin implements IModPlugin {
                     || type == GeneratorType.CREATIVE_METAL_BLOCK;
             if (creative) {
                 registration.addIngredientInfo(
-                        ModItems.forType(type).get(),
+                        generatorItem.get(),
                         Component.translatable(modeKey),
                         Component.translatable("jei.dopasrandomutilities.generator.creative_note")
                 );
             } else {
-                info(registration, ModItems.forType(type).get(), modeKey);
+                info(registration, generatorItem.get(), modeKey);
             }
+        }
+    }
+
+    private static void infoIfPresent(IRecipeRegistration registration, DeferredItem<?> item, String key) {
+        if (item != null) {
+            info(registration, item.get(), key);
         }
     }
 
     private static void info(IRecipeRegistration registration, ItemLike item, String key) {
         registration.addIngredientInfo(item, Component.translatable(key));
     }
+
     private static void registerTreasureMeshInfo(IRecipeRegistration registration) {
-        // JEI registers once at startup — reload from disk here so we don't use jar defaults
-        // that were loaded before config/dopas_random_utilities/items/treasure_loot.json.
+        if (ModItems.TREASURE_MESH_UPGRADE == null) {
+            return;
+        }
+        // JEI registers once at startup — reload from disk here so we don't use jar defaults only.
         TreasureLootConfig.load();
 
         List<Component> lines = new ArrayList<>();
@@ -397,6 +436,8 @@ public class dOPasJeiPlugin implements IModPlugin {
                 registration.addCraftingStation(ResourceGeneratorRecipeCategory.recipeType(type), stack);
             }
         }
-        registration.addCraftingStation(RecipeTypes.SMELTING, ModItems.SOLAR_FURNACE.get());
+        if (ModItems.SOLAR_FURNACE != null) {
+            registration.addCraftingStation(RecipeTypes.SMELTING, ModItems.SOLAR_FURNACE.get());
+        }
     }
 }

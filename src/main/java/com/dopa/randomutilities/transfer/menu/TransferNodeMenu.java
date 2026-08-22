@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.transfer.menu;
 
 import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
 import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModMenus;
@@ -35,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class TransferNodeMenu extends AbstractContainerMenu {
+public class TransferNodeMenu extends AbstractContainerMenu implements GhostFilterMenu {
     public static final int TAB_Y_BIAS = 0;
     public static final int DATA_WHITELIST_MODE = 0;
     public static final int DATA_REDSTONE = 1;
@@ -279,6 +280,11 @@ public class TransferNodeMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         saveFilters();
+    }
+
+    @Override
+    public int filterSlotCount() {
+        return FILTER_SLOT_COUNT;
     }
 
     private static final class DisplaySlot extends StackCopySlot {

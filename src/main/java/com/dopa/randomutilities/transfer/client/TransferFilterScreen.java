@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.transfer.client;
 
+import com.dopa.randomutilities.filter.client.GhostFilterClicks;
 import com.dopa.randomutilities.gui.widget.FilterRow;
 import com.dopa.randomutilities.gui.widget.JeiGhostDragState;
 import com.dopa.randomutilities.transfer.menu.TransferFilterMenu;
@@ -7,10 +8,12 @@ import com.dopa.randomutilities.transfer.menu.TransferFilterMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 
 public class TransferFilterScreen extends AbstractContainerScreen<TransferFilterMenu> {
@@ -99,7 +102,28 @@ public class TransferFilterScreen extends AbstractContainerScreen<TransferFilter
     }
 
     @Override
+    protected void slotClicked(Slot slot, int slotIndex, int mouseButton, ContainerInput type) {
+        if (GhostFilterClicks.blockDrag(slot, mouseButton, type)) {
+            return;
+        }
+        super.slotClicked(slot, slotIndex, mouseButton, type);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        GhostFilterClicks.onMouseDragged(event);
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        GhostFilterClicks.clearRightDrag();
+        return super.mouseReleased(event);
+    }
+
+    @Override
     public void onClose() {
+        GhostFilterClicks.reset();
         JeiGhostDragState.endDrag();
         super.onClose();
     }

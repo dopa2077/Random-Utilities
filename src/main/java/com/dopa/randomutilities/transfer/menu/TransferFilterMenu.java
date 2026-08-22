@@ -1,9 +1,10 @@
 package com.dopa.randomutilities.transfer.menu;
 
 import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
 import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
 import com.dopa.randomutilities.registry.ModMenus;
-import com.dopa.randomutilities.transfer.TransferFilterContents;
+import com.dopa.randomutilities.filter.TransferFilterContents;
 import com.dopa.randomutilities.transfer.TransferFilterItem;
 
 import net.minecraft.core.NonNullList;
@@ -18,17 +19,17 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
-public class TransferFilterMenu extends AbstractContainerMenu {
+public class TransferFilterMenu extends AbstractContainerMenu implements GhostFilterMenu {
     public static final int SLOT_COUNT = TransferFilterContents.SIZE;
     public static final int GRID = 4;
     /** 16×16 wells (1px smaller than a vanilla 18×18 slot), pitched 16. */
     public static final int SLOT = 16;
     /** Aligned to filter.png ghost wells (one slot left of the previous layout). */
     public static final int GRID_X = 7;
-    public static final int GRID_Y = 21;
+    public static final int GRID_Y = 20;
     /** Baked button panel on filter.png (right of the 4×4 grid). */
     public static final int BUTTON_PANEL_X = 89;
-    public static final int BUTTON_PANEL_Y = 21;
+    public static final int BUTTON_PANEL_Y = 20;
     public static final int BUTTON_PANEL_WIDTH = 79;
     public static final int BUTTON_PANEL_HEIGHT = 62;
     public static final int BUTTON_WIDTH = 77;
@@ -200,5 +201,10 @@ public class TransferFilterMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         saveContents();
+    }
+
+    @Override
+    public int filterSlotCount() {
+        return SLOT_COUNT;
     }
 }

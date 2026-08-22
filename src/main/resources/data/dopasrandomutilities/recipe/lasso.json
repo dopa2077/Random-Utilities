@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "G": "minecraft:gold_nugget",
+    "L": "minecraft:lead",
+    "P": "minecraft:ender_pearl"
+  },
+  "pattern": [
+    "GPG",
+    "PLP",
+    "GPG"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:lasso"
+  }
+}

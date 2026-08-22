@@ -2,6 +2,7 @@ package com.dopa.randomutilities.transfer;
 
 import java.util.function.Consumer;
 
+import com.dopa.randomutilities.filter.TransferFilterContents;
 import com.dopa.randomutilities.registry.ModMenus;
 import com.dopa.randomutilities.transfer.menu.TransferFilterMenu;
 

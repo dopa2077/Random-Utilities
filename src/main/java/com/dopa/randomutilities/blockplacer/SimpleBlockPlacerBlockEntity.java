@@ -128,7 +128,7 @@ public class SimpleBlockPlacerBlockEntity extends BlockEntity implements Ownable
         if (placer == null) {
             return false;
         }
-        if (!ClaimActionGate.canPlace(level, placer, front, stack)) {
+        if (!ClaimActionGate.canPlace(level, placer, front, stack, facing.getOpposite())) {
             return false;
         }
         ItemStack held = stack.copy();

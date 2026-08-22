@@ -1,0 +1,25 @@
+{
+  "model": {
+    "type": "minecraft:condition",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "dopasrandomutilities:item/item_magnet_on",
+      "tints": [
+        {
+          "type": "minecraft:constant",
+          "value": -1
+        },
+        {
+          "type": "dopasrandomutilities:magnet_color",
+          "default": 16777215
+        }
+      ]
+    },
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "dopasrandomutilities:item/item_magnet"
+    }
+  }
+}

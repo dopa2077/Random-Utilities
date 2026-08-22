@@ -38,4 +38,8 @@ public final class ItemCollectorClientOverlay {
     public static void dropIfEmpty(ResourceKey<Level> dimension) {
         WorkingVolumeOverlay.dropIfEmpty(dimension);
     }
+
+    public static void pruneRemoved(Level level, ResourceKey<Level> dimension) {
+        WorkingVolumeOverlay.pruneRemoved(level, dimension);
+    }
 }

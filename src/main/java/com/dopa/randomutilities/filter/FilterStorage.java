@@ -360,19 +360,29 @@ public final class FilterStorage {
     }
 
     /**
+     * Whether {@code stack} can host nested filter rules (transfer cards or /dev/null filters).
+     */
+    public static boolean isNestedFilterHost(ItemStack stack) {
+        return TransferFilterContents.isFilter(stack) || FilterRegistry.isFilterItem(stack);
+    }
+
+    /**
      * Whether {@code candidate} matches any configured slot of a nested filter host
      * (including further nested filters via {@link GhostItemFilter}).
      */
     public static boolean matchesNested(ItemStack candidate, ItemStack host, int depth) {
-        if (candidate.isEmpty() || !FilterRegistry.isFilterItem(host) || depth >= FilterNesting.MAX_DEPTH) {
+        if (candidate.isEmpty() || depth >= FilterNesting.MAX_DEPTH || !isNestedFilterHost(host)) {
             return false;
         }
         return matchesNested(ItemResource.of(candidate), host, depth);
     }
 
     public static boolean matchesNested(ItemResource candidate, ItemStack host, int depth) {
-        if (candidate.isEmpty() || !FilterRegistry.isFilterItem(host) || depth >= FilterNesting.MAX_DEPTH) {
+        if (candidate.isEmpty() || depth >= FilterNesting.MAX_DEPTH || !isNestedFilterHost(host)) {
             return false;
+        }
+        if (TransferFilterContents.isFilter(host)) {
+            return TransferFilterContents.allows(candidate, host, depth);
         }
         FilterContents contents = peek(host);
         for (int i = 0; i < contents.slotCount(); i++) {

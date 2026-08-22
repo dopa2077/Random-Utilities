@@ -1,12 +1,12 @@
-package com.dopa.randomutilities.transfer;
+package com.dopa.randomutilities.filter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import com.dopa.randomutilities.filter.FilterNesting;
 import com.dopa.randomutilities.registry.ModDataComponents;
+import com.dopa.randomutilities.transfer.TransferFilterItem;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -221,11 +221,14 @@ public record TransferFilterContents(
         appendTree(tooltip, slots, 0);
     }
 
+    private static final int MATCH_GREEN = 0x55FF55;
+
     private static Component flagLine(String id, boolean match) {
-        String key = match
-                ? "item.dopasrandomutilities.filter.match." + id
-                : "item.dopasrandomutilities.filter.ignore." + id;
-        return Component.translatable(key).withStyle(ChatFormatting.GRAY);
+        Component value = match
+                ? Component.translatable("item.dopasrandomutilities.filter.value.match").withColor(MATCH_GREEN)
+                : Component.translatable("item.dopasrandomutilities.filter.value.ignore").withStyle(ChatFormatting.GRAY);
+        return Component.translatable("item.dopasrandomutilities.filter.label." + id, value)
+                .withStyle(style -> style.withColor(ChatFormatting.AQUA));
     }
 
     private static void appendTree(Consumer<Component> tooltip, List<ItemStack> entries, int depth) {

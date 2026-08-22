@@ -172,6 +172,13 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
                 && (stack.is(ModItems.RANGE_UPGRADE.get()) || stack.is(ModItems.STACK_UPGRADE.get()));
     }
 
+    public static boolean isMagnetUpgrade(ItemStack stack) {
+        return !stack.isEmpty()
+                && (stack.is(ModItems.RANGE_UPGRADE.get())
+                        || stack.is(ModItems.STACK_UPGRADE.get())
+                        || stack.is(ModItems.OVERCLOCK_UPGRADE.get()));
+    }
+
     /** Shared machine upgrades (generators / solar furnace). Fortune Mesh is fishnet-only. */
     public static boolean isSharedMachineUpgrade(ItemStack stack) {
         return !stack.isEmpty()

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "dopasrandomutilities:item/cursed_lasso_capture",
+    "layer1": "dopasrandomutilities:item/cursed_lasso"
+  }
+}

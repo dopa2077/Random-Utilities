@@ -32,34 +32,49 @@ public class dOPasRandomUtilitiesClient {
 
     @SubscribeEvent
     static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerBlockEntityRenderer(
-                ModBlockEntities.RESOURCE_GENERATOR.get(),
-                ResourceGeneratorRenderer::new
-        );
-        event.registerBlockEntityRenderer(
-                ModBlockEntities.MINI_CHEST.get(),
-                MiniChestRenderer::new
-        );
-        event.registerBlockEntityRenderer(
-                ModBlockEntities.FISHNET.get(),
-                FishnetRenderer::new
-        );
-        event.registerEntityRenderer(ModEntities.PRIMED_TINY_TNT.get(), PrimedTinyTntRenderer::new);
+        if (ModBlockEntities.RESOURCE_GENERATOR != null) {
+            event.registerBlockEntityRenderer(
+                    ModBlockEntities.RESOURCE_GENERATOR.get(),
+                    ResourceGeneratorRenderer::new
+            );
+        }
+        if (ModBlockEntities.MINI_CHEST != null) {
+            event.registerBlockEntityRenderer(
+                    ModBlockEntities.MINI_CHEST.get(),
+                    MiniChestRenderer::new
+            );
+        }
+        if (ModBlockEntities.FISHNET != null) {
+            event.registerBlockEntityRenderer(
+                    ModBlockEntities.FISHNET.get(),
+                    FishnetRenderer::new
+            );
+        }
+        if (ModEntities.PRIMED_TINY_TNT != null) {
+            event.registerEntityRenderer(ModEntities.PRIMED_TINY_TNT.get(), PrimedTinyTntRenderer::new);
+        }
     }
 
     @SubscribeEvent
     static void registerBlockTintSources(RegisterColorHandlersEvent.BlockTintSources event) {
         Block[] standard = Arrays.stream(GeneratorType.values())
                 .filter(type -> type != GeneratorType.CREATIVE_STONE)
-                .map(type -> ModBlocks.forType(type).get())
+                .map(ModBlocks::forType)
+                .filter(block -> block != null)
+                .map(block -> block.get())
                 .toArray(Block[]::new);
-        event.register(
-                List.of(BlockTintSources.constant(-1), BlockTintSources.constant(WATER_TINT)),
-                standard
-        );
-        event.register(
-                List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT), BlockTintSources.constant(WATER_TINT)),
-                ModBlocks.CREATIVE_STONE_GENERATOR.get()
-        );
+        if (standard.length > 0) {
+            event.register(
+                    List.of(BlockTintSources.constant(-1), BlockTintSources.constant(WATER_TINT)),
+                    standard
+            );
+        }
+        var creative = ModBlocks.forType(GeneratorType.CREATIVE_STONE);
+        if (creative != null) {
+            event.register(
+                    List.of(BlockTintSources.constant(CREATIVE_PURPLE_TINT), BlockTintSources.constant(WATER_TINT)),
+                    creative.get()
+            );
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.transfer.client;
 
+import com.dopa.randomutilities.filter.client.GhostFilterClicks;
 import com.dopa.randomutilities.gui.widget.FilterModeButton;
 import com.dopa.randomutilities.gui.widget.FilterModeIcon;
 import com.dopa.randomutilities.gui.widget.FilterRow;
@@ -27,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -143,7 +145,25 @@ public class TransferNodeScreen extends AbstractContainerScreen<TransferNodeMenu
     }
 
     @Override
+    protected void slotClicked(Slot slot, int slotIndex, int mouseButton, ContainerInput type) {
+        if (GhostFilterClicks.blockDrag(slot, mouseButton, type)) {
+            return;
+        }
+        super.slotClicked(slot, slotIndex, mouseButton, type);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (panelHost.mouseDragged(event.x(), event.y())) {
+            return true;
+        }
+        GhostFilterClicks.onMouseDragged(event);
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
     public void onClose() {
+        GhostFilterClicks.reset();
         JeiGhostDragState.endDrag();
         super.onClose();
     }
@@ -298,15 +318,8 @@ public class TransferNodeScreen extends AbstractContainerScreen<TransferNodeMenu
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (panelHost.mouseDragged(event.x(), event.y())) {
-            return true;
-        }
-        return super.mouseDragged(event, dx, dy);
-    }
-
-    @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        GhostFilterClicks.clearRightDrag();
         boolean panelHandled = panelHost.mouseReleased();
         boolean handled = super.mouseReleased(event);
         return panelHandled || handled;

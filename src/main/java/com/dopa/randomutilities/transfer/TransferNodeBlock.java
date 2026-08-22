@@ -318,6 +318,7 @@ public class TransferNodeBlock extends BaseEntityBlock {
         BlockState updated = withConnections(state, level, pos);
         if (updated != state) {
             level.setBlock(pos, updated, Block.UPDATE_ALL);
+            TransferNetworks.invalidate(level, pos);
         }
     }
 
@@ -330,7 +331,10 @@ public class TransferNodeBlock extends BaseEntityBlock {
             if (be instanceof TransferNodeBlockEntity node) {
                 channel = node.pipeChannel();
             }
-            drops.add(new ItemStack(ModItems.pipe(channel).get()));
+            var pipeItem = ModItems.pipe(channel);
+            if (pipeItem != null) {
+                drops.add(new ItemStack(pipeItem.get()));
+            }
         }
         int count = 0;
         if (be instanceof TransferNodeBlockEntity node) {
@@ -338,11 +342,14 @@ public class TransferNodeBlock extends BaseEntityBlock {
                 if (!node.hasHead(direction)) {
                     continue;
                 }
-                drops.add(new ItemStack(ModItems.node(node.head(direction).kind()).get()));
+                var nodeItem = ModItems.node(node.head(direction).kind());
+                if (nodeItem != null) {
+                    drops.add(new ItemStack(nodeItem.get()));
+                }
                 count++;
             }
         }
-        if (count <= 0) {
+        if (count <= 0 && ModItems.TRANSFER_NODE != null) {
             drops.add(new ItemStack(ModItems.TRANSFER_NODE.get()));
         }
         return drops;
@@ -610,7 +617,10 @@ public class TransferNodeBlock extends BaseEntityBlock {
         BlockState removed = withConnections(state.setValue(HAS_PIPE, false), level, pos);
         level.setBlock(pos, removed, Block.UPDATE_ALL);
         if (!level.isClientSide() && drop) {
-            popResource(level, pos, new ItemStack(ModItems.pipe(channel).get()));
+            var pipeItem = ModItems.pipe(channel);
+            if (pipeItem != null) {
+                popResource(level, pos, new ItemStack(pipeItem.get()));
+            }
         }
         if (!level.isClientSide()) {
             TransferNetworks.invalidate(level, pos);
@@ -642,7 +652,10 @@ public class TransferNodeBlock extends BaseEntityBlock {
             level.setBlock(pos, updated, Block.UPDATE_ALL);
         }
         if (!level.isClientSide() && drop) {
-            popResource(level, pos, new ItemStack(ModItems.node(kind).get()));
+            var nodeItem = ModItems.node(kind);
+            if (nodeItem != null) {
+                popResource(level, pos, new ItemStack(nodeItem.get()));
+            }
         }
         if (!level.isClientSide()) {
             TransferNetworks.invalidate(level, pos);
@@ -698,7 +711,11 @@ public class TransferNodeBlock extends BaseEntityBlock {
     }
 
     public static BlockState pipeBreakVisual(BlockState node, int heads, TransferChannel channel) {
-        BlockState pipe = ModBlocks.pipe(channel).get().defaultBlockState();
+        var pipeBlock = ModBlocks.pipe(channel);
+        if (pipeBlock == null) {
+            return node;
+        }
+        BlockState pipe = pipeBlock.get().defaultBlockState();
         boolean hasPipe = node.getValue(HAS_PIPE);
         for (Direction direction : Direction.values()) {
             TransferNodeFace face = face(node, direction);

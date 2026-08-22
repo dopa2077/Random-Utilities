@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.registry;
 
+import com.dopa.randomutilities.config.FeatureConfig;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.tinytnt.PrimedTinyTnt;
 
@@ -15,8 +16,13 @@ public final class ModEntities {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(Registries.ENTITY_TYPE, dOPasRandomUtilities.MOD_ID);
 
-    public static final DeferredHolder<EntityType<?>, EntityType<PrimedTinyTnt>> PRIMED_TINY_TNT =
-            ENTITY_TYPES.register(
+    public static DeferredHolder<EntityType<?>, EntityType<PrimedTinyTnt>> PRIMED_TINY_TNT;
+
+    private ModEntities() {}
+
+    public static void registerEnabled() {
+        if (FeatureConfig.isBlockEnabled("tiny_tnt")) {
+            PRIMED_TINY_TNT = ENTITY_TYPES.register(
                     "primed_tiny_tnt",
                     () -> EntityType.Builder.<PrimedTinyTnt>of(PrimedTinyTnt::new, MobCategory.MISC)
                             .sized(0.49F, 0.49F)
@@ -30,6 +36,6 @@ public final class ModEntities {
                                     Identifier.fromNamespaceAndPath(dOPasRandomUtilities.MOD_ID, "primed_tiny_tnt")
                             ))
             );
-
-    private ModEntities() {}
+        }
+    }
 }

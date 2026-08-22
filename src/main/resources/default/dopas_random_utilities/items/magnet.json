@@ -1,0 +1,10 @@
+{
+  "base_range": 4,
+  "max_range": 8,
+  "max_range_upgrades": 16,
+  "max_overclock": 11,
+  "base_ticks": 10,
+  "pull_speed": 0.35,
+  "base_entities": 8,
+  "max_entities": 32
+}

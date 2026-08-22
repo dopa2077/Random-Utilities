@@ -38,6 +38,12 @@ public final class WorkingVolumeRenderer {
             return;
         }
 
+        WorkingVolumeOverlay.pruneRemoved(level, level.dimension());
+        enabled = WorkingVolumeOverlay.enabledPositions(level.dimension());
+        if (enabled.isEmpty()) {
+            return;
+        }
+
         PoseStack poseStack = event.getPoseStack();
         Vec3 camera = event.getLevelRenderState().cameraRenderState.pos;
         Iterator<BlockPos> it = enabled.iterator();

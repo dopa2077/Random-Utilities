@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.itemcollector.menu;
 
 import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
 import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
 import com.dopa.randomutilities.itemcollector.ItemCollectorType;
@@ -30,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ItemCollectorMenu extends AbstractContainerMenu {
+public class ItemCollectorMenu extends AbstractContainerMenu implements GhostFilterMenu {
     public static final int DATA_RANGE_X = 0;
     public static final int DATA_RANGE_Y = 1;
     public static final int DATA_RANGE_Z = 2;
@@ -339,5 +340,10 @@ public class ItemCollectorMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         saveFilters();
+    }
+
+    @Override
+    public int filterSlotCount() {
+        return collectorType().filterSlotCount();
     }
 }

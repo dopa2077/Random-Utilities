@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "A": "minecraft:paper",
+    "I": "minecraft:gold_ingot",
+    "L": "dopasrandomutilities:lasso"
+  },
+  "pattern": [
+    "IAI",
+    "ALA",
+    "IAI"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:golden_lasso"
+  }
+}

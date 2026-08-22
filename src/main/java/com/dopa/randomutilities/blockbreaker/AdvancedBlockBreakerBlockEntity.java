@@ -9,6 +9,8 @@ import com.dopa.randomutilities.machine.OwnableMachine;
 import com.dopa.randomutilities.machine.OwnerRequiredFeedback;
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
+import com.dopa.randomutilities.machine.AdvancedVolumeMachineHost;
+import com.dopa.randomutilities.machine.AdvancedVolumeMachineSupport;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.util.BlockOrientations;
@@ -59,7 +61,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements OwnableMachine, RedstoneControl, WorkingVolumeSource {
+public class AdvancedBlockBreakerBlockEntity extends BlockEntity
+        implements OwnableMachine, RedstoneControl, WorkingVolumeSource, AdvancedVolumeMachineHost {
     public static final int FILTER_SLOTS = 8;
     public static final int OVERLAY_COLOR = 0xE64D33;
 
@@ -67,9 +70,9 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
     private static final int DISPENSE_ACCURACY = 6;
     private static final double DISPENSE_OFFSET = 0.7;
     /** Skip volume scans for a few ticks after finding no harvestable cell. */
-    private static final int EMPTY_VOLUME_BACKOFF = 10;
+    private static final int EMPTY_VOLUME_BACKOFF = AdvancedVolumeMachineSupport.EMPTY_VOLUME_BACKOFF;
     /** Max box cells inspected per random-target attempt. */
-    private static final int VOLUME_SCAN_BUDGET = 512;
+    private static final int VOLUME_SCAN_BUDGET = AdvancedVolumeMachineSupport.VOLUME_SCAN_BUDGET;
 
     private final ItemStacksResourceHandler pickaxe = new ItemStacksResourceHandler(1) {
         @Override
@@ -299,19 +302,24 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
             return;
         }
         if (powered) {
-            boolean[] worked = {false};
+            boolean brokeBlock = false;
             if (emptyScanBackoff <= 0) {
+                boolean[] broke = {false};
                 energy.runReadyCycles(upgrades.overclockCount(), () -> {
-                    if (!tryBreak(level, pos, state)) {
+                    int outcome = tryBreak(level, pos, state);
+                    if (outcome == 0) {
                         emptyScanBackoff = emptyVolumeBackoff();
                         return false;
                     }
                     emptyScanBackoff = 0;
-                    worked[0] = true;
+                    if (outcome == 2) {
+                        broke[0] = true;
+                    }
                     return true;
                 });
+                brokeBlock = broke[0];
             }
-            if (worked[0]) {
+            if (brokeBlock) {
                 setTriggered(level, pos, true);
                 triggeredTicks = TRIGGERED_TICKS;
                 setChanged();
@@ -326,14 +334,15 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
         }
     }
 
-    private boolean tryBreak(ServerLevel level, BlockPos pos, BlockState state) {
+    /** @return 0 failed, 1 mining progress, 2 block broken */
+    private int tryBreak(ServerLevel level, BlockPos pos, BlockState state) {
         Direction facing = BlockOrientations.front(state);
         ItemStack stored = pickaxeStack();
         boolean virtualTool = stored.isEmpty();
         ItemStack tool = virtualTool ? new ItemStack(Items.DIAMOND_PICKAXE) : stored.copy();
         FakePlayer breaker = MachineActors.actor(level, ownerUuid, pos, facing).orElse(null);
         if (breaker == null) {
-            return false;
+            return 0;
         }
         breaker.setItemInHand(InteractionHand.MAIN_HAND, tool);
 
@@ -341,7 +350,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
         if (target == null) {
             mining.clear(level, destroyId());
             breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-            return false;
+            return 0;
         }
         BlockState targetState = level.getBlockState(target);
         float hardness = targetState.getDestroySpeed(level, target);
@@ -352,7 +361,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
                 * BreakerMining.energyMultiplier(hardness);
         if (energy.stored() < cost) {
             breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-            return false;
+            return 0;
         }
 
         if (!mining.completeAfterHit(level, destroyId(), target, hitsNeeded)) {
@@ -360,7 +369,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
                 BreakerMining.playHit(level, target, targetState);
             }
             breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-            return true;
+            return 1;
         }
         energy.tryConsume(cost);
 
@@ -379,8 +388,9 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
         breaker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         if (broken) {
             ejectFromBack(level, pos, facing.getOpposite(), drops, mute);
+            return 2;
         }
-        return broken;
+        return 0;
     }
 
     private BlockPos selectTarget(ServerLevel level, FakePlayer breaker, boolean virtualTool) {
@@ -411,35 +421,28 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
     }
 
     private BlockPos pickRandomCell(ServerLevel level, FakePlayer breaker, boolean virtualTool) {
-        int[] seen = {0};
-        BlockPos[] chosen = {null};
-        int boxCells = volume.boxCellCount(worldPosition);
-        int budget = Math.min(VOLUME_SCAN_BUDGET, Math.max(1, boxCells));
-        volume.forEachCellWindow(worldPosition, volumeScanCursor, budget, cell -> {
-            BlockState cellState = level.getBlockState(cell);
-            if (!canHarvest(level, cell, cellState, breaker, virtualTool)) {
-                return;
-            }
-            if (!allowsBlock(cellState)) {
-                return;
-            }
-            if (!ClaimActionGate.canBreak(level, breaker, cell)) {
-                return;
-            }
-            seen[0]++;
-            if (level.getRandom().nextInt(seen[0]) == 0) {
-                chosen[0] = cell.immutable();
-            }
-        });
-        if (boxCells > 0) {
-            volumeScanCursor = Math.floorMod(volumeScanCursor + budget, boxCells);
-        }
-        return chosen[0];
+        BlockPos chosen = AdvancedVolumeMachineSupport.pickRandomCell(
+                this,
+                volume,
+                volumeScanCursor,
+                level.getRandom(),
+                cell -> {
+                    BlockState cellState = level.getBlockState(cell);
+                    if (!canHarvest(level, cell, cellState, breaker, virtualTool)) {
+                        return false;
+                    }
+                    if (!allowsBlock(cellState)) {
+                        return false;
+                    }
+                    return ClaimActionGate.canBreak(level, breaker, cell);
+                }
+        );
+        volumeScanCursor = AdvancedVolumeMachineSupport.advanceScanCursor(volumeScanCursor, volume, worldPosition);
+        return chosen;
     }
 
     private int emptyVolumeBackoff() {
-        int cells = volume.boxCellCount(worldPosition);
-        return Math.min(100, Math.max(EMPTY_VOLUME_BACKOFF, cells / 64));
+        return AdvancedVolumeMachineSupport.emptyVolumeBackoff(this, volume);
     }
 
     private static boolean canHarvest(
@@ -548,11 +551,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
     }
 
     private void syncToClient() {
-        setChanged();
-        if (level != null && !level.isClientSide()) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
-        }
+        AdvancedVolumeMachineSupport.syncToClient(this);
     }
 
     @Override
@@ -622,16 +621,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("MaxRange", volume.maxRange());
-        tag.putInt("RangeX", volume.rangeX());
-        tag.putInt("RangeY", volume.rangeY());
-        tag.putInt("RangeZ", volume.rangeZ());
-        tag.putInt("OffsetX", volume.offsetX());
-        tag.putInt("OffsetY", volume.offsetY());
-        tag.putInt("OffsetZ", volume.offsetZ());
-        tag.putInt("OverlayColor", overlayColor & 0xFFFFFF);
-        return tag;
+        return AdvancedVolumeMachineSupport.createUpdateTag(volume, overlayColor);
     }
 
     @Override
@@ -649,8 +639,7 @@ public class AdvancedBlockBreakerBlockEntity extends BlockEntity implements Owna
     }
 
     private void applyClientSync(ValueInput input) {
-        volume.load(input);
-        overlayColor = input.getIntOr("OverlayColor", overlayColor) & 0xFFFFFF;
+        AdvancedVolumeMachineSupport.applyClientSync(input, volume, value -> overlayColor = value, overlayColor);
     }
 
     @Override

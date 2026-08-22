@@ -49,7 +49,9 @@ public final class TransferClient {
             TransferPipeBlock block = pipe.get();
             event.register(List.of(BlockTintSources.constant(block.channel().tint())), block);
         }
-        event.register(List.of(TransferNodePipeTintSource.INSTANCE), ModBlocks.TRANSFER_NODE.get());
+        if (ModBlocks.TRANSFER_NODE != null) {
+            event.register(List.of(TransferNodePipeTintSource.INSTANCE), ModBlocks.TRANSFER_NODE.get());
+        }
     }
 
     @SubscribeEvent
@@ -59,6 +61,9 @@ public final class TransferClient {
 
     @SubscribeEvent
     public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        if (ModBlocks.TRANSFER_NODE == null) {
+            return;
+        }
         event.registerBlock(new IClientBlockExtensions() {
             @Override
             public boolean addDestroyEffects(BlockState state, Level level, BlockPos pos, ParticleEngine manager) {

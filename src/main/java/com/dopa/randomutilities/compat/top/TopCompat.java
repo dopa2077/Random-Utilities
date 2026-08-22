@@ -48,7 +48,8 @@ public final class TopCompat {
             return switch (method.getName()) {
                 case "getID" -> ID;
                 case "addProbeInfo" -> {
-                    addProbeInfo(args[1], args[4]);
+                    // addProbeInfo(ProbeMode, IProbeInfo, Player, Level, BlockState, IProbeHitData)
+                    addProbeInfo(args[1], args[5]);
                     yield null;
                 }
                 default -> defaultMethod(proxy, method, args);

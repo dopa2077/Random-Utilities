@@ -1,14 +1,16 @@
 package com.dopa.randomutilities.blockplacer.menu;
 
 import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerBlockEntity;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
+import com.dopa.randomutilities.gui.machine.VolumeMachineMenu;
 import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
 import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
+import com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.registry.ModMenus;
-import com.dopa.randomutilities.util.WorkingVolume;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
@@ -29,24 +31,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
-    public static final int DATA_RANGE_X = 0;
-    public static final int DATA_RANGE_Y = 1;
-    public static final int DATA_RANGE_Z = 2;
-    public static final int DATA_OFFSET_X = 3;
-    public static final int DATA_OFFSET_Y = 4;
-    public static final int DATA_OFFSET_Z = 5;
-    public static final int DATA_WHITELIST = 6;
-    public static final int DATA_MUTE = 7;
-    public static final int DATA_REDSTONE = 8;
-    public static final int DATA_ENERGY_STORED = 9;
-    public static final int DATA_ENERGY_CAPACITY = 10;
-    public static final int DATA_ENERGY_USAGE = 11;
-    public static final int DATA_ENERGY_MAX_RECEIVE = 12;
-    public static final int DATA_MAX_RANGE = 13;
-    public static final int DATA_OVERLAY_COLOR = 14;
-    public static final int DATA_SIZE = 15;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_ENERGY_CAPACITY;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_ENERGY_MAX_RECEIVE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_ENERGY_STORED;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_ENERGY_USAGE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_MAX_RANGE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_MUTE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_OFFSET_X;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_OFFSET_Y;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_OFFSET_Z;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_OVERLAY_COLOR;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_RANGE_X;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_RANGE_Y;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_RANGE_Z;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_REDSTONE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_SIZE;
+import static com.dopa.randomutilities.machine.AdvancedVolumeMachineMenuSupport.DATA_WHITELIST;
 
+public class AdvancedBlockPlacerMenu extends AbstractContainerMenu implements GhostFilterMenu, VolumeMachineMenu {
     public static final int ENERGY_BAR_X = 10;
     public static final int ENERGY_BAR_Y = 7;
     public static final int ENERGY_BAR_W = 11;
@@ -139,21 +141,7 @@ public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
     }
 
     private void syncData() {
-        data.set(DATA_RANGE_X, be.workingVolume().rangeX());
-        data.set(DATA_RANGE_Y, be.workingVolume().rangeY());
-        data.set(DATA_RANGE_Z, be.workingVolume().rangeZ());
-        data.set(DATA_OFFSET_X, be.workingVolume().offsetX());
-        data.set(DATA_OFFSET_Y, be.workingVolume().offsetY());
-        data.set(DATA_OFFSET_Z, be.workingVolume().offsetZ());
-        data.set(DATA_WHITELIST, be.whitelistMode() ? 1 : 0);
-        data.set(DATA_MUTE, be.isMuted() ? 1 : 0);
-        data.set(DATA_REDSTONE, be.redstoneMode().ordinal());
-        data.set(DATA_ENERGY_STORED, be.energy().stored());
-        data.set(DATA_ENERGY_CAPACITY, be.energy().capacity());
-        data.set(DATA_ENERGY_USAGE, be.energy().lastTickUsage());
-        data.set(DATA_ENERGY_MAX_RECEIVE, be.energy().maxReceive());
-        data.set(DATA_MAX_RANGE, be.maxRange());
-        data.set(DATA_OVERLAY_COLOR, be.overlayColor());
+        AdvancedVolumeMachineMenuSupport.syncData(data, be);
     }
 
     @Override
@@ -211,7 +199,7 @@ public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
     }
 
     public boolean isMuted() {
-        return data.get(DATA_MUTE) != 0;
+        return false;
     }
 
     public RedstoneMode redstoneMode() {
@@ -277,11 +265,6 @@ public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
         data.set(DATA_WHITELIST, be.whitelistMode() ? 1 : 0);
     }
 
-    public void setMuted(boolean mute) {
-        be.setMuted(mute);
-        data.set(DATA_MUTE, be.isMuted() ? 1 : 0);
-    }
-
     public void setOverlayColor(int color) {
         be.setOverlayColor(color);
         data.set(DATA_OVERLAY_COLOR, be.overlayColor());
@@ -293,20 +276,7 @@ public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
     }
 
     public void applySetting(byte kind, int value) {
-        switch (kind) {
-            case WorkingVolume.KIND_RANGE_X -> setRangeX(value);
-            case WorkingVolume.KIND_RANGE_Y -> setRangeY(value);
-            case WorkingVolume.KIND_RANGE_Z -> setRangeZ(value);
-            case WorkingVolume.KIND_OFFSET_X -> setOffsetX(value);
-            case WorkingVolume.KIND_OFFSET_Y -> setOffsetY(value);
-            case WorkingVolume.KIND_OFFSET_Z -> setOffsetZ(value);
-            case WorkingVolume.KIND_MUTE -> setMuted(value != 0);
-            case WorkingVolume.KIND_FILTER_MODE -> setWhitelistMode(value != 0);
-            case WorkingVolume.KIND_REDSTONE -> setRedstoneMode(RedstoneMode.byOrdinal(value));
-            case WorkingVolume.KIND_COLOR -> setOverlayColor(value);
-            default -> {
-            }
-        }
+        AdvancedVolumeMachineMenuSupport.applySetting(data, be, kind, value);
     }
 
     public void setFilterSlot(int index, ItemStack stack) {
@@ -383,5 +353,60 @@ public class AdvancedBlockPlacerMenu extends AbstractContainerMenu {
     public void removed(Player player) {
         super.removed(player);
         saveFilters();
+    }
+
+    @Override
+    public int filterSlotCount() {
+        return FILTER_SLOT_COUNT;
+    }
+
+    @Override
+    public int iconX() {
+        return ICON_X;
+    }
+
+    @Override
+    public int filterSlotY() {
+        return FILTER_SLOT_Y;
+    }
+
+    @Override
+    public int energyBarX() {
+        return ENERGY_BAR_X;
+    }
+
+    @Override
+    public int energyBarY() {
+        return ENERGY_BAR_Y;
+    }
+
+    @Override
+    public int energyBarW() {
+        return ENERGY_BAR_W;
+    }
+
+    @Override
+    public int energyBarH() {
+        return ENERGY_BAR_H;
+    }
+
+    @Override
+    public com.dopa.randomutilities.machine.EnergyMachineUpgradeInventory upgrades() {
+        return be.upgrades();
+    }
+
+    @Override
+    public BlockPos machinePos() {
+        return be.getBlockPos();
+    }
+
+    @Override
+    public net.minecraft.world.level.Level machineLevel() {
+        return be.getLevel();
+    }
+
+    @Override
+    public boolean isPickaxeSlotIndex(int index) {
+        return false;
     }
 }

@@ -251,6 +251,7 @@ public class TransferPipeBlock extends Block {
         BlockState updated = withConnections(state, level, pos);
         if (updated != state) {
             level.setBlock(pos, updated, Block.UPDATE_ALL);
+            TransferNetworks.invalidate(level, pos);
         }
     }
 
@@ -386,10 +387,14 @@ public class TransferPipeBlock extends Block {
         if (next == channel) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
+        var nextPipe = ModBlocks.pipe(next);
+        if (nextPipe == null) {
+            return InteractionResult.TRY_WITH_EMPTY_HAND;
+        }
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
-        BlockState recolored = copyConnections(state, ModBlocks.pipe(next).get().defaultBlockState());
+        BlockState recolored = copyConnections(state, nextPipe.get().defaultBlockState());
         level.setBlock(pos, withConnections(recolored, level, pos), Block.UPDATE_ALL);
         if (player == null || !player.getAbilities().instabuild) {
             stack.shrink(1);

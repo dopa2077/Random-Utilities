@@ -8,6 +8,7 @@ import com.dopa.randomutilities.itemcollector.network.ItemCollectorSettingPayloa
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -148,6 +149,25 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
         return redSlider.isDraggingChannel() || greenSlider.isDraggingChannel() || blueSlider.isDraggingChannel();
     }
 
+    public boolean isMouseOverInteractiveWidget(double mouseX, double mouseY) {
+        if (!widgetsCreated || !contentsInteractive()) {
+            return false;
+        }
+        return isOver(redSlider, mouseX, mouseY)
+                || isOver(greenSlider, mouseX, mouseY)
+                || isOver(blueSlider, mouseX, mouseY)
+                || isOver(particlesButton, mouseX, mouseY);
+    }
+
+    private static boolean isOver(AbstractWidget widget, double mouseX, double mouseY) {
+        return widget != null
+                && widget.visible
+                && mouseX >= widget.getX()
+                && mouseY >= widget.getY()
+                && mouseX < widget.getX() + widget.getWidth()
+                && mouseY < widget.getY() + widget.getHeight();
+    }
+
     @Override
     protected void onTick() {
         if (contentsInteractive()) {
@@ -184,6 +204,9 @@ public final class ItemCollectorCosmeticPanel extends AttachedPanel {
     @Override
     public boolean isMouseOverDecorativeArea(double mouseX, double mouseY, int leftPos, int topPos, int imageWidth) {
         if (!contentsInteractive()) {
+            return false;
+        }
+        if (isMouseOverInteractiveWidget(mouseX, mouseY)) {
             return false;
         }
         TrayBounds tray = particlesTray(bodyXOpen(leftPos, imageWidth), bodyY(topPos));

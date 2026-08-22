@@ -1,7 +1,5 @@
 package com.dopa.randomutilities.transfer;
 
-import com.dopa.randomutilities.transfer.network.TransferFilterPayload;
-import com.dopa.randomutilities.transfer.network.TransferNodeFilterPayload;
 import com.dopa.randomutilities.transfer.network.TransferNodeSettingPayload;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -16,16 +14,6 @@ public final class TransferNodeNetwork {
                 TransferNodeSettingPayload.TYPE,
                 TransferNodeSettingPayload.STREAM_CODEC,
                 TransferNodeSettingPayload::handle
-        );
-        registrar.playToServer(
-                TransferNodeFilterPayload.TYPE,
-                TransferNodeFilterPayload.STREAM_CODEC,
-                TransferNodeFilterPayload::handle
-        );
-        registrar.playToServer(
-                TransferFilterPayload.TYPE,
-                TransferFilterPayload.STREAM_CODEC,
-                TransferFilterPayload::handle
         );
     }
 }

@@ -30,10 +30,6 @@ public final class MachineEnergy extends SimpleEnergyHandler {
         super(DEFAULT_CAPACITY, DEFAULT_MAX_RECEIVE, DEFAULT_CAPACITY, 0);
     }
 
-    public interface Host {
-        MachineEnergy energy();
-    }
-
     public static int capacityFor(int energyCount) {
         int count = Mth.clamp(energyCount, 0, UpgradeConfig.maxEnergy());
         return DEFAULT_CAPACITY * (1 + count);

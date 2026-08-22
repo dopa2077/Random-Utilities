@@ -1,9 +1,13 @@
 package com.dopa.randomutilities.client;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +20,13 @@ public final class WorkingVolumeOverlay {
 
     public static boolean isEnabled(ResourceKey<Level> dimension, BlockPos pos) {
         Set<BlockPos> set = ENABLED.get(dimension);
-        return set != null && set.contains(pos.immutable());
+        BlockPos key = pos.immutable();
+        if (set == null || !set.contains(key)) {
+            return false;
+        }
+        pruneIfRemoved(Minecraft.getInstance().level, dimension, key);
+        set = ENABLED.get(dimension);
+        return set != null && set.contains(key);
     }
 
     public static void setEnabled(ResourceKey<Level> dimension, BlockPos pos, boolean enabled) {
@@ -47,6 +57,39 @@ public final class WorkingVolumeOverlay {
         Set<BlockPos> set = ENABLED.get(dimension);
         if (set != null && set.isEmpty()) {
             ENABLED.remove(dimension);
+        }
+    }
+
+    /** Drops overlay entries whose block entities were removed. Unloaded chunks are kept. */
+    public static void pruneRemoved(Level level, ResourceKey<Level> dimension) {
+        Set<BlockPos> set = ENABLED.get(dimension);
+        if (set == null || set.isEmpty()) {
+            return;
+        }
+        Iterator<BlockPos> it = set.iterator();
+        while (it.hasNext()) {
+            BlockPos pos = it.next();
+            if (!level.isLoaded(pos)) {
+                continue;
+            }
+            if (level.getBlockEntity(pos) == null) {
+                it.remove();
+            }
+        }
+        dropIfEmpty(dimension);
+    }
+
+    private static void pruneIfRemoved(@Nullable Level level, ResourceKey<Level> dimension, BlockPos pos) {
+        if (level == null || !level.dimension().equals(dimension) || !level.isLoaded(pos)) {
+            return;
+        }
+        if (level.getBlockEntity(pos) != null) {
+            return;
+        }
+        Set<BlockPos> set = ENABLED.get(dimension);
+        if (set != null) {
+            set.remove(pos);
+            dropIfEmpty(dimension);
         }
     }
 }

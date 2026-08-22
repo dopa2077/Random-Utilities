@@ -1,0 +1,20 @@
+{
+  "basic": {
+    "mode": "blacklist",
+    "entities": [
+      "minecraft:player"
+    ]
+  },
+  "golden": {
+    "mode": "blacklist",
+    "entities": [
+      "minecraft:player"
+    ]
+  },
+  "cursed": {
+    "mode": "blacklist",
+    "entities": [
+      "minecraft:player"
+    ]
+  }
+}

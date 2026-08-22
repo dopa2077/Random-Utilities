@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "filled=false,facing=north": { "model": "dopasrandomutilities:block/cardboard_box_open" },
+    "filled=false,facing=east": { "model": "dopasrandomutilities:block/cardboard_box_open", "y": 90 },
+    "filled=false,facing=south": { "model": "dopasrandomutilities:block/cardboard_box_open", "y": 180 },
+    "filled=false,facing=west": { "model": "dopasrandomutilities:block/cardboard_box_open", "y": 270 },
+    "filled=true,facing=north": { "model": "dopasrandomutilities:block/cardboard_box_closed" },
+    "filled=true,facing=east": { "model": "dopasrandomutilities:block/cardboard_box_closed", "y": 90 },
+    "filled=true,facing=south": { "model": "dopasrandomutilities:block/cardboard_box_closed", "y": 180 },
+    "filled=true,facing=west": { "model": "dopasrandomutilities:block/cardboard_box_closed", "y": 270 }
+  }
+}

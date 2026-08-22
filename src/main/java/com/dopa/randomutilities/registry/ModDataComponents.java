@@ -2,7 +2,10 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.FilterContents;
-import com.dopa.randomutilities.transfer.TransferFilterContents;
+import com.dopa.randomutilities.lasso.LassoCapture;
+import com.dopa.randomutilities.cardboardbox.CardboardBoxContents;
+import com.dopa.randomutilities.magnet.MagnetContents;
+import com.dopa.randomutilities.filter.TransferFilterContents;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -28,6 +31,30 @@ public final class ModDataComponents {
                     builder -> builder
                             .persistent(TransferFilterContents.CODEC)
                             .networkSynchronized(TransferFilterContents.STREAM_CODEC)
+            );
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<LassoCapture>> LASSO_CAPTURE =
+            DATA_COMPONENTS.registerComponentType(
+                    "lasso_capture",
+                    builder -> builder
+                            .persistent(LassoCapture.CODEC)
+                            .networkSynchronized(LassoCapture.STREAM_CODEC)
+            );
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<MagnetContents>> MAGNET_CONTENTS =
+            DATA_COMPONENTS.registerComponentType(
+                    "magnet_contents",
+                    builder -> builder
+                            .persistent(MagnetContents.CODEC)
+                            .networkSynchronized(MagnetContents.STREAM_CODEC)
+            );
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CardboardBoxContents>> CARDBOARD_BOX_CONTENTS =
+            DATA_COMPONENTS.registerComponentType(
+                    "cardboard_box_contents",
+                    builder -> builder
+                            .persistent(CardboardBoxContents.CODEC)
+                            .networkSynchronized(CardboardBoxContents.STREAM_CODEC)
             );
 
     private ModDataComponents() {}

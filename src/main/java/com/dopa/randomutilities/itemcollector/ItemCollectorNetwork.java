@@ -1,6 +1,5 @@
 package com.dopa.randomutilities.itemcollector;
 
-import com.dopa.randomutilities.itemcollector.network.ItemCollectorFilterPayload;
 import com.dopa.randomutilities.itemcollector.network.ItemCollectorSettingPayload;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -15,11 +14,6 @@ public final class ItemCollectorNetwork {
                 ItemCollectorSettingPayload.TYPE,
                 ItemCollectorSettingPayload.STREAM_CODEC,
                 ItemCollectorSettingPayload::handle
-        );
-        registrar.playToServer(
-                ItemCollectorFilterPayload.TYPE,
-                ItemCollectorFilterPayload.STREAM_CODEC,
-                ItemCollectorFilterPayload::handle
         );
     }
 }

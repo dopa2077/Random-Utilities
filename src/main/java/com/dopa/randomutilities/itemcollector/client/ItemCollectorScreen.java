@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.itemcollector.client;
 
+import com.dopa.randomutilities.filter.client.GhostFilterClicks;
 import com.dopa.randomutilities.gui.widget.FilterModeButton;
 import com.dopa.randomutilities.gui.widget.FilterModeIcon;
 import com.dopa.randomutilities.gui.widget.FilterRow;
@@ -32,6 +33,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
@@ -220,7 +222,16 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     }
 
     @Override
+    protected void slotClicked(Slot slot, int slotIndex, int mouseButton, ContainerInput type) {
+        if (GhostFilterClicks.blockDrag(slot, mouseButton, type)) {
+            return;
+        }
+        super.slotClicked(slot, slotIndex, mouseButton, type);
+    }
+
+    @Override
     public void onClose() {
+        GhostFilterClicks.reset();
         JeiGhostDragState.endDrag();
         if (configPanel != null) {
             configPanel.onScreenClose();
@@ -328,9 +339,12 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         boolean overConfigControl = configPanel != null
                 && configPanel.contentsInteractive()
                 && configPanel.isMouseOverInteractiveWidget(event.x(), event.y());
+        boolean overCosmeticControl = cosmeticPanel != null
+                && cosmeticPanel.contentsInteractive()
+                && cosmeticPanel.isMouseOverInteractiveWidget(event.x(), event.y());
         // Open body covers sibling tabs at the attachment edge — handle body/scrollbar first.
         // Closed sibling tabs can still overlap config widgets; prefer the widget when on one.
-        if (overBody || overConfigControl) {
+        if (overBody || overConfigControl || overCosmeticControl) {
             for (int i = children().size() - 1; i >= 0; i--) {
                 GuiEventListener child = children().get(i);
                 if (child.mouseClicked(event, doubleClick)) {
@@ -391,6 +405,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     }
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        GhostFilterClicks.clearRightDrag();
         boolean panelHandled = panelHost.mouseReleased();
         GuiEventListener focused = getFocused();
         boolean handled = focused != null && focused.mouseReleased(event);
@@ -406,6 +421,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         if (panelHost.mouseDragged(event.x(), event.y())) {
             return true;
         }
+        GhostFilterClicks.onMouseDragged(event);
         return super.mouseDragged(event, dx, dy);
     }
 
