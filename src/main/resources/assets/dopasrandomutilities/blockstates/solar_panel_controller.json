@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "dopasrandomutilities:block/solar_panel_controller" },
+    "facing=south": { "model": "dopasrandomutilities:block/solar_panel_controller", "y": 180 },
+    "facing=west":  { "model": "dopasrandomutilities:block/solar_panel_controller", "y": 270 },
+    "facing=east":  { "model": "dopasrandomutilities:block/solar_panel_controller", "y": 90 }
+  }
+}

@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.compat.jei.generator;
 
-import com.dopa.randomutilities.machine.generator.config.GeneratorRecipe;
-import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.generator.config.GeneratorRecipe;
+import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 
 import mezz.jei.api.constants.VanillaTypes;

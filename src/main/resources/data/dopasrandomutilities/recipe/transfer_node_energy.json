@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "R": "#c:dusts/redstone",
+    "P": "#dopasrandomutilities:transfer_pipes",
+    "S": "minecraft:stone",
+    "G": "#c:storage_blocks/redstone"
+  },
+  "pattern": [
+    "RPR",
+    "SGS"
+  ],
+  "result": {
+    "count": 4,
+    "id": "dopasrandomutilities:transfer_node_energy"
+  }
+}

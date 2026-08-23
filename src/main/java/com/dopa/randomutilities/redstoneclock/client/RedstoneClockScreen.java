@@ -1,12 +1,12 @@
 package com.dopa.randomutilities.redstoneclock.client;
 
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelHost;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
+import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockBlockEntity;
 import com.dopa.randomutilities.redstoneclock.RedstoneClockMenu;
-import com.dopa.randomutilities.redstoneclock.client.panel.RedstoneClockInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.redstoneclock.network.RedstoneClockSettingPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 
@@ -29,19 +29,21 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMenu>
         implements MachineRedstonePanel.Host {
-    private static final Identifier CHEST_BACKGROUND =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final Identifier BACKGROUND =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/special/trash_can.png");
     private static final int TEXTURE_SIZE = 256;
     private static final int BODY_COLOR = 0xFFC6C6C6;
     private static final int LABEL_COLOR = 0xFF404040;
-    private static final int FOOTER_Y = 70;
-    private static final int PLAYER_INV_HEIGHT = 96;
-    private static final int IMAGE_HEIGHT = FOOTER_Y + PLAYER_INV_HEIGHT + 1;
+    private static final int IMAGE_HEIGHT = 155;
+    private static final int SLOT_COVER_X = 79;
+    private static final int SLOT_COVER_Y = 19;
+    private static final int SLOT_COVER = 18;
 
     private static final int STEPPER_W = 18;
     private static final int STEPPER_H = 12;
@@ -98,7 +100,11 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
         panelHost.clear();
         redstonePanel = null;
 
-        panelHost.add(new RedstoneClockInformativePanel());
+        panelHost.add(new ScrollingInfoPanel(
+                "gui.dopasrandomutilities.panel.info.redstone_clock.intro",
+                "gui.dopasrandomutilities.panel.info.redstone_clock.timing",
+                "gui.dopasrandomutilities.panel.info.redstone_clock.cosmetic"
+        ));
         redstonePanel = new MachineRedstonePanel(
                 this,
                 PanelAnchor.RIGHT_TOP,
@@ -108,10 +114,10 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
         panelHost.add(redstonePanel);
         redstonePanel.initWidgets();
 
-        intervalMinus = stepper("-", true, false);
-        intervalPlus = stepper("+", true, true);
-        pulseMinus = stepper("-", false, false);
-        pulsePlus = stepper("+", false, true);
+        intervalMinus = stepper("-", true, false, () -> menu.interval() > RedstoneClockBlockEntity.MIN_INTERVAL);
+        intervalPlus = stepper("+", true, true, () -> menu.interval() < RedstoneClockBlockEntity.MAX_INTERVAL);
+        pulseMinus = stepper("-", false, false, () -> menu.pulseLength() > RedstoneClockBlockEntity.MIN_INTERVAL);
+        pulsePlus = stepper("+", false, true, () -> menu.pulseLength() < menu.interval());
         addRenderableWidget(intervalMinus);
         addRenderableWidget(intervalPlus);
         addRenderableWidget(pulseMinus);
@@ -120,7 +126,7 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
     }
 
-    private StepperButton stepper(String label, boolean interval, boolean increase) {
+    private StepperButton stepper(String label, boolean interval, boolean increase, BooleanSupplier enabled) {
         Component tip = Component.translatable(interval
                         ? "gui.dopasrandomutilities.redstone_clock.interval.tooltip"
                         : "gui.dopasrandomutilities.redstone_clock.pulse.tooltip")
@@ -131,7 +137,7 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
                 .append(Component.translatable("gui.dopasrandomutilities.redstone_clock.step.ctrl")
                         .withStyle(ChatFormatting.GRAY));
         IntConsumer adjust = interval ? this::adjustInterval : this::adjustPulse;
-        return new StepperButton(label, tip, step -> adjust.accept(increase ? step : -step));
+        return new StepperButton(label, tip, step -> adjust.accept(increase ? step : -step), enabled);
     }
 
     private void adjustInterval(int delta) {
@@ -191,35 +197,27 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
     @Override
     protected void containerTick() {
         super.containerTick();
-        panelHost.tick();
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
         layoutSteppers();
-        updateStepperStates();
-    }
-
-    private void updateStepperStates() {
-        int interval = menu.interval();
-        int pulse = menu.pulseLength();
-        intervalMinus.active = interval > RedstoneClockBlockEntity.MIN_INTERVAL;
-        intervalPlus.active = interval < RedstoneClockBlockEntity.MAX_INTERVAL;
-        pulseMinus.active = pulse > RedstoneClockBlockEntity.MIN_INTERVAL;
-        pulsePlus.active = pulse < interval;
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
         int xo = leftPos;
         int yo = topPos;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                imageWidth, FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.fill(xo + 7, yo + 17, xo + imageWidth - 7, yo + FOOTER_Y, BODY_COLOR);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo, 0.0F, 0.0F,
+                imageWidth, imageHeight, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.fill(
+                xo + SLOT_COVER_X,
+                yo + SLOT_COVER_Y,
+                xo + SLOT_COVER_X + SLOT_COVER,
+                yo + SLOT_COVER_Y + SLOT_COVER,
+                BODY_COLOR
+        );
         renderStepperTray(graphics);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + FOOTER_Y,
-                0.0F, 126.0F, imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
     }
 
     @Override
@@ -312,11 +310,14 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
 
         private final String label;
         private final IntConsumer onStep;
+        private final BooleanSupplier enabled;
 
-        StepperButton(String label, Component tooltip, IntConsumer onStep) {
+        StepperButton(String label, Component tooltip, IntConsumer onStep, BooleanSupplier enabled) {
             super(0, 0, STEPPER_W, STEPPER_H, Component.literal(label));
             this.label = label;
             this.onStep = onStep;
+            this.enabled = enabled;
+            this.active = enabled.getAsBoolean();
             setTooltip(Tooltip.create(tooltip));
         }
 
@@ -328,6 +329,7 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
 
         @Override
         public void onClick(MouseButtonEvent event, boolean doubleClick) {
+            this.active = enabled.getAsBoolean();
             if (active) {
                 onStep.accept(stepAmount(event));
             }
@@ -340,6 +342,7 @@ public class RedstoneClockScreen extends AbstractContainerScreen<RedstoneClockMe
 
         @Override
         public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            this.active = enabled.getAsBoolean();
             int x = getX();
             int y = getY();
             graphics.blitSprite(

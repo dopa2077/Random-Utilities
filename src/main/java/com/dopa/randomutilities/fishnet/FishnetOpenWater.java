@@ -51,10 +51,21 @@ final class FishnetOpenWater {
     }
 
     private static OpenWaterType getOpenWaterTypeForArea(Level level, BlockPos from, BlockPos to) {
-        return BlockPos.betweenClosedStream(from, to)
-                .map(pos -> getOpenWaterTypeForBlock(level, pos))
-                .reduce((a, b) -> a == b ? a : OpenWaterType.INVALID)
-                .orElse(OpenWaterType.INVALID);
+        OpenWaterType type = null;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int x = from.getX(); x <= to.getX(); x++) {
+            for (int y = from.getY(); y <= to.getY(); y++) {
+                for (int z = from.getZ(); z <= to.getZ(); z++) {
+                    OpenWaterType next = getOpenWaterTypeForBlock(level, cursor.set(x, y, z));
+                    if (type == null) {
+                        type = next;
+                    } else if (type != next) {
+                        return OpenWaterType.INVALID;
+                    }
+                }
+            }
+        }
+        return type == null ? OpenWaterType.INVALID : type;
     }
 
     private static OpenWaterType getOpenWaterTypeForBlock(Level level, BlockPos pos) {

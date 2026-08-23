@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = dOPasRandomUtilities.MOD_ID)
 public final class FilterEvents {
@@ -47,5 +48,10 @@ public final class FilterEvents {
         if (itemEntity.getItem().isEmpty()) {
             itemEntity.discard();
         }
+    }
+
+    @SubscribeEvent
+    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        FilterItem.clearGuiSuppress(event.getEntity().getUUID());
     }
 }

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "dopasrandomutilities:advanced_core_frame",
+    "C": "minecraft:cobbled_deepslate",
+    "S": "dopasrandomutilities:simple_block_breaker"
+  },
+  "pattern": [
+    "CCC",
+    "CAC",
+    "CSC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:advanced_block_breaker"
+  }
+}

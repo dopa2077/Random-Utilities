@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "P": "#dopasrandomutilities:transfer_pipes",
+    "D": "minecraft:orange_dye"
+  },
+  "pattern": [
+    "PPP",
+    "PDP",
+    "PPP"
+  ],
+  "result": {
+    "count": 8,
+    "id": "dopasrandomutilities:transfer_pipe_orange"
+  }
+}

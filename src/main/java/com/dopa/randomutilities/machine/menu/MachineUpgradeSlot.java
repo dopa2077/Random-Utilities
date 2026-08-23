@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.machine.menu;
 
 import com.dopa.randomutilities.machine.UpgradeInventory;
-import com.dopa.randomutilities.util.PanelLayout;
+import com.dopa.randomutilities.gui.panel.PanelLayout;
 
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -88,11 +88,17 @@ public class MachineUpgradeSlot extends StackCopySlot {
 
     @Override
     public int getMaxStackSize() {
-        return Math.max(1, handler.getCapacityAsInt(handlerIndex, ItemResource.EMPTY));
+        return Math.min(
+                UpgradeInventory.MAX_PER_SLOT,
+                Math.max(1, handler.getCapacityAsInt(handlerIndex, ItemResource.EMPTY))
+        );
     }
 
     @Override
     public int getMaxStackSize(ItemStack stack) {
-        return Math.max(0, handler.getCapacityAsInt(handlerIndex, ItemResource.of(stack)));
+        return Math.min(
+                UpgradeInventory.MAX_PER_SLOT,
+                Math.max(0, handler.getCapacityAsInt(handlerIndex, ItemResource.of(stack)))
+        );
     }
 }

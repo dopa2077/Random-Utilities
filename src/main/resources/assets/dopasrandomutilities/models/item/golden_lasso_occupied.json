@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "dopasrandomutilities:item/lasso_capture",
+    "layer1": "dopasrandomutilities:item/golden_lasso"
+  }
+}

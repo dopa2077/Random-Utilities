@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.util.CompactCountFormat;
 import com.dopa.randomutilities.filter.menu.FilterMenu;
 
@@ -19,6 +20,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUseAnimation;
@@ -29,11 +31,14 @@ import net.minecraft.world.item.component.UseCooldown;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 /** Filter/void item — behaviour driven entirely by {@link FilterProfile}. Register new variants via {@link FilterRegistry}. */
 public class FilterItem extends Item {
     private static final int GUI_SUPPRESS_TICKS = 15;
-    private static final Map<UUID, Integer> SUPPRESS_GUI_UNTIL = new ConcurrentHashMap<>();
+    /** Expiry in level game time (not player tickCount — survives reconnect). */
+    private static final Map<UUID, Long> SUPPRESS_GUI_UNTIL = new ConcurrentHashMap<>();
 
     private final FilterProfile profile;
 
@@ -46,6 +51,27 @@ public class FilterItem extends Item {
         return profile;
     }
 
+    static void clearGuiSuppress(UUID playerId) {
+        SUPPRESS_GUI_UNTIL.remove(playerId);
+    }
+
+    private static boolean isGuiSuppressed(Player player) {
+        Long until = SUPPRESS_GUI_UNTIL.get(player.getUUID());
+        if (until == null) {
+            return false;
+        }
+        long now = player.level().getGameTime();
+        if (now >= until) {
+            SUPPRESS_GUI_UNTIL.remove(player.getUUID(), until);
+            return false;
+        }
+        return true;
+    }
+
+    private static void suppressGui(Player player) {
+        SUPPRESS_GUI_UNTIL.put(player.getUUID(), player.level().getGameTime() + GUI_SUPPRESS_TICKS);
+    }
+
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack host = player.getItemInHand(hand);
@@ -56,7 +82,7 @@ public class FilterItem extends Item {
 
         ItemStack selected = FilterStorage.getSelectedStack(host);
         if (selected.isEmpty()) {
-            if (player.tickCount < SUPPRESS_GUI_UNTIL.getOrDefault(player.getUUID(), 0)) {
+            if (isGuiSuppressed(player)) {
                 return InteractionResult.PASS;
             }
             openGui(player, hand);
@@ -94,14 +120,69 @@ public class FilterItem extends Item {
 
         ItemStack selected = FilterStorage.getSelectedStack(host);
         if (selected.isEmpty()) {
-            if (player.tickCount < SUPPRESS_GUI_UNTIL.getOrDefault(player.getUUID(), 0)) {
+            if (isGuiSuppressed(player)) {
                 return InteractionResult.PASS;
             }
             openGui(player, hand);
             return InteractionResult.SUCCESS;
         }
 
+        InteractionResult placed = tryPlaceSelectedBlock(context, player, host);
+        if (placed != InteractionResult.PASS) {
+            return placed;
+        }
+
         return InteractionResult.PASS;
+    }
+
+    /**
+     * Places the selected slot's block without swapping the /dev/null out of the hand.
+     * Only {@link BlockItem}s are forwarded; other items keep the existing consume/proxy paths.
+     */
+    private InteractionResult tryPlaceSelectedBlock(UseOnContext context, Player player, ItemStack host) {
+        FilterProfile profile = profile();
+        if (!DevNullConfig.canPlaceBlocks(profile.isBasic())) {
+            return InteractionResult.PASS;
+        }
+
+        FilterContents contents = FilterStorage.get(host);
+        int slotIndex = contents.selectedSlot();
+        FilterContents.Slot slot = contents.slot(slotIndex);
+        if (slot.isEmpty()) {
+            return InteractionResult.PASS;
+        }
+
+        ItemStack toPlace = slot.resource().toStack(1);
+        if (!(toPlace.getItem() instanceof BlockItem blockItem)) {
+            return InteractionResult.PASS;
+        }
+
+        BlockHitResult hit = new BlockHitResult(
+                context.getClickLocation(),
+                context.getClickedFace(),
+                context.getClickedPos(),
+                context.isInside()
+        );
+        UseOnContext placeContext = new UseOnContext(
+                context.getLevel(),
+                player,
+                context.getHand(),
+                toPlace,
+                hit
+        );
+        InteractionResult result = blockItem.useOn(placeContext);
+        if (result.consumesAction() && toPlace.isEmpty() && !player.hasInfiniteMaterials()) {
+            int remaining = slot.count() - 1;
+            FilterStorage.set(host, contents.withSlot(
+                    slotIndex,
+                    remaining <= 0 ? ItemResource.EMPTY : slot.resource(),
+                    Math.max(0, remaining)
+            ));
+            if (remaining <= 0) {
+                suppressGui(player);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -170,7 +251,7 @@ public class FilterItem extends Item {
                 }
 
                 if (remaining.isEmpty() && entity instanceof Player player) {
-                    SUPPRESS_GUI_UNTIL.put(player.getUUID(), player.tickCount + GUI_SUPPRESS_TICKS);
+                    suppressGui(player);
                 }
             }
         }
@@ -271,6 +352,10 @@ public class FilterItem extends Item {
     }
 
     public static void openGui(Player player, InteractionHand hand) {
+        openGui(player, hand, false);
+    }
+
+    public static void openGui(Player player, InteractionHand hand, boolean restoreConfig) {
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
@@ -280,8 +365,6 @@ public class FilterItem extends Item {
             return;
         }
         FilterContents contents = FilterStorage.get(host);
-        boolean restoreConfig = FilterMenu.restoreConfigOnNextOpen;
-        FilterMenu.restoreConfigOnNextOpen = false;
         serverPlayer.openMenu(
                 new SimpleMenuProvider(
                         (id, inv, p) -> new FilterMenu(id, inv, hand),

@@ -1,9 +1,15 @@
 package com.dopa.randomutilities.machine.item;
 
+import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerBlock;
+import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerBlock;
+import com.dopa.randomutilities.combustion.CombustionGeneratorBlock;
 import com.dopa.randomutilities.fishnet.FishnetBlock;
+import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
-import com.dopa.randomutilities.machine.generator.ResourceGeneratorBlock;
-import com.dopa.randomutilities.machine.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlock;
+import com.dopa.randomutilities.solarpanel.SolarPanelControllerBlock;
+import com.dopa.randomutilities.transfer.TransferNodeBlock;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -18,6 +24,7 @@ import net.minecraft.world.level.LevelReader;
 
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
+import java.util.List;
 
 /** Machine / fishnet upgrade with a config-driven tooltip. */
 public class MachineUpgradeItem extends Item {
@@ -42,6 +49,31 @@ public class MachineUpgradeItem extends Item {
         TREASURE_MESH(
                 "item.dopasrandomutilities.treasure_mesh_upgrade.tooltip",
                 () -> 0,
+                false
+        ),
+        ENERGY(
+                "item.dopasrandomutilities.energy_upgrade.tooltip",
+                () -> 100,
+                false
+        ),
+        EFFICIENCY(
+                "item.dopasrandomutilities.efficiency_upgrade.tooltip",
+                UpgradeConfig::efficiencyBonusPercent,
+                true
+        ),
+        RANGE(
+                "item.dopasrandomutilities.range_upgrade.tooltip",
+                UpgradeConfig::rangeBonus,
+                false
+        ),
+        STACK(
+                "item.dopasrandomutilities.stack_upgrade.tooltip",
+                () -> 0,
+                false
+        ),
+        FLUID_CAPACITY(
+                "item.dopasrandomutilities.fluid_capacity_upgrade.tooltip",
+                () -> 100,
                 false
         );
 
@@ -79,6 +111,50 @@ public class MachineUpgradeItem extends Item {
         return kind;
     }
 
+    /** Display name without the "Upgrade" suffix (empty-slot supported lists). */
+    public Component shortName() {
+        return Component.translatable(getDescriptionId() + ".short");
+    }
+
+    /** Gray description used both in the inventory hover and in installed-slot tooltips. */
+    public Component descriptionLine() {
+        if (kind == Kind.RANGE) {
+            return Component.translatable(
+                    kind.tooltipKey(),
+                    Component.literal(Integer.toString(kind.percent())).withStyle(ChatFormatting.GREEN)
+            ).withStyle(ChatFormatting.GRAY);
+        }
+        if (kind == Kind.STACK) {
+            return Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
+        }
+        if (kind == Kind.ENERGY || kind == Kind.FLUID_CAPACITY) {
+            return Component.translatable(
+                    kind.tooltipKey(),
+                    Component.literal(UpgradeConfig.piBonusDisplay()).withStyle(ChatFormatting.GREEN)
+            ).withStyle(ChatFormatting.GRAY);
+        }
+        MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
+        if (kind.showsPercent()) {
+            line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        }
+        return line;
+    }
+
+    public java.util.List<Component> descriptionLines() {
+        if (kind == Kind.STACK) {
+            return List.of(
+                    descriptionLine(),
+                    Component.translatable(kind.tooltipKey() + ".capacity")
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(Component.literal("+" + UpgradeConfig.STACK_ITEMS_PER_UPGRADE)
+                                    .withStyle(ChatFormatting.GREEN))
+                            .append(Component.translatable(kind.tooltipKey() + ".capacity_suffix")
+                                    .withStyle(ChatFormatting.GRAY))
+            );
+        }
+        return List.of(descriptionLine());
+    }
+
     /**
      * Allow shift-right-click to reach the generator block (vanilla otherwise suppresses
      * block use while sneaking with an item in hand).
@@ -88,7 +164,13 @@ public class MachineUpgradeItem extends Item {
         var block = level.getBlockState(pos).getBlock();
         return block instanceof ResourceGeneratorBlock
                 || block instanceof SolarFurnaceBlock
-                || block instanceof FishnetBlock;
+                || block instanceof FishnetBlock
+                || block instanceof AdvancedBlockBreakerBlock
+                || block instanceof AdvancedBlockPlacerBlock
+                || block instanceof ItemCollectorBlock
+                || block instanceof TransferNodeBlock
+                || block instanceof CombustionGeneratorBlock
+                || block instanceof SolarPanelControllerBlock;
     }
 
     @Override
@@ -99,10 +181,8 @@ public class MachineUpgradeItem extends Item {
             Consumer<Component> tooltip,
             TooltipFlag flag
     ) {
-        MutableComponent line = Component.translatable(kind.tooltipKey()).withStyle(ChatFormatting.GRAY);
-        if (kind.showsPercent()) {
-            line.append(Component.literal(kind.percent() + "%").withStyle(ChatFormatting.GREEN));
+        for (Component line : descriptionLines()) {
+            tooltip.accept(line);
         }
-        tooltip.accept(line);
     }
 }

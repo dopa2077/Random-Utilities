@@ -1,10 +1,8 @@
 package com.dopa.randomutilities.itemcollector.client.panel;
 
-import com.dopa.randomutilities.client.gui.AttachedPanel;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.itemcollector.ItemCollectorType;
+import com.dopa.randomutilities.gui.panel.AttachedPanel;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
 import com.dopa.randomutilities.itemcollector.client.ItemCollectorScreen;
-import com.dopa.randomutilities.itemcollector.config.ItemCollectorConfig;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.itemcollector.network.ItemCollectorSettingPayload;
 
@@ -47,9 +45,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
     private static final int DELAY_BOX_Y = 94;
     private static final int BATCH_LABEL_Y = 116;
     private static final int BATCH_BOX_Y = 126;
-    private static final int LOS_LABEL_Y = 144;
-    private static final int LOS_BUTTON_Y = 158;
-    private static final int LOS_BUTTON_H = 14;
 
     private final ItemCollectorScreen screen;
     private StepperButton rangeXMinus;
@@ -61,7 +56,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
     private EditBox delayBox;
     private EditBox batchBox;
     private Button infiniteDelayButton;
-    private Button losButton;
     private boolean widgetsCreated;
     private boolean delayWasFocused;
     private boolean batchWasFocused;
@@ -74,7 +68,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         super(
                 PanelAnchor.LEFT_BELOW,
                 PANEL_W,
-                screen.getMenu().collectorType() == ItemCollectorType.ADVANCED ? 180 : 148,
+                148,
                 BG,
                 Component.translatable("gui.dopasrandomutilities.panel.config")
         );
@@ -86,7 +80,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
             return;
         }
         widgetsCreated = true;
-        ItemCollectorType type = screen.getMenu().collectorType();
         int innerWidth = panelWidth - CONTENT_PAD * 2;
 
         rangeXMinus = stepperButton("-", ItemCollectorSettingPayload.KIND_RANGE_X, -1);
@@ -107,14 +100,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
                 .bounds(0, 0, 20, 12)
                 .tooltip(Tooltip.create(Component.translatable("gui.dopasrandomutilities.item_collector.infinite_delay")))
                 .build();
-
-        if (type.supportsLineOfSight()) {
-            losButton = Button.builder(Component.empty(), b -> toggleLos())
-                    .bounds(0, 0, innerWidth, LOS_BUTTON_H)
-                    .build();
-            screen.addOverlayWidget(losButton);
-            refreshLosButton();
-        }
 
         screen.addOverlayWidget(rangeXMinus);
         screen.addOverlayWidget(rangeXPlus);
@@ -156,10 +141,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         return bodyX + panelWidth - CONTENT_PAD - STEPPER_RIGHT_INSET - stepperGroupWidth();
     }
 
-    private TrayBounds losTray(int bodyX, int bodyY) {
-        return innerButtonTray(bodyX, bodyY, LOS_BUTTON_Y, LOS_BUTTON_H, TRAY_PAD);
-    }
-
     private TrayBounds rangeStepperTrayBounds(int bodyX, int bodyY) {
         return trayBoundsAt(
                 stepperGroupX(bodyX),
@@ -183,8 +164,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
                 || isOverVisible(rangeZPlus, mouseX, mouseY)
                 || isOverVisible(delayBox, mouseX, mouseY)
                 || isOverVisible(batchBox, mouseX, mouseY)
-                || isOverVisible(infiniteDelayButton, mouseX, mouseY)
-                || (losButton != null && isOverVisible(losButton, mouseX, mouseY));
+                || isOverVisible(infiniteDelayButton, mouseX, mouseY);
     }
 
     private static boolean isOverVisible(AbstractWidget widget, double mouseX, double mouseY) {
@@ -205,19 +185,12 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
             return false;
         }
         TrayBounds tray = rangeStepperTrayBounds(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
-        if (isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height())) {
-            return true;
-        }
-        if (losButton == null) {
-            return false;
-        }
-        TrayBounds los = losTray(bodyXOpen(leftPos, imageWidth), bodyY(topPos));
-        return isMouseOverRect(mouseX, mouseY, los.x(), los.y(), los.width(), los.height());
+        return isMouseOverRect(mouseX, mouseY, tray.x(), tray.y(), tray.width(), tray.height());
     }
 
     private void adjustRange(byte kind, int delta) {
         ItemCollectorMenu menu = screen.getMenu();
-        ItemCollectorType type = menu.collectorType();
+        int max = menu.maxRange();
         int current = switch (kind) {
             case ItemCollectorSettingPayload.KIND_RANGE_X -> menu.getRangeX();
             case ItemCollectorSettingPayload.KIND_RANGE_Y -> menu.getRangeY();
@@ -226,9 +199,9 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         };
         int next;
         if (screen.isShiftHeldPublic()) {
-            next = delta > 0 ? type.maxRange() : 0;
+            next = delta > 0 ? max : 0;
         } else {
-            next = type.clampRange(current + delta);
+            next = Math.max(0, Math.min(max, current + delta));
         }
         if (next == current) {
             return;
@@ -250,42 +223,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
                 Integer.MAX_VALUE
         ));
         delayBox.setValue("\u221E");
-    }
-
-    private void toggleLos() {
-        if (!ItemCollectorConfig.lineOfSightEnabled()) {
-            return;
-        }
-        boolean next = !screen.getMenu().isRequireLineOfSight();
-        ClientPacketDistributor.sendToServer(new ItemCollectorSettingPayload(
-                ItemCollectorSettingPayload.KIND_REQUIRE_LOS,
-                next ? 1 : 0
-        ));
-        refreshLosButton();
-    }
-
-    private void refreshLosButton() {
-        if (losButton == null) {
-            return;
-        }
-        boolean configEnabled = ItemCollectorConfig.lineOfSightEnabled();
-        boolean enabled = screen.getMenu().isRequireLineOfSight();
-        losButton.setMessage(Component.translatable(enabled
-                ? "gui.dopasrandomutilities.item_collector.los.enabled"
-                : "gui.dopasrandomutilities.item_collector.los.disabled"));
-        losButton.active = contentsInteractive() && configEnabled;
-        losButton.setTooltip(Tooltip.create(losTooltip(configEnabled)));
-    }
-
-    private static Component losTooltip(boolean configEnabled) {
-        if (!configEnabled) {
-            return Component.translatable("gui.dopasrandomutilities.item_collector.los.tooltip.config_disabled")
-                    .withStyle(ChatFormatting.RED);
-        }
-        return Component.translatable("gui.dopasrandomutilities.item_collector.los.tooltip")
-                .append("\n\n")
-                .append(Component.translatable("gui.dopasrandomutilities.item_collector.los.tooltip.bugged")
-                        .withStyle(ChatFormatting.YELLOW));
     }
 
     @Override
@@ -312,13 +249,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         batchBox.setX(bx + CONTENT_PAD);
         batchBox.setY(by + BATCH_BOX_Y);
         batchBox.setWidth(innerWidth);
-
-        if (losButton != null) {
-            losButton.setX(bx + CONTENT_PAD);
-            losButton.setY(by + LOS_BUTTON_Y);
-            losButton.setWidth(innerWidth);
-            losButton.setHeight(LOS_BUTTON_H);
-        }
     }
 
     private void layoutStepperRow(int by, int rowY, StepperButton minus, StepperButton plus, int groupX, int valueX) {
@@ -343,10 +273,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         batchBox.active = interactive;
         infiniteDelayButton.visible = interactive;
         infiniteDelayButton.active = interactive;
-        if (losButton != null) {
-            losButton.visible = interactive;
-            losButton.active = interactive && ItemCollectorConfig.lineOfSightEnabled();
-        }
         updateStepperStates(interactive);
         if (!interactive && (delayBox.isFocused() || batchBox.isFocused())) {
             screen.clearFocus();
@@ -358,8 +284,7 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
             return;
         }
         ItemCollectorMenu menu = screen.getMenu();
-        ItemCollectorType type = menu.collectorType();
-        int max = type.maxRange();
+        int max = menu.maxRange();
         rangeXMinus.active = interactive && menu.getRangeX() > 0;
         rangeXPlus.active = interactive && menu.getRangeX() < max;
         rangeYMinus.active = interactive && menu.getRangeY() > 0;
@@ -379,7 +304,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
         batchWasFocused = batchBox.isFocused();
         syncUnfocusedFromMenu();
         updateStepperStates(true);
-        refreshLosButton();
     }
 
     private static void trackFocus(EditBox box, boolean wasFocused, Runnable commit) {
@@ -510,11 +434,6 @@ public final class ItemCollectorConfigPanel extends AttachedPanel {
                 "gui.dopasrandomutilities.item_collector.pickup_delay.tooltip");
         tooltipIfOverLabel(graphics, font, mouseX, mouseY, bodyX, bodyY + BATCH_LABEL_Y,
                 "gui.dopasrandomutilities.item_collector.pickup_batch.tooltip");
-        if (losButton != null) {
-            drawLabel(graphics, font, Component.translatable("gui.dopasrandomutilities.item_collector.los"),
-                    bodyX, bodyY + LOS_LABEL_Y);
-            renderTray(graphics, losTray(bodyX, bodyY), BG);
-        }
     }
 
     private void tooltipIfOverLabel(

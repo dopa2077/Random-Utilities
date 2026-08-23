@@ -1,6 +1,7 @@
 package com.dopa.randomutilities.fishnet;
 
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
+import com.dopa.randomutilities.machine.OwnableMachine;
 import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
@@ -14,6 +15,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUtils;
@@ -84,6 +86,11 @@ public class FishnetBlock extends BaseEntityBlock implements SimpleWaterloggedBl
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+        return true;
     }
 
     @Override
@@ -159,6 +166,14 @@ public class FishnetBlock extends BaseEntityBlock implements SimpleWaterloggedBl
         shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
                 result[0] = Shapes.or(result[0], Shapes.box(1.0 - maxZ, minY, minX, 1.0 - minZ, maxY, maxX)));
         return result[0];
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.getBlockEntity(pos) instanceof BlockEntity be) {
+            OwnableMachine.bindPlacer(be, placer);
+        }
     }
 
     @Nullable

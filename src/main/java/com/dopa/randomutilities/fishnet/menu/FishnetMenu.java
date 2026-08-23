@@ -6,7 +6,7 @@ import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.registry.ModMenus;
-import com.dopa.randomutilities.util.PanelLayout;
+import com.dopa.randomutilities.gui.panel.PanelLayout;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;

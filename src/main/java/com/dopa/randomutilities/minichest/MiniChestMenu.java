@@ -16,10 +16,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class MiniChestMenu extends AbstractContainerMenu {
-    /** Centered slot above a standard player inventory (chest-style chrome). */
+    /** Centered slot above a hopper-sized player inventory. */
     public static final int CHEST_SLOT_X = 80;
-    public static final int CHEST_SLOT_Y = 18;
-    public static final int PLAYER_INV_Y = 49;
+    public static final int CHEST_SLOT_Y = 20;
+    public static final int PLAYER_INV_Y = 51;
 
     private final MiniChestBlockEntity chest;
     private final ContainerLevelAccess access;

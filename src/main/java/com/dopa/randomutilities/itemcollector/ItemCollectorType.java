@@ -9,18 +9,18 @@ public enum ItemCollectorType {
             "basic_item_collector",
             3,
             5,
-            20,
-            64,
-            false,
-            false
+            60,
+            16,
+            16,
+            true
     ),
     ADVANCED(
             "advanced_item_collector",
             8,
             10,
-            1,
-            256,
-            true,
+            20,
+            64,
+            32,
             true
     );
 
@@ -29,8 +29,8 @@ public enum ItemCollectorType {
     private final int maxRange;
     private final int minPickupDelay;
     private final int maxPickupBatch;
+    private final int maxRangeUpgrades;
     private final boolean supportsWhitelist;
-    private final boolean supportsLineOfSight;
 
     ItemCollectorType(
             String id,
@@ -38,16 +38,16 @@ public enum ItemCollectorType {
             int maxRange,
             int minPickupDelay,
             int maxPickupBatch,
-            boolean supportsWhitelist,
-            boolean supportsLineOfSight
+            int maxRangeUpgrades,
+            boolean supportsWhitelist
     ) {
         this.id = id;
         this.filterSlotCount = filterSlotCount;
         this.maxRange = maxRange;
         this.minPickupDelay = minPickupDelay;
         this.maxPickupBatch = maxPickupBatch;
+        this.maxRangeUpgrades = maxRangeUpgrades;
         this.supportsWhitelist = supportsWhitelist;
-        this.supportsLineOfSight = supportsLineOfSight;
     }
 
     public String id() {
@@ -70,12 +70,12 @@ public enum ItemCollectorType {
         return maxPickupBatch;
     }
 
-    public boolean supportsWhitelist() {
-        return supportsWhitelist;
+    public int maxRangeUpgrades() {
+        return maxRangeUpgrades;
     }
 
-    public boolean supportsLineOfSight() {
-        return supportsLineOfSight;
+    public boolean supportsWhitelist() {
+        return supportsWhitelist;
     }
 
     public Block block() {

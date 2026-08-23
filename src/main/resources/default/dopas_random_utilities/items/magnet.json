@@ -1,0 +1,9 @@
+{
+  "base_range": 4,
+  "max_range": 8,
+  "base_ticks": 10,
+  "pull_speed": 0.22,
+  "base_pickup_batch": 1,
+  "max_pickup_batch": 64,
+  "base_entities": 8
+}

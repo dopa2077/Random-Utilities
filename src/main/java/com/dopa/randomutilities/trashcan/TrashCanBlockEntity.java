@@ -92,7 +92,7 @@ public class TrashCanBlockEntity extends BlockEntity {
         if (resource.isEmpty()) {
             return false;
         }
-        return GhostItemFilter.allows(resource.toStack(), filterSlots, whitelistMode);
+        return GhostItemFilter.allows(resource, filterSlots, whitelistMode);
     }
 
     public boolean allowsItem(ItemStack stack) {

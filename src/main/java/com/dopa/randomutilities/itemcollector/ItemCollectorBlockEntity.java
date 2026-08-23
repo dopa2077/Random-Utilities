@@ -2,12 +2,16 @@ package com.dopa.randomutilities.itemcollector;
 
 import com.dopa.randomutilities.machine.RedstoneControl;
 import com.dopa.randomutilities.machine.RedstoneMode;
+import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
+
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -27,19 +31,24 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     int tickCounter;
 
     private final NonNullList<ItemStack> filterSlots = NonNullList.withSize(MAX_FILTER_SLOTS, ItemStack.EMPTY);
+    private final CollectorUpgradeInventory upgrades =
+            new CollectorUpgradeInventory(UpgradeConfig.UPGRADE_SLOT_COUNT, () -> collectorType().maxRangeUpgrades());
     private boolean whitelistMode;
     private int rangeX = 3;
     private int rangeY = 3;
     private int rangeZ = 3;
-    private int pickupDelay = 20;
+    private int pickupDelay = 60;
     private int pickupBatch = 1;
-    private boolean requireLineOfSight;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORE;
     private int overlayColor = DEFAULT_OVERLAY_COLOR;
     private boolean particlesEnabled = true;
+    private int emptySweepBackoff;
+    @Nullable
+    private AABB cachedScanBox;
 
     public ItemCollectorBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ITEM_COLLECTOR.get(), pos, state);
+        upgrades.setOnChanged(this::onUpgradesChanged);
         applyInitialDefaults(ItemCollectorType.fromBlock(state.getBlock()));
     }
 
@@ -54,7 +63,6 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
         pickupDelay = type.minPickupDelay();
         pickupBatch = 1;
         whitelistMode = false;
-        requireLineOfSight = false;
         redstoneMode = RedstoneMode.IGNORE;
         overlayColor = DEFAULT_OVERLAY_COLOR;
         particlesEnabled = true;
@@ -66,7 +74,14 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     }
 
     public AABB scanBox() {
-        return scanBox(worldPosition, rangeX, rangeY, rangeZ);
+        if (cachedScanBox == null) {
+            cachedScanBox = scanBox(worldPosition, rangeX, rangeY, rangeZ);
+        }
+        return cachedScanBox;
+    }
+
+    private void invalidateScanBox() {
+        cachedScanBox = null;
     }
 
     @Override
@@ -80,8 +95,32 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
         syncToClient();
     }
 
+    public CollectorUpgradeInventory upgrades() {
+        return upgrades;
+    }
+
     public NonNullList<ItemStack> filterSlots() {
         return filterSlots;
+    }
+
+    public int insertUpgrade(ItemStack stack) {
+        return upgrades.insertFrom(stack);
+    }
+
+    public int maxRange() {
+        return collectorType().maxRange() + UpgradeConfig.extraRange(upgrades.rangeCount());
+    }
+
+    public int clampRange(int value) {
+        return Math.max(0, Math.min(maxRange(), value));
+    }
+
+    private void onUpgradesChanged() {
+        rangeX = clampRange(rangeX);
+        rangeY = clampRange(rangeY);
+        rangeZ = clampRange(rangeZ);
+        invalidateScanBox();
+        syncToClient();
     }
 
     public int activeFilterSlotCount() {
@@ -93,10 +132,6 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     }
 
     public void setWhitelistMode(boolean whitelistMode) {
-        if (!collectorType().supportsWhitelist()) {
-            this.whitelistMode = false;
-            return;
-        }
         this.whitelistMode = whitelistMode;
         setChanged();
     }
@@ -121,8 +156,23 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
         return pickupBatch;
     }
 
-    public boolean requireLineOfSight() {
-        return requireLineOfSight;
+    int emptySweepBackoff() {
+        return emptySweepBackoff;
+    }
+
+    void tickEmptySweepBackoff() {
+        if (emptySweepBackoff > 0) {
+            emptySweepBackoff--;
+        }
+    }
+
+    void onEmptySweep() {
+        // Extra delay before the next AABB entity query when nothing was picked up.
+        emptySweepBackoff = Math.min(4, Math.max(1, pickupDelay / 20));
+    }
+
+    void onSuccessfulSweep() {
+        emptySweepBackoff = 0;
     }
 
     public int overlayColor() {
@@ -134,17 +184,20 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     }
 
     public void setRangeX(int rangeX) {
-        this.rangeX = collectorType().clampRange(rangeX);
+        this.rangeX = clampRange(rangeX);
+        invalidateScanBox();
         syncToClient();
     }
 
     public void setRangeY(int rangeY) {
-        this.rangeY = collectorType().clampRange(rangeY);
+        this.rangeY = clampRange(rangeY);
+        invalidateScanBox();
         syncToClient();
     }
 
     public void setRangeZ(int rangeZ) {
-        this.rangeZ = collectorType().clampRange(rangeZ);
+        this.rangeZ = clampRange(rangeZ);
+        invalidateScanBox();
         syncToClient();
     }
 
@@ -156,15 +209,6 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
 
     public void setPickupBatch(int pickupBatch) {
         this.pickupBatch = collectorType().clampPickupBatch(pickupBatch);
-        setChanged();
-    }
-
-    public void setRequireLineOfSight(boolean requireLineOfSight) {
-        if (!collectorType().supportsLineOfSight()) {
-            this.requireLineOfSight = false;
-            return;
-        }
-        this.requireLineOfSight = requireLineOfSight;
         setChanged();
     }
 
@@ -198,6 +242,7 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
     }
 
     public void dropFilters(Level level, BlockPos pos) {
+        upgrades.dropAt(level, pos);
         for (int i = 0; i < activeFilterSlotCount(); i++) {
             filterSlots.set(i, ItemStack.EMPTY);
         }
@@ -237,26 +282,22 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
         rangeZ = input.getIntOr("RangeZ", 3);
         pickupDelay = input.getIntOr("PickupDelay", 20);
         pickupBatch = input.getIntOr("PickupBatch", 1);
-        requireLineOfSight = input.getBooleanOr("RequireLineOfSight", false);
         redstoneMode = RedstoneMode.byOrdinal(input.getIntOr("RedstoneMode", 0));
         tickCounter = input.getIntOr("TickCounter", 0);
         overlayColor = input.getIntOr("OverlayColor", DEFAULT_OVERLAY_COLOR) & 0xFFFFFF;
         particlesEnabled = input.getBooleanOr("ParticlesEnabled", true);
+        upgrades.loadSlots(input);
+        upgrades.trimToCap();
         clampToType(collectorType());
     }
 
     private void clampToType(ItemCollectorType type) {
-        rangeX = type.clampRange(rangeX);
-        rangeY = type.clampRange(rangeY);
-        rangeZ = type.clampRange(rangeZ);
+        rangeX = clampRange(rangeX);
+        rangeY = clampRange(rangeY);
+        rangeZ = clampRange(rangeZ);
         pickupDelay = type.clampPickupDelay(pickupDelay);
         pickupBatch = type.clampPickupBatch(pickupBatch);
-        if (!type.supportsWhitelist()) {
-            whitelistMode = false;
-        }
-        if (!type.supportsLineOfSight()) {
-            requireLineOfSight = false;
-        }
+        invalidateScanBox();
     }
 
     @Override
@@ -274,11 +315,11 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
         output.putInt("RangeZ", rangeZ);
         output.putInt("PickupDelay", pickupDelay);
         output.putInt("PickupBatch", pickupBatch);
-        output.putBoolean("RequireLineOfSight", requireLineOfSight);
         output.putInt("RedstoneMode", redstoneMode.ordinal());
         output.putInt("TickCounter", tickCounter);
         output.putInt("OverlayColor", overlayColor & 0xFFFFFF);
         output.putBoolean("ParticlesEnabled", particlesEnabled);
+        upgrades.saveSlots(output);
     }
 
     @Override
@@ -294,12 +335,25 @@ public class ItemCollectorBlockEntity extends BlockEntity implements RedstoneCon
 
     @Override
     public void handleUpdateTag(ValueInput input) {
+        applyClientSync(input);
+    }
+
+    /**
+     * Default {@code onDataPacket} runs {@code loadAdditional} with the sparse update tag and
+     * wipes client upgrade stacks (menu slots read those via {@code StackCopySlot}).
+     */
+    @Override
+    public void onDataPacket(Connection net, ValueInput valueInput) {
+        applyClientSync(valueInput);
+    }
+
+    private void applyClientSync(ValueInput input) {
         rangeX = input.getIntOr("RangeX", rangeX);
         rangeY = input.getIntOr("RangeY", rangeY);
         rangeZ = input.getIntOr("RangeZ", rangeZ);
         overlayColor = input.getIntOr("OverlayColor", overlayColor) & 0xFFFFFF;
         particlesEnabled = input.getBooleanOr("ParticlesEnabled", particlesEnabled);
-        clampToType(collectorType());
+        invalidateScanBox();
     }
 
     @Override

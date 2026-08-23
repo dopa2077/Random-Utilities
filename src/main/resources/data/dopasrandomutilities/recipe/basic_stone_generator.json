@@ -3,13 +3,13 @@
   "category": "misc",
   "key": {
     "C": "#c:cobblestones",
-    "G": "#c:glass_blocks/colorless",
+    "F": "dopasrandomutilities:simple_core_frame",
     "L": "minecraft:lava_bucket",
     "W": "minecraft:water_bucket"
   },
   "pattern": [
     "CCC",
-    "LGW",
+    "LFW",
     "CCC"
   ],
   "result": {

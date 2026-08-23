@@ -1,7 +1,6 @@
 package com.dopa.randomutilities.itemcollector.network;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.itemcollector.config.ItemCollectorConfig;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
 
@@ -20,7 +19,6 @@ public record ItemCollectorSettingPayload(byte kind, int value) implements Custo
     public static final byte KIND_PICKUP_DELAY = 3;
     public static final byte KIND_PICKUP_BATCH = 4;
     public static final byte KIND_FILTER_MODE = 5;
-    public static final byte KIND_REQUIRE_LOS = 6;
     public static final byte KIND_REDSTONE = 7;
     public static final byte KIND_COLOR = 8;
     public static final byte KIND_PARTICLES = 9;
@@ -42,7 +40,7 @@ public record ItemCollectorSettingPayload(byte kind, int value) implements Custo
     public static void handle(ItemCollectorSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (!(player.containerMenu instanceof ItemCollectorMenu menu)) {
+            if (!(player.containerMenu instanceof ItemCollectorMenu menu) || !menu.stillValid(player)) {
                 return;
             }
             switch (payload.kind()) {
@@ -52,12 +50,6 @@ public record ItemCollectorSettingPayload(byte kind, int value) implements Custo
                 case KIND_PICKUP_DELAY -> menu.setPickupDelay(payload.value());
                 case KIND_PICKUP_BATCH -> menu.setPickupBatch(payload.value());
                 case KIND_FILTER_MODE -> menu.setWhitelistMode(payload.value() != 0);
-                case KIND_REQUIRE_LOS -> {
-                    if (!ItemCollectorConfig.lineOfSightEnabled()) {
-                        return;
-                    }
-                    menu.setRequireLineOfSight(payload.value() != 0);
-                }
                 case KIND_REDSTONE -> menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 case KIND_COLOR -> menu.setOverlayColor(payload.value());
                 case KIND_PARTICLES -> menu.setParticlesEnabled(payload.value() != 0);

@@ -1,15 +1,23 @@
 package com.dopa.randomutilities.itemcollector.client;
 
-import com.dopa.randomutilities.client.gui.JeiGhostDragState;
-import com.dopa.randomutilities.client.gui.PanelAnchor;
-import com.dopa.randomutilities.client.gui.PanelHost;
+import com.dopa.randomutilities.filter.client.GhostFilterClicks;
+import com.dopa.randomutilities.gui.widget.FilterModeButton;
+import com.dopa.randomutilities.gui.widget.FilterModeIcon;
+import com.dopa.randomutilities.gui.widget.FilterRow;
+import com.dopa.randomutilities.gui.widget.IconButton;
+import com.dopa.randomutilities.gui.widget.JeiGhostDragState;
+import com.dopa.randomutilities.gui.panel.PanelAnchor;
+import com.dopa.randomutilities.gui.panel.PanelHost;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.itemcollector.network.ItemCollectorSettingPayload;
 import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorConfigPanel;
 import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorCosmeticPanel;
-import com.dopa.randomutilities.itemcollector.client.panel.ItemCollectorInformativePanel;
+import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
+import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.client.panel.MachineRedstonePanel;
+import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
+import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
+import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -17,19 +25,15 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
@@ -39,25 +43,20 @@ import java.util.function.Supplier;
 
 public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMenu>
         implements MachineRedstonePanel.Host {
-    private static final Identifier CHEST_BACKGROUND =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
-    private static final Identifier BLACKLIST_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/blacklist_icon.png");
-    private static final Identifier WHITELIST_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/whitelist_icon.png");
+    /** Hopper chrome; the 5 hopper wells are covered and replaced by {@code FilterRow}. */
+    private static final Identifier BACKGROUND =
+            Identifier.withDefaultNamespace("textures/gui/container/hopper.png");
     private static final Identifier RANGE_OVERLAY_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/hitbox.png");
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/widget/hitbox.png");
 
     private static final int TEXTURE_SIZE = 256;
     private static final int BODY_COLOR = 0xFFC6C6C6;
-    private static final int PLAYER_INV_HEIGHT = 96;
-    private static final int IMAGE_HEIGHT = 114 + 18;
-    private static final int FOOTER_Y = 35;
-    private static final int ICON_SIZE = 16;
-    private static final int ICON_Y = 18;
+    private static final int IMAGE_HEIGHT = 133;
+    private static final int HOPPER_WELL_X = 43;
+    private static final int HOPPER_WELL_Y = 19;
+    private static final int HOPPER_WELL_W = 90;
+    private static final int HOPPER_WELL_H = 18;
     private static final int OVERLAY_BUTTON_SIZE = 13;
-    private static final int OVERLAY_ICON_SIZE = 11;
 
     private final PanelHost panelHost = new PanelHost();
     @Nullable
@@ -67,7 +66,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     @Nullable
     private ItemCollectorCosmeticPanel cosmeticPanel;
     @Nullable
-    private Button modeButton;
+    private FilterModeButton modeButton;
     @Nullable
     private IconButton rangeOverlayButton;
 
@@ -125,7 +124,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         cosmeticPanel = null;
         redstonePanel = null;
 
-        panelHost.add(new ItemCollectorInformativePanel(menu.collectorType()));
+        panelHost.add(new ScrollingInfoPanel(infoParagraphKeys(menu.collectorType())));
 
         configPanel = new ItemCollectorConfigPanel(this);
         panelHost.add(configPanel);
@@ -135,9 +134,11 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         panelHost.add(cosmeticPanel);
         cosmeticPanel.initWidgets();
 
+        panelHost.add(new MachineUpgradePanel(menu.getUpgradeSlots(), PanelAnchor.RIGHT_TOP, 0));
+
         redstonePanel = new MachineRedstonePanel(
                 this,
-                PanelAnchor.RIGHT_TOP,
+                PanelAnchor.RIGHT_BELOW,
                 0,
                 mode -> ClientPacketDistributor.sendToServer(new ItemCollectorSettingPayload(
                         ItemCollectorSettingPayload.KIND_REDSTONE,
@@ -153,24 +154,20 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
                 leftPos + imageWidth - OVERLAY_BUTTON_SIZE - 4,
                 topPos + 4,
                 OVERLAY_BUTTON_SIZE,
-                OVERLAY_ICON_SIZE,
                 RANGE_OVERLAY_ICON,
                 rangeOverlayTooltip(),
                 this::toggleRangeOverlay
         );
         addRenderableWidget(rangeOverlayButton);
 
-        if (menu.collectorType().supportsWhitelist()) {
-            int iconX = ItemCollectorMenu.iconX(menu.collectorType());
-            modeButton = Button.builder(Component.empty(), b -> toggleFilterMode())
-                    .bounds(leftPos + iconX, topPos + ICON_Y, ICON_SIZE, ICON_SIZE)
-                    .tooltip(Tooltip.create(Component.translatable(
-                            menu.isWhitelistMode()
-                                    ? "gui.dopasrandomutilities.item_collector.whitelist"
-                                    : "gui.dopasrandomutilities.item_collector.blacklist")))
-                    .build();
-            addRenderableWidget(modeButton);
-        }
+        int iconX = ItemCollectorMenu.iconX(menu.collectorType());
+        modeButton = new FilterModeButton(
+                leftPos + iconX,
+                topPos + ItemCollectorMenu.FILTER_SLOT_Y,
+                filterModeTooltip(),
+                this::toggleFilterMode
+        );
+        addRenderableWidget(modeButton);
     }
 
     public boolean isShiftHeldPublic() {
@@ -218,18 +215,23 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     @Override
     protected void containerTick() {
         super.containerTick();
-        panelHost.tick();
         panelHost.layoutWidgets(leftPos, topPos, imageWidth);
         if (modeButton != null) {
-            modeButton.setTooltip(Tooltip.create(Component.translatable(
-                    menu.isWhitelistMode()
-                            ? "gui.dopasrandomutilities.item_collector.whitelist"
-                            : "gui.dopasrandomutilities.item_collector.blacklist")));
+            modeButton.updateTooltip(filterModeTooltip());
         }
     }
 
     @Override
+    protected void slotClicked(Slot slot, int slotIndex, int mouseButton, ContainerInput type) {
+        if (GhostFilterClicks.blockDrag(slot, mouseButton, type)) {
+            return;
+        }
+        super.slotClicked(slot, slotIndex, mouseButton, type);
+    }
+
+    @Override
     public void onClose() {
+        GhostFilterClicks.reset();
         JeiGhostDragState.endDrag();
         if (configPanel != null) {
             configPanel.onScreenClose();
@@ -240,21 +242,29 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        panelHost.tick();
         panelHost.render(graphics, font, leftPos, topPos, imageWidth, mouseX, mouseY, partialTick);
 
         int xo = leftPos;
         int yo = topPos;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo, 0.0F, 0.0F,
-                imageWidth, FOOTER_Y, TEXTURE_SIZE, TEXTURE_SIZE);
-        graphics.fill(xo + 7, yo + 17, xo + imageWidth - 7, yo + FOOTER_Y, BODY_COLOR);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST_BACKGROUND, xo, yo + FOOTER_Y,
-                0.0F, 126.0F, imageWidth, PLAYER_INV_HEIGHT, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND, xo, yo, 0.0F, 0.0F,
+                imageWidth, imageHeight, TEXTURE_SIZE, TEXTURE_SIZE);
+        graphics.fill(
+                xo + HOPPER_WELL_X,
+                yo + HOPPER_WELL_Y,
+                xo + HOPPER_WELL_X + HOPPER_WELL_W,
+                yo + HOPPER_WELL_Y + HOPPER_WELL_H,
+                BODY_COLOR
+        );
 
-        for (int i = 0; i < menu.collectorType().filterSlotCount(); i++) {
-            Slot slot = menu.slots.get(i);
-            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, xo + slot.x, yo + slot.y, 16, 16);
-        }
+        int filterCount = menu.collectorType().filterSlotCount();
+        int filterStart = menu.filterSlotStart();
+        FilterRow.blit(
+                graphics,
+                xo + ItemCollectorMenu.iconX(menu.collectorType()),
+                yo + ItemCollectorMenu.FILTER_SLOT_Y,
+                filterCount,
+                i -> menu.slots.get(filterStart + i).hasItem()
+        );
     }
 
     @Override
@@ -266,13 +276,25 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         Component tabTooltip = panelHost.hoveredTabTooltip(mouseX, mouseY, leftPos, topPos, imageWidth);
         if (tabTooltip != null) {
             graphics.setTooltipForNextFrame(font, tabTooltip, mouseX, mouseY);
+            return;
         }
+        UpgradeSlotTooltips.applyHover(
+                graphics,
+                font,
+                mouseX,
+                mouseY,
+                hoveredSlot,
+                hoveredSlot != null && menu.isUpgradeSlotIndex(hoveredSlot.index),
+                menu.blockEntity().upgrades()
+        );
+        FilterRow.applyEmptyHover(graphics, font, mouseX, mouseY, hoveredSlot);
     }
 
     private void renderGhostSlotTints(GuiGraphicsExtractor graphics) {
         int count = menu.collectorType().filterSlotCount();
+        int start = menu.filterSlotStart();
         for (int i = 0; i < count; i++) {
-            Slot slot = menu.slots.get(i);
+            Slot slot = menu.slots.get(start + i);
             if (!slot.hasItem()) {
                 continue;
             }
@@ -284,20 +306,20 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
 
     private void renderFilterModeIcon(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int iconX = ItemCollectorMenu.iconX(menu.collectorType());
-        Identifier icon = menu.collectorType().supportsWhitelist() && menu.isWhitelistMode()
-                ? WHITELIST_ICON
-                : BLACKLIST_ICON;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, icon, leftPos + iconX, topPos + ICON_Y,
-                0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        if (!menu.collectorType().supportsWhitelist()
-                && isHovering(iconX, ICON_Y, ICON_SIZE, ICON_SIZE, mouseX, mouseY)) {
-            graphics.setTooltipForNextFrame(
-                    font,
-                    Component.translatable("gui.dopasrandomutilities.item_collector.blacklist"),
-                    mouseX,
-                    mouseY
-            );
-        }
+        boolean hovered = modeButton != null && modeButton.isHovered();
+        FilterModeIcon.render(
+                graphics,
+                menu.isWhitelistMode(),
+                leftPos + iconX,
+                topPos + ItemCollectorMenu.FILTER_SLOT_Y,
+                hovered
+        );
+    }
+
+    private Component filterModeTooltip() {
+        return Component.translatable(menu.isWhitelistMode()
+                ? "gui.dopasrandomutilities.item_collector.whitelist"
+                : "gui.dopasrandomutilities.item_collector.blacklist");
     }
 
     @Override
@@ -317,9 +339,12 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         boolean overConfigControl = configPanel != null
                 && configPanel.contentsInteractive()
                 && configPanel.isMouseOverInteractiveWidget(event.x(), event.y());
+        boolean overCosmeticControl = cosmeticPanel != null
+                && cosmeticPanel.contentsInteractive()
+                && cosmeticPanel.isMouseOverInteractiveWidget(event.x(), event.y());
         // Open body covers sibling tabs at the attachment edge — handle body/scrollbar first.
         // Closed sibling tabs can still overlap config widgets; prefer the widget when on one.
-        if (overBody || overConfigControl) {
+        if (overBody || overConfigControl || overCosmeticControl) {
             for (int i = children().size() - 1; i >= 0; i--) {
                 GuiEventListener child = children().get(i);
                 if (child.mouseClicked(event, doubleClick)) {
@@ -346,6 +371,10 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
                 }
             }
             if (overBody) {
+                Slot slotUnder = findActiveSlotAt(event.x(), event.y());
+                if (slotUnder != null && menu.isUpgradeSlotIndex(slotUnder.index)) {
+                    return super.mouseClicked(event, doubleClick);
+                }
                 if (panelHost.mouseClicked(event.x(), event.y())) {
                     return true;
                 }
@@ -376,6 +405,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
     }
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        GhostFilterClicks.clearRightDrag();
         boolean panelHandled = panelHost.mouseReleased();
         GuiEventListener focused = getFocused();
         boolean handled = focused != null && focused.mouseReleased(event);
@@ -391,6 +421,7 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         if (panelHost.mouseDragged(event.x(), event.y())) {
             return true;
         }
+        GhostFilterClicks.onMouseDragged(event);
         return super.mouseDragged(event, dx, dy);
     }
 
@@ -402,6 +433,15 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
+    private Slot findActiveSlotAt(double mouseX, double mouseY) {
+        for (Slot slot : menu.slots) {
+            if (slot.isActive() && isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
     private static boolean isOverWidget(AbstractWidget widget, double mouseX, double mouseY) {
         return mouseX >= widget.getX()
                 && mouseY >= widget.getY()
@@ -409,58 +449,16 @@ public class ItemCollectorScreen extends AbstractContainerScreen<ItemCollectorMe
                 && mouseY < widget.getY() + widget.getHeight();
     }
 
-    private static final class IconButton extends AbstractWidget {
-        private static final WidgetSprites BUTTON_SPRITES = new WidgetSprites(
-                Identifier.withDefaultNamespace("widget/button"),
-                Identifier.withDefaultNamespace("widget/button_disabled"),
-                Identifier.withDefaultNamespace("widget/button_highlighted")
-        );
-
-        private final Identifier texture;
-        private final int iconSize;
-        private final Runnable onPress;
-
-        IconButton(int x, int y, int size, int iconSize, Identifier texture, Component tooltip, Runnable onPress) {
-            super(x, y, size, size, Component.empty());
-            this.texture = texture;
-            this.iconSize = iconSize;
-            this.onPress = onPress;
-            setTooltip(Tooltip.create(tooltip));
+    private static String[] infoParagraphKeys(ItemCollectorType type) {
+        if (type == ItemCollectorType.BASIC) {
+            return new String[] {
+                    "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                    "gui.dopasrandomutilities.panel.info.item_collector.basic"
+            };
         }
-
-        void updateTooltip(Component tooltip) {
-            setTooltip(Tooltip.create(tooltip));
-        }
-
-        @Override
-        public void onClick(MouseButtonEvent event, boolean doubleClick) {
-            if (active) {
-                onPress.run();
-            }
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            output.add(NarratedElementType.TITLE, getMessage());
-        }
-
-        @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            int x = getX();
-            int y = getY();
-            graphics.blitSprite(
-                    RenderPipelines.GUI_TEXTURED,
-                    BUTTON_SPRITES.get(active, isHoveredOrFocused()),
-                    x,
-                    y,
-                    width,
-                    height,
-                    ARGB.white(alpha)
-            );
-            int iconX = x + (width - iconSize) / 2;
-            int iconY = y + (height - iconSize) / 2;
-            graphics.blit(RenderPipelines.GUI_TEXTURED, texture, iconX, iconY, 0.0F, 0.0F,
-                    iconSize, iconSize, iconSize, iconSize);
-        }
+        return new String[] {
+                "gui.dopasrandomutilities.panel.info.item_collector.intro",
+                "gui.dopasrandomutilities.panel.info.item_collector.advanced"
+        };
     }
 }

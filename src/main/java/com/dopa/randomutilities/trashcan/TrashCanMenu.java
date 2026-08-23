@@ -1,5 +1,8 @@
 package com.dopa.randomutilities.trashcan;
 
+import com.dopa.randomutilities.filter.menu.GhostFilterHandler;
+import com.dopa.randomutilities.filter.menu.GhostFilterMenu;
+import com.dopa.randomutilities.filter.menu.GhostFilterSlot;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModMenus;
 import com.dopa.randomutilities.util.GhostItemFilter;
@@ -18,28 +21,25 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
-import net.neoforged.neoforge.world.inventory.StackCopySlot;
 
-import java.util.Optional;
-
-public class TrashCanMenu extends AbstractContainerMenu {
+public class TrashCanMenu extends AbstractContainerMenu implements GhostFilterMenu {
     public static final int DATA_WHITELIST_MODE = 0;
     public static final int DATA_SIZE = 1;
 
     public static final int IMAGE_WIDTH = 176;
+    public static final int IMAGE_HEIGHT = 155;
     public static final int CHEST_SLOT_X = 80;
-    public static final int CHEST_SLOT_Y = 18;
-    /** Advanced collector layout: icon @ 8, filters @ 26, under the trash slot. */
+    public static final int CHEST_SLOT_Y = 20;
+    /** Advanced collector layout: icon @ 8, filters @ 26, 5px under the trash slot. */
     public static final int FILTER_ICON_X = 8;
     public static final int FILTER_SLOT_X = 26;
-    public static final int FILTER_SLOT_Y = 40;
+    public static final int FILTER_SLOT_Y = 43;
     public static final int FILTER_SLOT_COUNT = TrashCanBlockEntity.FILTER_SLOT_COUNT;
-    public static final int PLAYER_INV_Y = 71;
+    public static final int PLAYER_INV_Y = 74;
 
     private final TrashCanBlockEntity trashCan;
     private final ContainerLevelAccess access;
-    private final FilterStacksHandler filterHandler;
+    private final GhostFilterHandler filterHandler;
     private final ContainerData data;
 
     public TrashCanMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf buf) {
@@ -55,7 +55,7 @@ public class TrashCanMenu extends AbstractContainerMenu {
         for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
             stacks.set(i, trashCan.filterSlots().get(i));
         }
-        this.filterHandler = new FilterStacksHandler(stacks);
+        this.filterHandler = new GhostFilterHandler(stacks);
         this.filterHandler.setOnChanged(() -> {
             saveFilters();
             trashCan.setChanged();
@@ -67,7 +67,7 @@ public class TrashCanMenu extends AbstractContainerMenu {
         // Use menu-synced filters/mode so client mayPlace matches the server (BE filters are not synced).
         this.addSlot(new TrashCanSlot(trashCan, CHEST_SLOT_X, CHEST_SLOT_Y, this::allowsInsert));
         for (int i = 0; i < FILTER_SLOT_COUNT; i++) {
-            this.addSlot(new FilterSlot(filterHandler, i, FILTER_SLOT_X + i * 18, FILTER_SLOT_Y));
+            this.addSlot(new GhostFilterSlot(filterHandler, i, FILTER_SLOT_X + i * 18, FILTER_SLOT_Y));
         }
 
         this.addStandardInventorySlots(playerInv, 8, PLAYER_INV_Y);
@@ -110,6 +110,10 @@ public class TrashCanMenu extends AbstractContainerMenu {
 
     public boolean isWhitelistMode() {
         return data.get(DATA_WHITELIST_MODE) != 0;
+    }
+
+    public boolean isInputSlot(Slot slot) {
+        return slot != null && slot.index == 0;
     }
 
     public void setWhitelistMode(boolean whitelist) {
@@ -217,6 +221,11 @@ public class TrashCanMenu extends AbstractContainerMenu {
     }
 
     @Override
+    public boolean canDragTo(Slot slot) {
+        return !slot.isFake();
+    }
+
+    @Override
     public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
         // Ghost filter slots must not participate in double-click gather.
         if (slot.isFake()) {
@@ -231,87 +240,8 @@ public class TrashCanMenu extends AbstractContainerMenu {
         saveFilters();
     }
 
-    private static final class FilterStacksHandler extends ItemStacksResourceHandler {
-        private Runnable onChanged = () -> {};
-
-        FilterStacksHandler(NonNullList<ItemStack> stacks) {
-            super(stacks);
-        }
-
-        void setOnChanged(Runnable onChanged) {
-            this.onChanged = onChanged;
-        }
-
-        @Override
-        protected int getCapacity(int index, ItemResource resource) {
-            return 1;
-        }
-
-        @Override
-        protected void onContentsChanged(int index, ItemStack previousContents) {
-            onChanged.run();
-        }
-    }
-
-    private static final class FilterSlot extends StackCopySlot {
-        private final FilterStacksHandler handler;
-        private final int handlerIndex;
-
-        FilterSlot(FilterStacksHandler handler, int handlerIndex, int x, int y) {
-            super(handlerIndex, x, y);
-            this.handler = handler;
-            this.handlerIndex = handlerIndex;
-        }
-
-        @Override
-        protected ItemStack getStackCopy() {
-            return handler.getResource(handlerIndex).toStack(handler.getAmountAsInt(handlerIndex));
-        }
-
-        @Override
-        protected void setStackCopy(ItemStack stack) {
-            if (stack.isEmpty()) {
-                handler.set(handlerIndex, ItemResource.EMPTY, 0);
-            } else {
-                handler.set(handlerIndex, ItemResource.of(stack), 1);
-            }
-        }
-
-        @Override
-        public boolean isFake() {
-            return true;
-        }
-
-        @Override
-        public boolean mayPlace(ItemStack stack) {
-            return !stack.isEmpty();
-        }
-
-        @Override
-        public boolean mayPickup(Player player) {
-            return !getItem().isEmpty();
-        }
-
-        @Override
-        public ItemStack safeInsert(ItemStack inputStack, int inputAmount) {
-            if (!inputStack.isEmpty() && mayPlace(inputStack)) {
-                set(inputStack.copyWithCount(1));
-            }
-            return inputStack;
-        }
-
-        @Override
-        public Optional<ItemStack> tryRemove(int amount, int maxAmount, Player player) {
-            if (!mayPickup(player)) {
-                return Optional.empty();
-            }
-            set(ItemStack.EMPTY);
-            return Optional.empty();
-        }
-
-        @Override
-        public int getMaxStackSize(ItemStack stack) {
-            return 1;
-        }
+    @Override
+    public int filterSlotCount() {
+        return FILTER_SLOT_COUNT;
     }
 }

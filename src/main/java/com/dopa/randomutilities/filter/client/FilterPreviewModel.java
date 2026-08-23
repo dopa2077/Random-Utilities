@@ -49,7 +49,9 @@ public final class FilterPreviewModel implements ItemModel {
 
     private static Matrix4fc previewLocalTransform(ItemDisplayContext displayContext) {
         Matrix4f orientation = new Matrix4f().translate(0.5F, 0.5F, 0.5F);
-        if (displayContext.firstPerson()) {
+        if (displayContext.firstPerson()
+                || displayContext == ItemDisplayContext.THIRD_PERSON_LEFT_HAND
+                || displayContext == ItemDisplayContext.THIRD_PERSON_RIGHT_HAND) {
             float yRotation = displayContext.leftHand() ? (float) (-Math.PI / 2.0) : (float) (Math.PI / 2.0);
             orientation.rotateY(yRotation);
         } else {

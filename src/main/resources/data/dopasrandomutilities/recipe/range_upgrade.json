@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "dopasrandomutilities:upgrade_casing",
+    "E": "minecraft:ender_pearl",
+    "P": "minecraft:piston",
+    "F": "minecraft:chorus_fruit"
+  },
+  "pattern": [
+    "CEC",
+    "PFP",
+    "CEC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:range_upgrade"
+  }
+}

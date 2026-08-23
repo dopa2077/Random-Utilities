@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "E": "minecraft:echo_shard",
+    "G": "dopasrandomutilities:golden_lasso",
+    "W": "minecraft:wither_skeleton_skull"
+  },
+  "pattern": [
+    "EWE",
+    "WGW",
+    "EWE"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:cursed_lasso"
+  }
+}

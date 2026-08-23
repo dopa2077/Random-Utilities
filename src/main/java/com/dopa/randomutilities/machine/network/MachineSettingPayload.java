@@ -3,8 +3,12 @@ package com.dopa.randomutilities.machine.network;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
-import com.dopa.randomutilities.machine.generator.menu.ResourceGeneratorMenu;
-import com.dopa.randomutilities.machine.solarfurnace.menu.SolarFurnaceMenu;
+import com.dopa.randomutilities.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.combustion.menu.CombustionGeneratorMenu;
+import com.dopa.randomutilities.solarpanel.menu.SolarPanelControllerMenu;
+import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
+import com.dopa.randomutilities.transfer.menu.TransferEnergyMenu;
+import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -43,19 +47,35 @@ public record MachineSettingPayload(byte kind, int value) implements CustomPacke
     public static void handle(MachineSettingPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
-            if (player.containerMenu instanceof ResourceGeneratorMenu menu) {
+            if (player.containerMenu instanceof ResourceGeneratorMenu menu && menu.stillValid(player)) {
                 if (payload.kind() == KIND_LOCK_OUTPUT) {
                     menu.setOutputLocked(payload.value() != 0);
                 } else if (payload.kind() == KIND_REDSTONE) {
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
-            } else if (player.containerMenu instanceof SolarFurnaceMenu menu) {
+            } else if (player.containerMenu instanceof SolarFurnaceMenu menu && menu.stillValid(player)) {
                 if (payload.kind() == KIND_REDSTONE) {
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
-            } else if (player.containerMenu instanceof FishnetMenu menu) {
+            } else if (player.containerMenu instanceof CombustionGeneratorMenu menu && menu.stillValid(player)) {
                 if (payload.kind() == KIND_REDSTONE) {
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof SolarPanelControllerMenu menu && menu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof FishnetMenu menu && menu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof TransferNodeMenu menu && menu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof TransferEnergyMenu energyMenu && energyMenu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    energyMenu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
             }
         });

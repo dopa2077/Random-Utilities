@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "orientation=north_up": { "model": "dopasrandomutilities:block/simple_block_placer" },
+    "orientation=east_up":  { "model": "dopasrandomutilities:block/simple_block_placer", "y": 90 },
+    "orientation=south_up": { "model": "dopasrandomutilities:block/simple_block_placer", "y": 180 },
+    "orientation=west_up":  { "model": "dopasrandomutilities:block/simple_block_placer", "y": 270 },
+    "orientation=up_north": { "model": "dopasrandomutilities:block/simple_block_placer", "x": 270, "y": 180 },
+    "orientation=up_east":  { "model": "dopasrandomutilities:block/simple_block_placer", "x": 270, "y": 270 },
+    "orientation=up_south": { "model": "dopasrandomutilities:block/simple_block_placer", "x": 270 },
+    "orientation=up_west":  { "model": "dopasrandomutilities:block/simple_block_placer", "x": 270, "y": 90 },
+    "orientation=down_north": { "model": "dopasrandomutilities:block/simple_block_placer", "x": 90 },
+    "orientation=down_east":  { "model": "dopasrandomutilities:block/simple_block_placer", "x": 90, "y": 90 },
+    "orientation=down_south": { "model": "dopasrandomutilities:block/simple_block_placer", "x": 90, "y": 180 },
+    "orientation=down_west":  { "model": "dopasrandomutilities:block/simple_block_placer", "x": 90, "y": 270 }
+  }
+}

@@ -21,7 +21,7 @@ public class RedstoneClockMenu extends AbstractContainerMenu {
     public static final int DATA_REDSTONE = 2;
     public static final int DATA_SIZE = 3;
 
-    public static final int PLAYER_INV_Y = 84;
+    public static final int PLAYER_INV_Y = 74;
 
     private final RedstoneClockBlockEntity blockEntity;
     private final ContainerLevelAccess access;

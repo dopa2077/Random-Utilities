@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "dopasrandomutilities:upgrade_casing",
+    "R": "#c:dusts/redstone",
+    "L": "minecraft:lightning_rod",
+    "B": "#c:storage_blocks/redstone"
+  },
+  "pattern": [
+    "CRC",
+    "LBL",
+    "CRC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:energy_upgrade"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "S": "minecraft:smooth_stone_slab",
+    "G": "#c:glass_blocks",
+    "R": "#c:dusts/redstone"
+  },
+  "pattern": [
+    "SSS",
+    "GRG",
+    "SSS"
+  ],
+  "result": {
+    "count": 32,
+    "id": "dopasrandomutilities:transfer_pipe"
+  }
+}

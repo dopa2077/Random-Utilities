@@ -15,6 +15,19 @@
     "dopasrandomutilities:basic_item_collector",
     "dopasrandomutilities:advanced_item_collector",
     "dopasrandomutilities:redstone_clock",
-    "dopasrandomutilities:solar_furnace"
+    "dopasrandomutilities:solar_furnace",
+    "dopasrandomutilities:simple_block_breaker",
+    "dopasrandomutilities:simple_block_placer",
+    "dopasrandomutilities:advanced_block_breaker",
+    "dopasrandomutilities:advanced_block_placer",
+    "dopasrandomutilities:combustion_generator",
+    "dopasrandomutilities:solar_panel_controller",
+    "dopasrandomutilities:solar_panel_tier1",
+    "dopasrandomutilities:solar_panel_tier2",
+    "dopasrandomutilities:solar_panel_tier3",
+    "dopasrandomutilities:simple_core_frame",
+    "dopasrandomutilities:advanced_core_frame",
+    "#dopasrandomutilities:transfer_pipes",
+    "dopasrandomutilities:transfer_node"
   ]
 }

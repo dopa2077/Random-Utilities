@@ -1,0 +1,13 @@
+{
+  "item": {
+    "max_overclock": 11
+  },
+  "fluid": {
+    "max_overclock": 11,
+    "max_fluid_capacity": 64
+  },
+  "energy": {
+    "max_overclock": 11,
+    "max_energy": 64
+  }
+}

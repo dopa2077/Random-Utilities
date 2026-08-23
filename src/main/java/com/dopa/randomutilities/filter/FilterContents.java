@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.dopa.randomutilities.filter.config.DevNullConfig;
+import com.dopa.randomutilities.util.GhostItemFilter;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -184,7 +185,7 @@ public record FilterContents(
         }
 
         public boolean matches(ItemStack stack) {
-            return !isEmpty() && !stack.isEmpty() && resource.matches(stack);
+            return !isEmpty() && !stack.isEmpty() && GhostItemFilter.slotMatches(toStack(), stack);
         }
     }
 }

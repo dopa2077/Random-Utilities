@@ -1,0 +1,106 @@
+{
+	"format_version": "1.21.11",
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:block/block",
+	"textures": {
+		"0": "dopasrandomutilities:block/transfernode_back",
+		"1": "dopasrandomutilities:block/transfernode_front",
+		"particle": "dopasrandomutilities:block/transfernode_back"
+	},
+	"elements": [
+		{
+			"name": "Head",
+			"from": [1, 0, 1],
+			"to": [15, 1, 15],
+			"faces": {
+				"north": {
+					"uv": [1, 15, 15, 16],
+					"texture": "#1"
+				},
+				"east": {
+					"uv": [1, 15, 15, 16],
+					"texture": "#1"
+				},
+				"south": {
+					"uv": [1, 15, 15, 16],
+					"texture": "#1"
+				},
+				"west": {
+					"uv": [1, 15, 15, 16],
+					"texture": "#1"
+				},
+				"up": {
+					"uv": [1, 1, 15, 15],
+					"texture": "#1"
+				},
+				"down": {
+					"uv": [1, 1, 15, 15],
+					"texture": "#0"
+				}
+			}
+		},
+		{
+			"name": "Head-2",
+			"from": [2, 1, 2],
+			"to": [14, 2, 14],
+			"faces": {
+				"north": {
+					"uv": [2, 2, 14, 3],
+					"texture": "#1"
+				},
+				"east": {
+					"uv": [2, 2, 14, 3],
+					"texture": "#1"
+				},
+				"south": {
+					"uv": [2, 2, 14, 3],
+					"texture": "#1"
+				},
+				"west": {
+					"uv": [2, 2, 14, 3],
+					"texture": "#1"
+				},
+				"up": {
+					"uv": [2, 2, 14, 14],
+					"texture": "#1"
+				},
+				"down": {
+					"uv": [2, 2, 14, 14],
+					"texture": "#1"
+				}
+			}
+		},
+		{
+			"name": "Head-3",
+			"from": [4, 2, 4],
+			"to": [12, 4, 12],
+			"faces": {
+				"north": {
+					"uv": [6, 4, 10, 5],
+					"texture": "#1"
+				},
+				"east": {
+					"uv": [4, 6, 5, 10],
+					"texture": "#1"
+				},
+				"south": {
+					"uv": [6, 4, 10, 5],
+					"texture": "#1"
+				},
+				"west": {
+					"uv": [4, 6, 5, 10],
+					"texture": "#1"
+				},
+				"up": {
+					"uv": [4, 4, 12, 12],
+					"texture": "#1"
+				},
+				"down": {
+					"uv": [4, 4, 12, 12],
+					"texture": "#1"
+				}
+			}
+		}
+	]
+}
+

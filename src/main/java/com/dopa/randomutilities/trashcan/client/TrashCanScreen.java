@@ -1,40 +1,33 @@
 package com.dopa.randomutilities.trashcan.client;
 
-import com.dopa.randomutilities.client.gui.JeiGhostDragState;
+import com.dopa.randomutilities.filter.client.GhostFilterClicks;
+import com.dopa.randomutilities.gui.widget.FilterModeButton;
+import com.dopa.randomutilities.gui.widget.FilterModeIcon;
+import com.dopa.randomutilities.gui.widget.FilterRow;
+import com.dopa.randomutilities.gui.widget.JeiGhostDragState;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
 import com.dopa.randomutilities.trashcan.network.TrashCanSettingPayload;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 public class TrashCanScreen extends AbstractContainerScreen<TrashCanMenu> {
-    private static final Identifier CHEST_BACKGROUND =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
-    private static final Identifier BLACKLIST_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/blacklist_icon.png");
-    private static final Identifier WHITELIST_ICON =
-            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/whitelist_icon.png");
+    private static final Identifier BACKGROUND =
+            Identifier.fromNamespaceAndPath("dopasrandomutilities", "textures/gui/special/trash_can.png");
     private static final int TEXTURE_SIZE = 256;
-    private static final int BODY_COLOR = 0xFFC6C6C6;
-    private static final int FOOTER_Y = 57;
-    private static final int PLAYER_INV_HEIGHT = 96;
-    private static final int IMAGE_HEIGHT = FOOTER_Y + PLAYER_INV_HEIGHT + 1;
-    private static final int SLOT = 18;
-    private static final int ICON_SIZE = 16;
 
-    private Button modeButton;
+    private FilterModeButton modeButton;
 
     public TrashCanScreen(TrashCanMenu menu, Inventory playerInv, Component title) {
-        super(menu, playerInv, title, 176, IMAGE_HEIGHT);
+        super(menu, playerInv, title, TrashCanMenu.IMAGE_WIDTH, TrashCanMenu.IMAGE_HEIGHT);
         this.inventoryLabelY = this.imageHeight - 94;
         this.titleLabelY = 6;
     }
@@ -50,13 +43,12 @@ public class TrashCanScreen extends AbstractContainerScreen<TrashCanMenu> {
     @Override
     protected void init() {
         super.init();
-        modeButton = Button.builder(Component.empty(), b -> toggleFilterMode())
-                .bounds(leftPos + TrashCanMenu.FILTER_ICON_X, topPos + TrashCanMenu.FILTER_SLOT_Y, ICON_SIZE, ICON_SIZE)
-                .tooltip(Tooltip.create(Component.translatable(
-                        menu.isWhitelistMode()
-                                ? "gui.dopasrandomutilities.item_collector.whitelist"
-                                : "gui.dopasrandomutilities.item_collector.blacklist")))
-                .build();
+        modeButton = new FilterModeButton(
+                leftPos + TrashCanMenu.FILTER_ICON_X,
+                topPos + TrashCanMenu.FILTER_SLOT_Y,
+                filterModeTooltip(),
+                this::toggleFilterMode
+        );
         addRenderableWidget(modeButton);
     }
 
@@ -69,15 +61,33 @@ public class TrashCanScreen extends AbstractContainerScreen<TrashCanMenu> {
     protected void containerTick() {
         super.containerTick();
         if (modeButton != null) {
-            modeButton.setTooltip(Tooltip.create(Component.translatable(
-                    menu.isWhitelistMode()
-                            ? "gui.dopasrandomutilities.item_collector.whitelist"
-                            : "gui.dopasrandomutilities.item_collector.blacklist")));
+            modeButton.updateTooltip(filterModeTooltip());
         }
     }
 
     @Override
+    protected void slotClicked(Slot slot, int slotIndex, int mouseButton, ContainerInput type) {
+        if (GhostFilterClicks.blockDrag(slot, mouseButton, type)) {
+            return;
+        }
+        super.slotClicked(slot, slotIndex, mouseButton, type);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        GhostFilterClicks.onMouseDragged(event);
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        GhostFilterClicks.clearRightDrag();
+        return super.mouseReleased(event);
+    }
+
+    @Override
     public void onClose() {
+        GhostFilterClicks.reset();
         JeiGhostDragState.endDrag();
         super.onClose();
     }
@@ -85,45 +95,31 @@ public class TrashCanScreen extends AbstractContainerScreen<TrashCanMenu> {
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        int xo = this.leftPos;
-        int yo = this.topPos;
-
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                CHEST_BACKGROUND,
-                xo,
-                yo,
+                BACKGROUND,
+                this.leftPos,
+                this.topPos,
                 0.0F,
                 0.0F,
                 this.imageWidth,
-                FOOTER_Y,
+                this.imageHeight,
                 TEXTURE_SIZE,
                 TEXTURE_SIZE
         );
-        graphics.fill(xo + 7, yo + 17, xo + this.imageWidth - 7, yo + FOOTER_Y, BODY_COLOR);
-        graphics.blit(
-                RenderPipelines.GUI_TEXTURED,
-                CHEST_BACKGROUND,
-                xo,
-                yo + FOOTER_Y,
-                0.0F,
-                126.0F,
-                this.imageWidth,
-                PLAYER_INV_HEIGHT,
-                TEXTURE_SIZE,
-                TEXTURE_SIZE
+        FilterRow.blit(
+                graphics,
+                this.leftPos + TrashCanMenu.FILTER_ICON_X,
+                this.topPos + TrashCanMenu.FILTER_SLOT_Y,
+                TrashCanMenu.FILTER_SLOT_COUNT,
+                i -> this.menu.slots.get(1 + i).hasItem()
         );
+    }
 
-        // Trash slot frame
-        int frameX = xo + TrashCanMenu.CHEST_SLOT_X + 8 - SLOT / 2;
-        int frameY = yo + TrashCanMenu.CHEST_SLOT_Y + 8 - SLOT / 2;
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, frameX, frameY, SLOT, SLOT);
-
-        // Filter slot frames (advanced collector layout)
-        for (int i = 0; i < TrashCanMenu.FILTER_SLOT_COUNT; i++) {
-            Slot slot = menu.slots.get(1 + i);
-            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, xo + slot.x, yo + slot.y, 16, 16);
-        }
+    private Component filterModeTooltip() {
+        return Component.translatable(menu.isWhitelistMode()
+                ? "gui.dopasrandomutilities.item_collector.whitelist"
+                : "gui.dopasrandomutilities.item_collector.blacklist");
     }
 
     @Override
@@ -132,21 +128,25 @@ public class TrashCanScreen extends AbstractContainerScreen<TrashCanMenu> {
         renderFilterModeIcon(graphics);
         renderGhostSlotTints(graphics);
         JeiGhostDragState.renderLine(graphics, mouseX, mouseY);
+        if (hoveredSlot != null && menu.isInputSlot(hoveredSlot) && !hoveredSlot.hasItem()) {
+            graphics.setTooltipForNextFrame(
+                    font,
+                    Component.translatable("gui.dopasrandomutilities.trash_can.input"),
+                    mouseX,
+                    mouseY
+            );
+            return;
+        }
+        FilterRow.applyEmptyHover(graphics, font, mouseX, mouseY, hoveredSlot);
     }
 
     private void renderFilterModeIcon(GuiGraphicsExtractor graphics) {
-        Identifier icon = menu.isWhitelistMode() ? WHITELIST_ICON : BLACKLIST_ICON;
-        graphics.blit(
-                RenderPipelines.GUI_TEXTURED,
-                icon,
+        FilterModeIcon.render(
+                graphics,
+                menu.isWhitelistMode(),
                 leftPos + TrashCanMenu.FILTER_ICON_X,
                 topPos + TrashCanMenu.FILTER_SLOT_Y,
-                0.0F,
-                0.0F,
-                ICON_SIZE,
-                ICON_SIZE,
-                ICON_SIZE,
-                ICON_SIZE
+                modeButton != null && modeButton.isHovered()
         );
     }
 

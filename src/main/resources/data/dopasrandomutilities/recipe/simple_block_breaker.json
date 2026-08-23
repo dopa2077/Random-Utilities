@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#c:cobblestones",
+    "F": "dopasrandomutilities:simple_core_frame",
+    "I": "#c:ingots/iron",
+    "K": "minecraft:iron_pickaxe"
+  },
+  "pattern": [
+    "ICC",
+    "KFC",
+    "ICC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dopasrandomutilities:simple_block_breaker"
+  }
+}

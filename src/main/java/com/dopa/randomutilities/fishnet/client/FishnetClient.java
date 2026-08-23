@@ -24,4 +24,9 @@ public final class FishnetClient {
     public static void onClientTick(ClientTickEvent.Post event) {
         FishnetCatchEffects.clientTick();
     }
+
+    @SubscribeEvent
+    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        FishnetCatchEffects.clear();
+    }
 }
