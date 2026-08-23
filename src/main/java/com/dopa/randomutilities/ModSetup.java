@@ -3,12 +3,15 @@ package com.dopa.randomutilities;
 import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerNetwork;
 import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerNetwork;
 import com.dopa.randomutilities.compat.ModCompat;
+import com.dopa.randomutilities.config.ConfigPack;
 import com.dopa.randomutilities.config.ModContentRegistration;
 import com.dopa.randomutilities.filter.FilterNetwork;
 import com.dopa.randomutilities.filter.NestedItemFilterBridge;
 import com.dopa.randomutilities.filter.config.DevNullConfig;
 import com.dopa.randomutilities.itemcollector.ItemCollectorNetwork;
 import com.dopa.randomutilities.transfer.TransferNodeNetwork;
+import com.dopa.randomutilities.transfer.config.TransferNodeConfig;
+import com.dopa.randomutilities.machine.config.PoweredMachinesConfig;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.machine.MachineNetwork;
@@ -21,6 +24,9 @@ import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
 import com.dopa.randomutilities.lasso.config.LassoConfig;
 import com.dopa.randomutilities.magnet.MagnetNetwork;
 import com.dopa.randomutilities.magnet.config.MagnetConfig;
+import com.dopa.randomutilities.combustion.config.CombustionGeneratorConfig;
+import com.dopa.randomutilities.solarpanel.config.SolarPanelConfig;
+import com.dopa.randomutilities.solarfurnace.config.SolarFurnaceConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -54,6 +60,16 @@ public final class ModSetup {
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":devnull_config");
     private static final Identifier UPGRADE_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":upgrade_config");
+    private static final Identifier TRANSFER_NODE_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":transfer_node_config");
+    private static final Identifier POWERED_MACHINES_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":powered_machines_config");
+    private static final Identifier SOLAR_FURNACE_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":solar_furnace_config");
+    private static final Identifier COMBUSTION_GENERATOR_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":combustion_generator_config");
+    private static final Identifier SOLAR_PANEL_CONFIG_LISTENER =
+            Identifier.parse(dOPasRandomUtilities.MOD_ID + ":solar_panel_config");
     private static final Identifier FISHNET_CONFIG_LISTENER =
             Identifier.parse(dOPasRandomUtilities.MOD_ID + ":fishnet_config");
     private static final Identifier TREASURE_LOOT_CONFIG_LISTENER =
@@ -78,11 +94,18 @@ public final class ModSetup {
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         modEventBus.addListener(ModCompat::onInterModEnqueue);
         GhostItemFilter.setNestedItemFilter(NestedItemFilterBridge.INSTANCE);
+        ConfigPack.ensureRoot();
         // Load early so JEI (and other client plugins) see config values, not jar defaults only.
         TreasureLootConfig.load();
         modEventBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(() -> {
+                    ConfigPack.ensureRoot();
                     DevNullConfig.load();
+                    PoweredMachinesConfig.load();
+                    TransferNodeConfig.load();
+                    SolarFurnaceConfig.load();
+                    CombustionGeneratorConfig.load();
+                    SolarPanelConfig.load();
                     UpgradeConfig.load();
                     FishnetConfig.load();
                     TreasureLootConfig.load();
@@ -123,6 +146,12 @@ public final class ModSetup {
             event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.pickaxeHandler());
             event.registerBlockEntity(Capabilities.Energy.BLOCK, type, (be, side) -> be.energy());
         });
+        registerIfPresent(ModBlockEntities.COMBUSTION_GENERATOR, type -> {
+            event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.items());
+            event.registerBlockEntity(Capabilities.Energy.BLOCK, type, (be, side) -> be.energy());
+        });
+        registerIfPresent(ModBlockEntities.SOLAR_PANEL_CONTROLLER, type ->
+                event.registerBlockEntity(Capabilities.Energy.BLOCK, type, (be, side) -> be.energy()));
     }
 
     private static <T extends BlockEntity> void registerIfPresent(
@@ -154,6 +183,26 @@ public final class ModSetup {
             event.addListener(
                     UPGRADE_CONFIG_LISTENER,
                     (ResourceManagerReloadListener) resourceManager -> UpgradeConfig.reload()
+            );
+            event.addListener(
+                    TRANSFER_NODE_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> TransferNodeConfig.reload()
+            );
+            event.addListener(
+                    POWERED_MACHINES_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> PoweredMachinesConfig.reload()
+            );
+            event.addListener(
+                    SOLAR_FURNACE_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> SolarFurnaceConfig.reload()
+            );
+            event.addListener(
+                    COMBUSTION_GENERATOR_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> CombustionGeneratorConfig.reload()
+            );
+            event.addListener(
+                    SOLAR_PANEL_CONFIG_LISTENER,
+                    (ResourceManagerReloadListener) resourceManager -> SolarPanelConfig.reload()
             );
             event.addListener(
                     FISHNET_CONFIG_LISTENER,

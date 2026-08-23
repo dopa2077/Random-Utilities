@@ -51,6 +51,25 @@ public final class MachineEnergy extends SimpleEnergyHandler {
         clampToCapacity();
     }
 
+    /**
+     * Generator mode: capacity grows with energy upgrades; max extract follows the
+     * consumer max-receive curve ({@link #DEFAULT_MAX_RECEIVE}); external insert is disabled.
+     */
+    public void applyGeneratorEnergyUpgrades(int energyCount) {
+        applyGeneratorEnergyUpgrades(energyCount, DEFAULT_MAX_RECEIVE);
+    }
+
+    /**
+     * Generator mode with a custom base extract rate (scaled by energy upgrades).
+     */
+    public void applyGeneratorEnergyUpgrades(int energyCount, int baseMaxExtract) {
+        capacity = capacityFor(energyCount);
+        maxInsert = 0;
+        int count = Mth.clamp(energyCount, 0, UpgradeConfig.maxEnergy());
+        maxExtract = Math.max(0, baseMaxExtract) * (1 + count);
+        clampToCapacity();
+    }
+
     private void clampToCapacity() {
         if (energy > capacity) {
             energy = capacity;
@@ -69,8 +88,42 @@ public final class MachineEnergy extends SimpleEnergyHandler {
         return maxInsert;
     }
 
+    public int maxExtractRate() {
+        return maxExtract;
+    }
+
     public int lastTickUsage() {
         return lastTickUsage;
+    }
+
+    /**
+     * Stores generated FE into the buffer. Tracks {@link #lastTickUsage()} as FE produced.
+     *
+     * @return FE actually stored
+     */
+    public int tryGenerate(int amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+        int room = Math.max(0, capacity - energy);
+        int want = Math.min(amount, room);
+        if (want <= 0) {
+            return 0;
+        }
+        // Temporarily allow self-insert while generating.
+        int previousMaxInsert = maxInsert;
+        maxInsert = Math.max(maxInsert, want);
+        try (Transaction tx = Transaction.open(null)) {
+            int inserted = insert(want, tx);
+            if (inserted > 0) {
+                tx.commit();
+                lastTickUsage += inserted;
+                maxInsert = previousMaxInsert;
+                return inserted;
+            }
+        }
+        maxInsert = previousMaxInsert;
+        return 0;
     }
 
     public void beginTick() {

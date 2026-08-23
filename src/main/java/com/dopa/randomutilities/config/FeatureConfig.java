@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Startup toggles for registering mod blocks and items.
- * File: {@code config/dopas_random_utilities/dopasrandomutilities.toml}
+ * File: {@code config/dopas_random_utilities/features.toml}
  */
 public final class FeatureConfig {
     private static final Map<String, ModConfigSpec.ConfigValue<Boolean>> BLOCK_FLAGS = new HashMap<>();
@@ -35,7 +35,7 @@ public final class FeatureConfig {
         container.registerConfig(
                 ModConfig.Type.STARTUP,
                 spec,
-                "dopas_random_utilities/dopasrandomutilities.toml"
+                "dopas_random_utilities/features.toml"
         );
     }
 

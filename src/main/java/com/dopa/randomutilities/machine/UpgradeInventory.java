@@ -21,6 +21,9 @@ import java.util.function.ToIntFunction;
 
 /** Six upgrade slots with per-type caps from {@link UpgradeConfig}. */
 public class UpgradeInventory extends ItemStacksResourceHandler {
+    /** Hard per-well stack limit; type caps may still span multiple slots. */
+    public static final int MAX_PER_SLOT = 64;
+
     private final ToIntFunction<Item> capFor;
     private Runnable onChanged = () -> {};
 
@@ -31,6 +34,11 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
     public UpgradeInventory(int size, ToIntFunction<Item> capFor) {
         super(size);
         this.capFor = capFor;
+    }
+
+    /** Clamps type-cap room to one vanilla stack per upgrade well. */
+    protected static int perSlotCapacity(int typeRoom) {
+        return Math.min(MAX_PER_SLOT, Math.max(0, typeRoom));
     }
 
     public int maxFor(Item item) {
@@ -242,7 +250,10 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
     protected int getCapacity(int index, ItemResource resource) {
         ItemResource effective = resource.isEmpty() ? getResource(index) : resource;
         if (effective.isEmpty()) {
-            return Math.max(maxFor(ModItems.PRODUCTIVITY_UPGRADE.get()), maxFor(ModItems.OVERCLOCK_UPGRADE.get()));
+            return perSlotCapacity(Math.max(
+                    maxFor(ModItems.PRODUCTIVITY_UPGRADE.get()),
+                    maxFor(ModItems.OVERCLOCK_UPGRADE.get())
+            ));
         }
         if (!isSharedMachineUpgrade(effective)) {
             return 0;
@@ -257,7 +268,7 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
         if (!current.isEmpty() && current.is(item)) {
             existing -= getAmountAsInt(index);
         }
-        return Math.max(0, max - existing);
+        return perSlotCapacity(max - existing);
     }
 
     public void loadSlots(ValueInput input) {
@@ -270,7 +281,7 @@ public class UpgradeInventory extends ItemStacksResourceHandler {
             if (stack.isEmpty()) {
                 set(i, ItemResource.EMPTY, 0);
             } else {
-                set(i, ItemResource.of(stack), stack.getCount());
+                set(i, ItemResource.of(stack), Math.min(stack.getCount(), MAX_PER_SLOT));
             }
         }
     }

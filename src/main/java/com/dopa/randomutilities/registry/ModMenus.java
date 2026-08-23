@@ -6,6 +6,8 @@ import com.dopa.randomutilities.blockplacer.menu.SimpleBlockPlacerMenu;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.menu.FilterMenu;
 import com.dopa.randomutilities.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.combustion.menu.CombustionGeneratorMenu;
+import com.dopa.randomutilities.solarpanel.menu.SolarPanelControllerMenu;
 import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.minichest.MiniChestMenu;
@@ -62,6 +64,12 @@ public final class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<AdvancedBlockPlacerMenu>> ADVANCED_BLOCK_PLACER =
             MENUS.register("advanced_block_placer", () -> IMenuTypeExtension.create(AdvancedBlockPlacerMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<CombustionGeneratorMenu>> COMBUSTION_GENERATOR =
+            MENUS.register("combustion_generator", () -> IMenuTypeExtension.create(CombustionGeneratorMenu::new));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<SolarPanelControllerMenu>> SOLAR_PANEL_CONTROLLER =
+            MENUS.register("solar_panel_controller", () -> IMenuTypeExtension.create(SolarPanelControllerMenu::new));
 
     public static final DeferredHolder<MenuType<?>, MenuType<TransferNodeMenu>> TRANSFER_NODE =
             MENUS.register("transfer_node", () -> IMenuTypeExtension.create(TransferNodeMenu::new));

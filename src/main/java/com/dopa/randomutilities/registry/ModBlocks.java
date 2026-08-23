@@ -12,6 +12,10 @@ import com.dopa.randomutilities.minichest.MiniChestBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlock;
 import com.dopa.randomutilities.itemcollector.ItemCollectorType;
 import com.dopa.randomutilities.generator.ResourceGeneratorBlock;
+import com.dopa.randomutilities.combustion.CombustionGeneratorBlock;
+import com.dopa.randomutilities.solarpanel.SolarPanelBlock;
+import com.dopa.randomutilities.solarpanel.SolarPanelControllerBlock;
+import com.dopa.randomutilities.solarpanel.SolarPanelTier;
 import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlock;
 import com.dopa.randomutilities.fishnet.FishnetBlock;
 import com.dopa.randomutilities.generator.config.GeneratorType;
@@ -49,6 +53,11 @@ public final class ModBlocks {
     public static DeferredBlock<SimpleBlockPlacerBlock> SIMPLE_BLOCK_PLACER;
     public static DeferredBlock<AdvancedBlockBreakerBlock> ADVANCED_BLOCK_BREAKER;
     public static DeferredBlock<AdvancedBlockPlacerBlock> ADVANCED_BLOCK_PLACER;
+    public static DeferredBlock<CombustionGeneratorBlock> COMBUSTION_GENERATOR;
+    public static DeferredBlock<SolarPanelControllerBlock> SOLAR_PANEL_CONTROLLER;
+    public static DeferredBlock<SolarPanelBlock> SOLAR_PANEL_TIER1;
+    public static DeferredBlock<SolarPanelBlock> SOLAR_PANEL_TIER2;
+    public static DeferredBlock<SolarPanelBlock> SOLAR_PANEL_TIER3;
     public static DeferredBlock<SimpleFrameBlock> SIMPLE_CORE_FRAME;
     public static DeferredBlock<SimpleFrameBlock> ADVANCED_CORE_FRAME;
     public static DeferredBlock<TinyTntBlock> TINY_TNT;
@@ -139,6 +148,42 @@ public final class ModBlocks {
                     props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
             );
         }
+        if (FeatureConfig.isBlockEnabled(ModContentIds.COMBUSTION_GENERATOR)) {
+            COMBUSTION_GENERATOR = BLOCKS.registerBlock(
+                    ModContentIds.COMBUSTION_GENERATOR,
+                    CombustionGeneratorBlock::new,
+                    props -> props.mapColor(MapColor.STONE).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.STONE)
+                            .lightLevel(state -> state.getValue(CombustionGeneratorBlock.LIT) ? 13 : 0)
+            );
+        }
+        if (FeatureConfig.isBlockEnabled(ModContentIds.SOLAR_PANEL_CONTROLLER)) {
+            SOLAR_PANEL_CONTROLLER = BLOCKS.registerBlock(
+                    ModContentIds.SOLAR_PANEL_CONTROLLER,
+                    SolarPanelControllerBlock::new,
+                    props -> props.mapColor(MapColor.METAL).strength(3.5F).requiresCorrectToolForDrops().sound(SoundType.METAL)
+            );
+        }
+        if (FeatureConfig.isBlockEnabled(ModContentIds.SOLAR_PANEL_TIER1)) {
+            SOLAR_PANEL_TIER1 = BLOCKS.registerBlock(
+                    ModContentIds.SOLAR_PANEL_TIER1,
+                    props -> new SolarPanelBlock(props, SolarPanelTier.TIER1),
+                    props -> props.mapColor(MapColor.COLOR_BLUE).strength(1.5F).sound(SoundType.GLASS).noOcclusion()
+            );
+        }
+        if (FeatureConfig.isBlockEnabled(ModContentIds.SOLAR_PANEL_TIER2)) {
+            SOLAR_PANEL_TIER2 = BLOCKS.registerBlock(
+                    ModContentIds.SOLAR_PANEL_TIER2,
+                    props -> new SolarPanelBlock(props, SolarPanelTier.TIER2),
+                    props -> props.mapColor(MapColor.COLOR_GREEN).strength(1.5F).sound(SoundType.GLASS).noOcclusion()
+            );
+        }
+        if (FeatureConfig.isBlockEnabled(ModContentIds.SOLAR_PANEL_TIER3)) {
+            SOLAR_PANEL_TIER3 = BLOCKS.registerBlock(
+                    ModContentIds.SOLAR_PANEL_TIER3,
+                    props -> new SolarPanelBlock(props, SolarPanelTier.TIER3),
+                    props -> props.mapColor(MapColor.COLOR_RED).strength(1.5F).sound(SoundType.GLASS).noOcclusion()
+            );
+        }
         if (FeatureConfig.isBlockEnabled(ModContentIds.SIMPLE_CORE_FRAME)) {
             SIMPLE_CORE_FRAME = BLOCKS.registerBlock(
                     ModContentIds.SIMPLE_CORE_FRAME,
@@ -194,7 +239,7 @@ public final class ModBlocks {
             CARDBOARD_BOX = BLOCKS.registerBlock(
                     ModContentIds.CARDBOARD_BOX,
                     CardboardBoxBlock::new,
-                    props -> props.mapColor(MapColor.WOOD).strength(0.5F).sound(SoundType.WOOD).noLootTable()
+                    props -> props.mapColor(MapColor.WOOD).strength(0.5F).sound(SoundType.WOOL).noLootTable()
             );
         }
         for (GeneratorType type : GeneratorType.values()) {

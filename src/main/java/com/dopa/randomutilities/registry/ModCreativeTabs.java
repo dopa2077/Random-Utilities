@@ -1,7 +1,11 @@
 package com.dopa.randomutilities.registry;
 
+import com.dopa.randomutilities.config.FeatureConfig;
+import com.dopa.randomutilities.config.ModContentIds;
 import com.dopa.randomutilities.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.transfer.HeadKind;
+import com.dopa.randomutilities.transfer.TransferNodeItem;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -40,6 +44,11 @@ public final class ModCreativeTabs {
                         accept(output, ModItems.ADVANCED_BLOCK_BREAKER);
                         accept(output, ModItems.SIMPLE_BLOCK_PLACER);
                         accept(output, ModItems.ADVANCED_BLOCK_PLACER);
+                        accept(output, ModItems.COMBUSTION_GENERATOR);
+                        accept(output, ModItems.SOLAR_PANEL_CONTROLLER);
+                        accept(output, ModItems.SOLAR_PANEL_TIER1);
+                        accept(output, ModItems.SOLAR_PANEL_TIER2);
+                        accept(output, ModItems.SOLAR_PANEL_TIER3);
                         accept(output, ModItems.SIMPLE_CORE_FRAME);
                         accept(output, ModItems.ADVANCED_CORE_FRAME);
                         accept(output, ModItems.LASSO);
@@ -52,8 +61,12 @@ public final class ModCreativeTabs {
                             output.accept(pipe.get());
                         }
                         accept(output, ModItems.TRANSFER_NODE);
-                        accept(output, ModItems.TRANSFER_NODE_FLUID);
-                        accept(output, ModItems.TRANSFER_NODE_ENERGY);
+                        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_FLUID)) {
+                            accept(output, TransferNodeItem.create(HeadKind.FLUID));
+                        }
+                        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_ENERGY)) {
+                            accept(output, TransferNodeItem.create(HeadKind.ENERGY));
+                        }
                         accept(output, ModItems.FILTER);
                         for (GeneratorType type : GeneratorType.values()) {
                             accept(output, ModItems.forType(type));
@@ -87,6 +100,12 @@ public final class ModCreativeTabs {
     private static void accept(CreativeModeTab.Output output, DeferredItem<? extends Item> item) {
         if (item != null) {
             output.accept(item.get());
+        }
+    }
+
+    private static void accept(CreativeModeTab.Output output, ItemStack stack) {
+        if (!stack.isEmpty()) {
+            output.accept(stack);
         }
     }
 

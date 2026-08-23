@@ -1,8 +1,8 @@
 package com.dopa.randomutilities.solarfurnace;
 
+import com.dopa.randomutilities.machine.UpgradeInventory;
 import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
 import com.dopa.randomutilities.registry.ModBlockEntities;
-import com.dopa.randomutilities.registry.ModItems;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
@@ -99,7 +99,7 @@ public class SolarFurnaceBlock extends BaseEntityBlock {
             InteractionHand hand,
             BlockHitResult hit
     ) {
-        if (!player.isShiftKeyDown() || !stack.is(ModItems.OVERCLOCK_UPGRADE.get())) {
+        if (!player.isShiftKeyDown() || !UpgradeInventory.isUpgradeItem(stack)) {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
         if (level.isClientSide()) {

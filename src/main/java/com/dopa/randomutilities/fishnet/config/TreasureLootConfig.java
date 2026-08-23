@@ -1,5 +1,6 @@
 package com.dopa.randomutilities.fishnet.config;
 
+import com.dopa.randomutilities.config.ConfigPack;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -13,16 +14,12 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -31,16 +28,16 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Custom fishnet treasure-mesh loot from
- * {@code config/dopas_random_utilities/items/treasure_loot.json}.
- * Weights are relative among entries with weight &gt; 0 (0 is never rolled).
- * Picks one weighted entry per catch.
+ * Treasure Mesh loot table ({@code treasure/treasure_loot.json}).
+ * Weights are relative among entries with weight &gt; 0.
  */
 public final class TreasureLootConfig {
-    private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/treasure_loot.json";
-    private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/treasure_loot.json";
+    private static final String RELATIVE = "treasure/treasure_loot.json";
+    private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/treasure/treasure_loot.json";
 
     private static List<Entry> entries = List.of();
+    private static List<Entry> positiveEntries = List.of();
+    private static double positiveTotalWeight;
 
     static {
         loadDefaultsFromJar();
@@ -49,26 +46,16 @@ public final class TreasureLootConfig {
     private TreasureLootConfig() {}
 
     public static void load() {
-        Path configFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE);
         try {
-            Files.createDirectories(configFile.getParent());
-            if (Files.notExists(configFile)) {
-                copyDefaultConfig(configFile);
-            }
+            Path configFile = ConfigPack.ensureFile(RELATIVE, DEFAULT_RESOURCE);
             try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
                 JsonReader jsonReader = new JsonReader(reader);
                 jsonReader.setLenient(true);
                 applyJson(JsonParser.parseReader(jsonReader).getAsJsonObject());
             }
-            dOPasRandomUtilities.LOGGER.info(
-                    "Loaded treasure loot config from {} ({} entries)",
-                    configFile.toAbsolutePath(),
-                    entries.size()
-            );
         } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
             dOPasRandomUtilities.LOGGER.error(
-                    "Failed to load treasure loot config from {}, using defaults",
-                    configFile,
+                    "Failed to load treasure loot config, using defaults",
                     exception
             );
             loadDefaultsFromJar();
@@ -84,54 +71,24 @@ public final class TreasureLootConfig {
         return entries;
     }
 
-    /**
-     * Weighted pick among entries with weight &gt; 0. Returns empty for air or empty table.
-     */
+    /** Weighted pick among entries with weight &gt; 0. Returns empty for air or empty table. */
     public static ItemStack roll(RandomSource random) {
-        double total = 0.0;
-        List<Entry> positive = new ArrayList<>();
-        for (Entry entry : entries) {
-            if (entry.weight() <= 0.0) {
-                continue;
-            }
-            positive.add(entry);
-            total += entry.weight();
-        }
-        if (positive.isEmpty() || total <= 0.0) {
+        if (positiveEntries.isEmpty() || positiveTotalWeight <= 0.0) {
             return ItemStack.EMPTY;
         }
-        double pick = random.nextDouble() * total;
+        double pick = random.nextDouble() * positiveTotalWeight;
         double cursor = 0.0;
-        for (Entry entry : positive) {
+        for (Entry entry : positiveEntries) {
             cursor += entry.weight();
             if (pick <= cursor) {
                 return entry.toStack();
             }
         }
-        return positive.getLast().toStack();
+        return positiveEntries.getLast().toStack();
     }
 
     private static void loadDefaultsFromJar() {
-        try (InputStream input = TreasureLootConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                applyBuiltInDefaults();
-                return;
-            }
-            applyJson(JsonParser.parseReader(new InputStreamReader(input, StandardCharsets.UTF_8)).getAsJsonObject());
-        } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load bundled treasure loot defaults", exception);
-            applyBuiltInDefaults();
-        }
-    }
-
-    private static void copyDefaultConfig(Path configFile) throws IOException {
-        try (InputStream input = TreasureLootConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                throw new IOException("Missing bundled default config at " + DEFAULT_RESOURCE);
-            }
-            Files.copy(input, configFile, StandardCopyOption.REPLACE_EXISTING);
-            dOPasRandomUtilities.LOGGER.info("Wrote treasure loot config at {}", configFile);
-        }
+        ConfigPack.loadJarJson(DEFAULT_RESOURCE, TreasureLootConfig::applyJson, TreasureLootConfig::applyBuiltInDefaults);
     }
 
     private static void applyBuiltInDefaults() {
@@ -167,6 +124,8 @@ public final class TreasureLootConfig {
 
     private static void applyMap(Map<String, Double> raw) {
         List<Entry> built = new ArrayList<>();
+        List<Entry> positive = new ArrayList<>();
+        double total = 0.0;
         for (Map.Entry<String, Double> entry : raw.entrySet()) {
             Identifier id = parseItemId(entry.getKey());
             if (id == null) {
@@ -174,9 +133,16 @@ public final class TreasureLootConfig {
                 continue;
             }
             double weight = Math.max(0.0, Math.min(1.0, entry.getValue()));
-            built.add(new Entry(id, weight));
+            Entry builtEntry = new Entry(id, weight);
+            built.add(builtEntry);
+            if (weight > 0.0) {
+                positive.add(builtEntry);
+                total += weight;
+            }
         }
         entries = Collections.unmodifiableList(built);
+        positiveEntries = Collections.unmodifiableList(positive);
+        positiveTotalWeight = total;
     }
 
     private static Identifier parseItemId(String raw) {

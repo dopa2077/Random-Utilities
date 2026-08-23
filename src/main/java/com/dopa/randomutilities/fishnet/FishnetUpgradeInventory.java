@@ -78,7 +78,7 @@ public final class FishnetUpgradeInventory extends UpgradeInventory {
     protected int getCapacity(int index, ItemResource resource) {
         ItemResource effective = resource.isEmpty() ? getResource(index) : resource;
         if (effective.isEmpty()) {
-            return largestCap();
+            return perSlotCapacity(largestCap());
         }
         if (!isUpgradeItem(effective)) {
             return 0;
@@ -93,6 +93,6 @@ public final class FishnetUpgradeInventory extends UpgradeInventory {
         if (!current.isEmpty() && current.is(item)) {
             existing -= getAmountAsInt(index);
         }
-        return Math.max(0, max - existing);
+        return perSlotCapacity(max - existing);
     }
 }

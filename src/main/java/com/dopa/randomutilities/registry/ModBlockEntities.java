@@ -9,6 +9,9 @@ import com.dopa.randomutilities.blockplacer.SimpleBlockPlacerBlockEntity;
 import com.dopa.randomutilities.minichest.MiniChestBlockEntity;
 import com.dopa.randomutilities.itemcollector.ItemCollectorBlockEntity;
 import com.dopa.randomutilities.generator.ResourceGeneratorBlockEntity;
+import com.dopa.randomutilities.combustion.CombustionGeneratorBlockEntity;
+import com.dopa.randomutilities.solarpanel.SolarPanelBlockEntity;
+import com.dopa.randomutilities.solarpanel.SolarPanelControllerBlockEntity;
 import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlockEntity;
 import com.dopa.randomutilities.fishnet.FishnetBlockEntity;
 import com.dopa.randomutilities.trashcan.TrashCanBlockEntity;
@@ -39,6 +42,9 @@ public final class ModBlockEntities {
     public static Supplier<BlockEntityType<SimpleBlockPlacerBlockEntity>> SIMPLE_BLOCK_PLACER;
     public static Supplier<BlockEntityType<AdvancedBlockBreakerBlockEntity>> ADVANCED_BLOCK_BREAKER;
     public static Supplier<BlockEntityType<AdvancedBlockPlacerBlockEntity>> ADVANCED_BLOCK_PLACER;
+    public static Supplier<BlockEntityType<CombustionGeneratorBlockEntity>> COMBUSTION_GENERATOR;
+    public static Supplier<BlockEntityType<SolarPanelControllerBlockEntity>> SOLAR_PANEL_CONTROLLER;
+    public static Supplier<BlockEntityType<SolarPanelBlockEntity>> SOLAR_PANEL;
     public static Supplier<BlockEntityType<TransferNodeBlockEntity>> TRANSFER_NODE;
     public static Supplier<BlockEntityType<CardboardBoxBlockEntity>> CARDBOARD_BOX;
 
@@ -162,6 +168,50 @@ public final class ModBlockEntities {
                             false,
                             ModBlocks.ADVANCED_BLOCK_PLACER.get()
                     )
+            );
+        }
+        if (ModBlocks.COMBUSTION_GENERATOR != null) {
+            COMBUSTION_GENERATOR = BLOCK_ENTITIES.register(
+                    ModContentIds.COMBUSTION_GENERATOR,
+                    () -> new BlockEntityType<>(
+                            CombustionGeneratorBlockEntity::new,
+                            false,
+                            ModBlocks.COMBUSTION_GENERATOR.get()
+                    )
+            );
+        }
+        if (ModBlocks.SOLAR_PANEL_CONTROLLER != null) {
+            SOLAR_PANEL_CONTROLLER = BLOCK_ENTITIES.register(
+                    ModContentIds.SOLAR_PANEL_CONTROLLER,
+                    () -> new BlockEntityType<>(
+                            SolarPanelControllerBlockEntity::new,
+                            false,
+                            ModBlocks.SOLAR_PANEL_CONTROLLER.get()
+                    )
+            );
+        }
+        if (ModBlocks.SOLAR_PANEL_TIER1 != null
+                || ModBlocks.SOLAR_PANEL_TIER2 != null
+                || ModBlocks.SOLAR_PANEL_TIER3 != null) {
+            SOLAR_PANEL = BLOCK_ENTITIES.register(
+                    "solar_panel",
+                    () -> {
+                        var blocks = new ArrayList<Block>();
+                        if (ModBlocks.SOLAR_PANEL_TIER1 != null) {
+                            blocks.add(ModBlocks.SOLAR_PANEL_TIER1.get());
+                        }
+                        if (ModBlocks.SOLAR_PANEL_TIER2 != null) {
+                            blocks.add(ModBlocks.SOLAR_PANEL_TIER2.get());
+                        }
+                        if (ModBlocks.SOLAR_PANEL_TIER3 != null) {
+                            blocks.add(ModBlocks.SOLAR_PANEL_TIER3.get());
+                        }
+                        return new BlockEntityType<>(
+                                SolarPanelBlockEntity::new,
+                                false,
+                                blocks.toArray(Block[]::new)
+                        );
+                    }
             );
         }
         if (ModBlocks.TRANSFER_NODE != null) {

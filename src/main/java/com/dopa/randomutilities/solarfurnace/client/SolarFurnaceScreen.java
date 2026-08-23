@@ -7,6 +7,7 @@ import com.dopa.randomutilities.gui.machine.MachineRedstonePanel;
 import com.dopa.randomutilities.gui.machine.MachineUpgradePanel;
 import com.dopa.randomutilities.gui.machine.UpgradeSlotTooltips;
 import com.dopa.randomutilities.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.registry.ModItems;
 import com.dopa.randomutilities.solarfurnace.SolarPower;
 import com.dopa.randomutilities.gui.panel.ScrollingInfoPanel;
 import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
@@ -24,6 +25,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -229,13 +231,22 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
             return;
         }
         if (this.hoveredSlot != null && this.menu.isUpgradeSlotIndex(this.hoveredSlot.index)) {
-            Component peak = null;
+            Component total = null;
             if (this.hoveredSlot.hasItem()) {
-                int used = this.menu.blockEntity().upgrades().countOf(this.hoveredSlot.getItem().getItem());
-                peak = Component.translatable("gui.dopasrandomutilities.solar_furnace.peak_speed")
-                        .withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(UpgradeConfig.solarPeakPercent(used) + "%")
-                                .withStyle(ChatFormatting.GREEN));
+                Item item = this.hoveredSlot.getItem().getItem();
+                int used = this.menu.blockEntity().upgrades().countOf(item);
+                if (item == ModItems.PRODUCTIVITY_UPGRADE.get()) {
+                    int outputPercent = 100 + UpgradeConfig.productivityBonusPercent() * used;
+                    total = Component.translatable("gui.dopasrandomutilities.solar_furnace.output")
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(Component.literal(outputPercent + "%")
+                                    .withStyle(ChatFormatting.GREEN));
+                } else if (item == ModItems.OVERCLOCK_UPGRADE.get()) {
+                    total = Component.translatable("gui.dopasrandomutilities.solar_furnace.peak_speed")
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(Component.literal(UpgradeConfig.solarPeakPercent(used) + "%")
+                                    .withStyle(ChatFormatting.GREEN));
+                }
             }
             UpgradeSlotTooltips.applyHover(
                     graphics,
@@ -246,7 +257,7 @@ public class SolarFurnaceScreen extends AbstractContainerScreen<SolarFurnaceMenu
                     true,
                     this.menu.blockEntity().upgrades(),
                     List.of(),
-                    peak
+                    total
             );
             return;
         }

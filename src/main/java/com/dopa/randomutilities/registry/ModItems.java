@@ -16,7 +16,6 @@ import com.dopa.randomutilities.lasso.LassoTier;
 import com.dopa.randomutilities.magnet.MagnetContents;
 import com.dopa.randomutilities.magnet.MagnetItem;
 import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
-import com.dopa.randomutilities.transfer.HeadKind;
 import com.dopa.randomutilities.transfer.TransferChannel;
 import com.dopa.randomutilities.filter.TransferFilterContents;
 import com.dopa.randomutilities.transfer.TransferFilterItem;
@@ -41,7 +40,6 @@ public final class ModItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(dOPasRandomUtilities.MOD_ID);
 
     private static final Map<TransferChannel, DeferredItem<BlockItem>> PIPES = new EnumMap<>(TransferChannel.class);
-    private static final Map<HeadKind, DeferredItem<BlockItem>> NODES = new EnumMap<>(HeadKind.class);
     private static final Map<GeneratorType, DeferredItem<BlockItem>> GENERATORS = new EnumMap<>(GeneratorType.class);
 
     public static DeferredItem<DevNullItem> DEV_NULL;
@@ -57,6 +55,11 @@ public final class ModItems {
     public static DeferredItem<BlockItem> SIMPLE_BLOCK_PLACER;
     public static DeferredItem<BlockItem> ADVANCED_BLOCK_BREAKER;
     public static DeferredItem<BlockItem> ADVANCED_BLOCK_PLACER;
+    public static DeferredItem<BlockItem> COMBUSTION_GENERATOR;
+    public static DeferredItem<BlockItem> SOLAR_PANEL_CONTROLLER;
+    public static DeferredItem<BlockItem> SOLAR_PANEL_TIER1;
+    public static DeferredItem<BlockItem> SOLAR_PANEL_TIER2;
+    public static DeferredItem<BlockItem> SOLAR_PANEL_TIER3;
     public static DeferredItem<BlockItem> SIMPLE_CORE_FRAME;
     public static DeferredItem<BlockItem> ADVANCED_CORE_FRAME;
     public static DeferredItem<LassoItem> LASSO;
@@ -66,8 +69,6 @@ public final class ModItems {
     public static DeferredItem<BlockItem> TRANSFER_PIPE;
     public static DeferredItem<BlockItem> TRANSFER_NODE;
     public static DeferredItem<CardboardBoxItem> CARDBOARD_BOX;
-    public static DeferredItem<BlockItem> TRANSFER_NODE_FLUID;
-    public static DeferredItem<BlockItem> TRANSFER_NODE_ENERGY;
     public static DeferredItem<TransferFilterItem> FILTER;
     public static DeferredItem<MagnetItem> ITEM_MAGNET;
     public static DeferredItem<Item> WOOD_CHIP;
@@ -124,6 +125,26 @@ public final class ModItems {
                 ModBlocks.ADVANCED_BLOCK_PLACER,
                 "block.dopasrandomutilities.advanced_block_placer.tooltip"
         );
+        COMBUSTION_GENERATOR = describedBlockIfPresent(
+                ModBlocks.COMBUSTION_GENERATOR,
+                "block.dopasrandomutilities.combustion_generator.tooltip"
+        );
+        SOLAR_PANEL_CONTROLLER = describedBlockIfPresent(
+                ModBlocks.SOLAR_PANEL_CONTROLLER,
+                "block.dopasrandomutilities.solar_panel_controller.tooltip"
+        );
+        SOLAR_PANEL_TIER1 = describedBlockIfPresent(
+                ModBlocks.SOLAR_PANEL_TIER1,
+                "block.dopasrandomutilities.solar_panel_tier1.tooltip"
+        );
+        SOLAR_PANEL_TIER2 = describedBlockIfPresent(
+                ModBlocks.SOLAR_PANEL_TIER2,
+                "block.dopasrandomutilities.solar_panel_tier2.tooltip"
+        );
+        SOLAR_PANEL_TIER3 = describedBlockIfPresent(
+                ModBlocks.SOLAR_PANEL_TIER3,
+                "block.dopasrandomutilities.solar_panel_tier3.tooltip"
+        );
         SIMPLE_CORE_FRAME = simpleBlockItemIfPresent(ModBlocks.SIMPLE_CORE_FRAME);
         ADVANCED_CORE_FRAME = simpleBlockItemIfPresent(ModBlocks.ADVANCED_CORE_FRAME);
         CARDBOARD_BOX = cardboardBoxIfPresent(ModBlocks.CARDBOARD_BOX);
@@ -179,38 +200,8 @@ public final class ModItems {
         if (ModBlocks.TRANSFER_NODE != null) {
             TRANSFER_NODE = ITEMS.registerItem(
                     ModBlocks.TRANSFER_NODE.getId().getPath(),
-                    props -> new TransferNodeItem(
-                            ModBlocks.TRANSFER_NODE.get(),
-                            props,
-                            "block.dopasrandomutilities.transfer_node.tooltip",
-                            HeadKind.ITEM
-                    )
+                    props -> new TransferNodeItem(ModBlocks.TRANSFER_NODE.get(), props)
             );
-            NODES.put(HeadKind.ITEM, TRANSFER_NODE);
-        }
-        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_FLUID) && ModBlocks.TRANSFER_NODE != null) {
-            TRANSFER_NODE_FLUID = ITEMS.registerItem(
-                    ModContentIds.TRANSFER_NODE_FLUID,
-                    props -> new TransferNodeItem(
-                            ModBlocks.TRANSFER_NODE.get(),
-                            props.overrideDescription("item.dopasrandomutilities.transfer_node_fluid"),
-                            "block.dopasrandomutilities.transfer_node_fluid.tooltip",
-                            HeadKind.FLUID
-                    )
-            );
-            NODES.put(HeadKind.FLUID, TRANSFER_NODE_FLUID);
-        }
-        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_ENERGY) && ModBlocks.TRANSFER_NODE != null) {
-            TRANSFER_NODE_ENERGY = ITEMS.registerItem(
-                    ModContentIds.TRANSFER_NODE_ENERGY,
-                    props -> new TransferNodeItem(
-                            ModBlocks.TRANSFER_NODE.get(),
-                            props.overrideDescription("item.dopasrandomutilities.transfer_node_energy"),
-                            "block.dopasrandomutilities.transfer_node_energy.tooltip",
-                            HeadKind.ENERGY
-                    )
-            );
-            NODES.put(HeadKind.ENERGY, TRANSFER_NODE_ENERGY);
         }
         if (FeatureConfig.isItemEnabled(ModContentIds.FILTER)) {
             FILTER = ITEMS.registerItem(
@@ -363,10 +354,6 @@ public final class ModItems {
 
     public static Iterable<DeferredItem<BlockItem>> pipes() {
         return PIPES.values();
-    }
-
-    public static @Nullable DeferredItem<BlockItem> node(HeadKind kind) {
-        return NODES.get(kind);
     }
 
     public static @Nullable DeferredItem<BlockItem> forType(GeneratorType type) {

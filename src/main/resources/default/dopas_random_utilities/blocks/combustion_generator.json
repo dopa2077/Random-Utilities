@@ -1,0 +1,5 @@
+{
+  "base_fe_per_tick": 20,
+  "burn_speed_factor": 16.0,
+  "base_max_extract": 50
+}

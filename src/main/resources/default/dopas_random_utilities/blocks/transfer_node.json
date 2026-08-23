@@ -1,0 +1,13 @@
+{
+  "item": {
+    "base_ticks": 40
+  },
+  "fluid": {
+    "base_ticks": 60,
+    "base_mb": 100
+  },
+  "energy": {
+    "base_ticks": 20,
+    "base_fe": 200
+  }
+}

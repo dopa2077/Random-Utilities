@@ -18,6 +18,11 @@ public final class ModContentIds {
     public static final String SIMPLE_BLOCK_PLACER = "simple_block_placer";
     public static final String ADVANCED_BLOCK_BREAKER = "advanced_block_breaker";
     public static final String ADVANCED_BLOCK_PLACER = "advanced_block_placer";
+    public static final String COMBUSTION_GENERATOR = "combustion_generator";
+    public static final String SOLAR_PANEL_CONTROLLER = "solar_panel_controller";
+    public static final String SOLAR_PANEL_TIER1 = "solar_panel_tier1";
+    public static final String SOLAR_PANEL_TIER2 = "solar_panel_tier2";
+    public static final String SOLAR_PANEL_TIER3 = "solar_panel_tier3";
     public static final String SIMPLE_CORE_FRAME = "simple_core_frame";
     public static final String ADVANCED_CORE_FRAME = "advanced_core_frame";
     public static final String TINY_TNT = "tiny_tnt";
@@ -58,6 +63,11 @@ public final class ModContentIds {
             SIMPLE_BLOCK_PLACER,
             ADVANCED_BLOCK_BREAKER,
             ADVANCED_BLOCK_PLACER,
+            COMBUSTION_GENERATOR,
+            SOLAR_PANEL_CONTROLLER,
+            SOLAR_PANEL_TIER1,
+            SOLAR_PANEL_TIER2,
+            SOLAR_PANEL_TIER3,
             SIMPLE_CORE_FRAME,
             ADVANCED_CORE_FRAME,
             TINY_TNT,

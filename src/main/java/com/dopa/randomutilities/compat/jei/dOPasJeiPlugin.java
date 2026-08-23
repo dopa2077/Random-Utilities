@@ -10,6 +10,8 @@ import com.dopa.randomutilities.filter.network.GhostFilterPayload;
 import com.dopa.randomutilities.fishnet.client.FishnetScreen;
 import com.dopa.randomutilities.itemcollector.menu.ItemCollectorMenu;
 import com.dopa.randomutilities.compat.jei.generator.ResourceGeneratorRecipeCategory;
+import com.dopa.randomutilities.config.FeatureConfig;
+import com.dopa.randomutilities.config.ModContentIds;
 import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.filter.client.FilterScreen;
 import com.dopa.randomutilities.itemcollector.client.ItemCollectorScreen;
@@ -20,8 +22,12 @@ import com.dopa.randomutilities.generator.client.ResourceGeneratorScreen;
 import com.dopa.randomutilities.generator.config.GeneratorRecipe;
 import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
 import com.dopa.randomutilities.generator.config.GeneratorType;
+import com.dopa.randomutilities.combustion.client.CombustionGeneratorScreen;
+import com.dopa.randomutilities.solarpanel.client.SolarPanelControllerScreen;
 import com.dopa.randomutilities.solarfurnace.client.SolarFurnaceScreen;
 import com.dopa.randomutilities.trashcan.TrashCanMenu;
+import com.dopa.randomutilities.transfer.HeadKind;
+import com.dopa.randomutilities.transfer.TransferNodeItem;
 import com.dopa.randomutilities.transfer.client.TransferEnergyScreen;
 import com.dopa.randomutilities.transfer.client.TransferFilterScreen;
 import com.dopa.randomutilities.transfer.client.TransferNodeScreen;
@@ -201,6 +207,26 @@ public class dOPasJeiPlugin implements IModPlugin {
                 );
             }
         });
+        registration.addGuiContainerHandler(CombustionGeneratorScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(CombustionGeneratorScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
+        registration.addGuiContainerHandler(SolarPanelControllerScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(SolarPanelControllerScreen screen) {
+                return screen.getPanelHost().collectExtraAreas(
+                        screen.leftPos(),
+                        screen.topPos(),
+                        screen.imageWidth()
+                );
+            }
+        });
         registration.addRecipeClickArea(
                 SolarFurnaceScreen.class,
                 79, 34, 24, 16,
@@ -279,6 +305,11 @@ public class dOPasJeiPlugin implements IModPlugin {
 
     private static void registerIngredientInfos(IRecipeRegistration registration) {
         infoIfPresent(registration, ModItems.SOLAR_FURNACE, "jei.dopasrandomutilities.solar_furnace.info");
+        infoIfPresent(registration, ModItems.COMBUSTION_GENERATOR, "jei.dopasrandomutilities.combustion_generator.info");
+        infoIfPresent(registration, ModItems.SOLAR_PANEL_CONTROLLER, "jei.dopasrandomutilities.solar_panel_controller.info");
+        infoIfPresent(registration, ModItems.SOLAR_PANEL_TIER1, "jei.dopasrandomutilities.solar_panel.info");
+        infoIfPresent(registration, ModItems.SOLAR_PANEL_TIER2, "jei.dopasrandomutilities.solar_panel.info");
+        infoIfPresent(registration, ModItems.SOLAR_PANEL_TIER3, "jei.dopasrandomutilities.solar_panel.info");
         infoIfPresent(registration, ModItems.FISHNET, "jei.dopasrandomutilities.fishnet.info");
         infoIfPresent(registration, ModItems.SIMPLE_BLOCK_BREAKER, "jei.dopasrandomutilities.simple_block_breaker.info");
         infoIfPresent(registration, ModItems.ADVANCED_BLOCK_BREAKER, "jei.dopasrandomutilities.advanced_block_breaker.info");
@@ -309,8 +340,18 @@ public class dOPasJeiPlugin implements IModPlugin {
             );
         }
         infoIfPresent(registration, ModItems.TRANSFER_NODE, "jei.dopasrandomutilities.transfer_node.info");
-        infoIfPresent(registration, ModItems.TRANSFER_NODE_FLUID, "jei.dopasrandomutilities.transfer_node_fluid.info");
-        infoIfPresent(registration, ModItems.TRANSFER_NODE_ENERGY, "jei.dopasrandomutilities.transfer_node_energy.info");
+        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_FLUID)) {
+            registration.addItemStackInfo(
+                    TransferNodeItem.create(HeadKind.FLUID),
+                    Component.translatable("jei.dopasrandomutilities.transfer_node_fluid.info")
+            );
+        }
+        if (FeatureConfig.isItemEnabled(ModContentIds.TRANSFER_NODE_ENERGY)) {
+            registration.addItemStackInfo(
+                    TransferNodeItem.create(HeadKind.ENERGY),
+                    Component.translatable("jei.dopasrandomutilities.transfer_node_energy.info")
+            );
+        }
         infoIfPresent(registration, ModItems.FILTER, "jei.dopasrandomutilities.filter.info");
         infoIfPresent(registration, ModItems.UPGRADE_CASING, "jei.dopasrandomutilities.upgrade_casing.info");
         infoIfPresent(registration, ModItems.PRODUCTIVITY_UPGRADE, "jei.dopasrandomutilities.productivity_upgrade.info");

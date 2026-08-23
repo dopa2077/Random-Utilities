@@ -1,33 +1,22 @@
 package com.dopa.randomutilities.lasso.config;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.config.ConfigPack;
 import com.dopa.randomutilities.lasso.LassoTier;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
-import net.neoforged.fml.loading.FMLPaths;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/** Per-tier entity allow/deny lists from {@code config/dopas_random_utilities/items/lasso.json}. */
+/** Per-tier entity allow/deny lists ({@code items/lasso.json}). */
 public final class LassoConfig {
-    private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/lasso.json";
+    private static final String RELATIVE = "items/lasso.json";
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/lasso.json";
 
     private static final Map<LassoTier, TierConfig> TIERS = new EnumMap<>(LassoTier.class);
@@ -39,19 +28,7 @@ public final class LassoConfig {
     private LassoConfig() {}
 
     public static void load() {
-        Path configFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE);
-        try {
-            Files.createDirectories(configFile.getParent());
-            if (Files.notExists(configFile)) {
-                copyDefaultConfig(configFile);
-            }
-            try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
-                applyJson(JsonParser.parseReader(reader).getAsJsonObject());
-            }
-        } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load lasso config from {}, using defaults", configFile, exception);
-            loadDefaultsFromJar();
-        }
+        ConfigPack.loadJson(RELATIVE, DEFAULT_RESOURCE, LassoConfig::applyJson, LassoConfig::loadDefaultsFromJar);
     }
 
     public static void reload() {
@@ -72,26 +49,7 @@ public final class LassoConfig {
     }
 
     private static void loadDefaultsFromJar() {
-        try (InputStream input = LassoConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                applyBuiltInDefaults();
-                return;
-            }
-            applyJson(JsonParser.parseReader(new InputStreamReader(input, StandardCharsets.UTF_8)).getAsJsonObject());
-        } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load bundled lasso config defaults", exception);
-            applyBuiltInDefaults();
-        }
-    }
-
-    private static void copyDefaultConfig(Path configFile) throws IOException {
-        try (InputStream input = LassoConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                throw new IOException("Missing bundled default config at " + DEFAULT_RESOURCE);
-            }
-            Files.copy(input, configFile, StandardCopyOption.REPLACE_EXISTING);
-            dOPasRandomUtilities.LOGGER.info("Wrote lasso config at {}", configFile);
-        }
+        ConfigPack.loadJarJson(DEFAULT_RESOURCE, LassoConfig::applyJson, LassoConfig::applyBuiltInDefaults);
     }
 
     private static void applyBuiltInDefaults() {

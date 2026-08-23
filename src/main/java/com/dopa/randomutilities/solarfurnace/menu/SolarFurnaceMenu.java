@@ -6,7 +6,6 @@ import com.dopa.randomutilities.machine.config.UpgradeConfig;
 import com.dopa.randomutilities.machine.menu.MachineUpgradeSlot;
 import com.dopa.randomutilities.solarfurnace.SolarFurnaceBlockEntity;
 import com.dopa.randomutilities.solarfurnace.SolarPower;
-import com.dopa.randomutilities.registry.ModItems;
 import com.dopa.randomutilities.registry.ModMenus;
 import com.dopa.randomutilities.gui.panel.PanelLayout;
 
@@ -235,7 +234,7 @@ public class SolarFurnaceMenu extends AbstractContainerMenu {
                 if (!this.moveItemStackTo(stack, inputSlot, inputSlot + 1, false)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (stack.is(ModItems.OVERCLOCK_UPGRADE.get())) {
+            } else if (UpgradeInventory.isUpgradeItem(stack)) {
                 if (!this.moveItemStackTo(stack, 0, machineSlotStart, false)) {
                     return ItemStack.EMPTY;
                 }

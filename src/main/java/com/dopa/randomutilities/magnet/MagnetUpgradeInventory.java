@@ -73,7 +73,10 @@ public final class MagnetUpgradeInventory extends UpgradeInventory {
     protected int getCapacity(int index, ItemResource resource) {
         ItemResource effective = resource.isEmpty() ? getResource(index) : resource;
         if (effective.isEmpty()) {
-            return Math.max(MagnetConfig.maxRangeUpgrades(), Math.max(MagnetConfig.maxOverclock(), UpgradeConfig.MAX_STACK_UPGRADE));
+            return perSlotCapacity(Math.max(
+                    MagnetConfig.maxRangeUpgrades(),
+                    Math.max(MagnetConfig.maxOverclock(), UpgradeConfig.MAX_STACK_UPGRADE)
+            ));
         }
         Item item = effective.getItem();
         int max = maxFor(item);
@@ -85,6 +88,6 @@ public final class MagnetUpgradeInventory extends UpgradeInventory {
         if (!current.isEmpty() && current.is(item)) {
             existing -= getAmountAsInt(index);
         }
-        return Math.max(0, max - existing);
+        return perSlotCapacity(max - existing);
     }
 }

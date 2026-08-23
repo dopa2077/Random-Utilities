@@ -1,0 +1,7 @@
+{
+  "max_range": 2,
+  "tier1_fe": 5,
+  "tier2_fe": 20,
+  "tier3_fe": 100,
+  "eval_interval": 10
+}

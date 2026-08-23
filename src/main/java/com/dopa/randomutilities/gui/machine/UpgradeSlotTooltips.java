@@ -148,6 +148,52 @@ public final class UpgradeSlotTooltips {
         return installed(stack, upgrades, List.of(), null, false);
     }
 
+    public static Component stackTransferTotalLine(int stackCount) {
+        return stackTransferTotalLine(stackCount, false);
+    }
+
+    public static Component stackTransferTotalLine(int stackCount, boolean strikethroughStats) {
+        return formattedTotalLine(
+                "gui.dopasrandomutilities.upgrade.total_stack_transfer",
+                "+" + UpgradeConfig.stackTransferTotal(stackCount),
+                strikethroughStats
+        );
+    }
+
+    public static Component stackPickupTotalLine(int pickupBatch, int stackCount) {
+        return stackPickupTotalLine(pickupBatch, stackCount, false);
+    }
+
+    public static Component stackPickupTotalLine(int pickupBatch, int stackCount, boolean strikethroughStats) {
+        return stackPickupTotalLine(pickupBatch, stackCount, Integer.MAX_VALUE, strikethroughStats);
+    }
+
+    public static Component stackPickupTotalLine(
+            int pickupBatch,
+            int stackCount,
+            int maxPickup,
+            boolean strikethroughStats
+    ) {
+        int total = Math.min(maxPickup, UpgradeConfig.stackCollectorTotal(pickupBatch, stackCount));
+        return formattedTotalLine(
+                "gui.dopasrandomutilities.upgrade.total_stack_pickup",
+                "+" + total,
+                strikethroughStats
+        );
+    }
+
+    private static Component formattedTotalLine(String labelKey, String value, boolean strikethroughStats) {
+        ChatFormatting labelColor = strikethroughStats ? ChatFormatting.DARK_GRAY : ChatFormatting.GRAY;
+        ChatFormatting valueColor = strikethroughStats ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN;
+        MutableComponent line = Component.translatable(labelKey).withStyle(labelColor);
+        MutableComponent valueLine = Component.literal(value).withStyle(valueColor);
+        if (strikethroughStats) {
+            line.withStyle(ChatFormatting.STRIKETHROUGH);
+            valueLine.withStyle(ChatFormatting.STRIKETHROUGH);
+        }
+        return line.append(valueLine);
+    }
+
     public static List<Component> installed(
             ItemStack stack,
             UpgradeInventory upgrades,
@@ -161,12 +207,13 @@ public final class UpgradeSlotTooltips {
         int used = upgrades.countOf(item);
         int max = upgrades.maxFor(item);
         if (item instanceof MachineUpgradeItem upgrade) {
-            Component description = upgrade.descriptionLine();
-            if (strikethroughStats) {
-                description = Component.literal(description.getString())
-                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH);
+            for (Component description : upgrade.descriptionLines()) {
+                if (strikethroughStats) {
+                    description = Component.literal(description.getString())
+                            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH);
+                }
+                lines.add(description);
             }
-            lines.add(description);
         }
         if (extras != null) {
             lines.addAll(extras);
@@ -217,8 +264,8 @@ public final class UpgradeSlotTooltips {
         return switch (kind) {
             case RANGE -> "gui.dopasrandomutilities.upgrade.total_range";
             case EFFICIENCY -> "gui.dopasrandomutilities.upgrade.total_efficiency";
-            case ENERGY -> "gui.dopasrandomutilities.upgrade.total_increase";
-            case STACK -> "gui.dopasrandomutilities.upgrade.total_stack";
+            case ENERGY, FLUID_CAPACITY -> "gui.dopasrandomutilities.upgrade.total_increase";
+            case STACK -> "gui.dopasrandomutilities.upgrade.total_stack_transfer";
             default -> "gui.dopasrandomutilities.upgrade.total_boost";
         };
     }
@@ -228,8 +275,9 @@ public final class UpgradeSlotTooltips {
         return switch (kind) {
             case RANGE -> "+" + (used * UpgradeConfig.rangeBonus());
             case FORTUNE_MESH -> UpgradeConfig.fortuneMeshChancePercent(used) + "%";
-            case ENERGY -> (used * 100) + "%";
-            case STACK, TREASURE_MESH -> null;
+            case ENERGY, FLUID_CAPACITY -> UpgradeConfig.piPercentTotal(used);
+            case STACK -> "+" + UpgradeConfig.stackTransferTotal(used);
+            case TREASURE_MESH -> null;
             default -> (used * kind.percent()) + "%";
         };
     }

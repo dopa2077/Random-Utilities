@@ -1,27 +1,15 @@
 package com.dopa.randomutilities.filter.config;
 
-import com.dopa.randomutilities.dOPasRandomUtilities;
+import com.dopa.randomutilities.config.ConfigPack;
 import com.dopa.randomutilities.filter.FilterContents;
 import com.dopa.randomutilities.filter.FilterProfile;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-
-/** Limits for /dev/null items. Loaded from {@code config/dopas_random_utilities/items/devnull.json}. */
+/** Limits for /dev/null items ({@code items/devnull.json}). */
 public final class DevNullConfig {
-    private static final String CONFIG_RELATIVE = "dopas_random_utilities/items/devnull.json";
+    private static final String RELATIVE = "items/devnull.json";
     private static final String DEFAULT_RESOURCE = "/default/dopas_random_utilities/items/devnull.json";
 
     private static int basicMaxStackSize = 64;
@@ -41,19 +29,7 @@ public final class DevNullConfig {
     private DevNullConfig() {}
 
     public static void load() {
-        Path configFile = FMLPaths.CONFIGDIR.get().resolve(CONFIG_RELATIVE);
-        try {
-            Files.createDirectories(configFile.getParent());
-            if (Files.notExists(configFile)) {
-                copyDefaultConfig(configFile);
-            }
-            try (Reader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
-                applyJson(JsonParser.parseReader(reader).getAsJsonObject());
-            }
-        } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load dev/null config from {}, using defaults", configFile, exception);
-            loadDefaultsFromJar();
-        }
+        ConfigPack.loadJson(RELATIVE, DEFAULT_RESOURCE, DevNullConfig::applyJson, DevNullConfig::loadDefaultsFromJar);
     }
 
     public static void reload() {
@@ -174,26 +150,7 @@ public final class DevNullConfig {
     }
 
     private static void loadDefaultsFromJar() {
-        try (InputStream input = DevNullConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                applyBuiltInDefaults();
-                return;
-            }
-            applyJson(JsonParser.parseReader(new InputStreamReader(input, StandardCharsets.UTF_8)).getAsJsonObject());
-        } catch (IOException | JsonSyntaxException | IllegalStateException exception) {
-            dOPasRandomUtilities.LOGGER.error("Failed to load bundled dev/null config defaults", exception);
-            applyBuiltInDefaults();
-        }
-    }
-
-    private static void copyDefaultConfig(Path configFile) throws IOException {
-        try (InputStream input = DevNullConfig.class.getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (input == null) {
-                throw new IOException("Missing bundled default config at " + DEFAULT_RESOURCE);
-            }
-            Files.copy(input, configFile, StandardCopyOption.REPLACE_EXISTING);
-            dOPasRandomUtilities.LOGGER.info("Wrote dev/null config at {}", configFile);
-        }
+        ConfigPack.loadJarJson(DEFAULT_RESOURCE, DevNullConfig::applyJson, DevNullConfig::applyBuiltInDefaults);
     }
 
     private static void applyBuiltInDefaults() {

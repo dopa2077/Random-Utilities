@@ -4,6 +4,8 @@ import com.dopa.randomutilities.dOPasRandomUtilities;
 import com.dopa.randomutilities.fishnet.menu.FishnetMenu;
 import com.dopa.randomutilities.machine.RedstoneMode;
 import com.dopa.randomutilities.generator.menu.ResourceGeneratorMenu;
+import com.dopa.randomutilities.combustion.menu.CombustionGeneratorMenu;
+import com.dopa.randomutilities.solarpanel.menu.SolarPanelControllerMenu;
 import com.dopa.randomutilities.solarfurnace.menu.SolarFurnaceMenu;
 import com.dopa.randomutilities.transfer.menu.TransferEnergyMenu;
 import com.dopa.randomutilities.transfer.menu.TransferNodeMenu;
@@ -52,6 +54,14 @@ public record MachineSettingPayload(byte kind, int value) implements CustomPacke
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
             } else if (player.containerMenu instanceof SolarFurnaceMenu menu && menu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof CombustionGeneratorMenu menu && menu.stillValid(player)) {
+                if (payload.kind() == KIND_REDSTONE) {
+                    menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
+                }
+            } else if (player.containerMenu instanceof SolarPanelControllerMenu menu && menu.stillValid(player)) {
                 if (payload.kind() == KIND_REDSTONE) {
                     menu.setRedstoneMode(RedstoneMode.byOrdinal(payload.value()));
                 }
