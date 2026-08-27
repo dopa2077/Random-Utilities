@@ -14,6 +14,7 @@ public final class ModSounds {
 
     public static final DeferredHolder<SoundEvent, SoundEvent> TINY_TNT_EXPLODE = register("tiny_tnt.explode");
     public static final DeferredHolder<SoundEvent, SoundEvent> TINY_TNT_PRIMED = register("tiny_tnt.primed");
+    public static final DeferredHolder<SoundEvent, SoundEvent> CARDBOARD_BOX_PACK = register("cardboard_box.pack");
 
     private ModSounds() {}
 

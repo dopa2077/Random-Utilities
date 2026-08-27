@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.config;
 
-import com.dopa.randomutilities.generator.config.GeneratorType;
-import com.dopa.randomutilities.transfer.TransferChannel;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
+import com.dopa.randomutilities.logistics.transfer.TransferChannel;
 
 import java.util.List;
 
@@ -48,6 +48,7 @@ public final class ModContentIds {
     public static final String STACK_UPGRADE = "stack_upgrade";
     public static final String FILTER = "filter";
     public static final String ITEM_MAGNET = "item_magnet";
+    public static final String WRENCH = "wrench";
     public static final String TRANSFER_NODE_FLUID = "transfer_node_fluid";
     public static final String TRANSFER_NODE_ENERGY = "transfer_node_energy";
 
@@ -95,6 +96,7 @@ public final class ModContentIds {
             STACK_UPGRADE,
             FILTER,
             ITEM_MAGNET,
+            WRENCH,
             TRANSFER_NODE_FLUID,
             TRANSFER_NODE_ENERGY
     );

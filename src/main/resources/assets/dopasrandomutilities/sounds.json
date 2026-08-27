@@ -13,5 +13,17 @@
     "sounds": [
       { "name": "minecraft:random/fuse", "volume": 0.9 }
     ]
+  },
+  "cardboard_box.pack": {
+    "subtitle": "subtitles.dopasrandomutilities.cardboard_box.pack",
+    "sounds": [
+      { "name": "minecraft:item/bundle/insert1", "pitch": 0.82, "volume": 0.9 },
+      { "name": "minecraft:item/bundle/insert2", "pitch": 0.85, "volume": 0.9 },
+      { "name": "minecraft:item/bundle/insert3", "pitch": 0.88, "volume": 0.9 },
+      { "name": "minecraft:dig/cloth1", "pitch": 0.9, "volume": 0.75 },
+      { "name": "minecraft:dig/cloth2", "pitch": 0.95, "volume": 0.75 },
+      { "name": "minecraft:dig/cloth3", "pitch": 0.88, "volume": 0.75 },
+      { "name": "minecraft:dig/cloth4", "pitch": 0.92, "volume": 0.75 }
+    ]
   }
 }

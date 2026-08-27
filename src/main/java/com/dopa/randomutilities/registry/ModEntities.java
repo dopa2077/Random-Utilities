@@ -2,7 +2,7 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.config.FeatureConfig;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.tinytnt.PrimedTinyTnt;
+import com.dopa.randomutilities.block.tinytnt.PrimedTinyTnt;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;

@@ -1,27 +1,28 @@
 package com.dopa.randomutilities.registry;
 
-import com.dopa.randomutilities.cardboardbox.CardboardBoxItem;
+import com.dopa.randomutilities.block.cardboardbox.CardboardBoxItem;
 import com.dopa.randomutilities.config.FeatureConfig;
 import com.dopa.randomutilities.config.ModContentIds;
-import com.dopa.randomutilities.filter.config.DevNullConfig;
-import com.dopa.randomutilities.generator.config.GeneratorType;
+import com.dopa.randomutilities.core.filter.config.DevNullConfig;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filter.FilterItem;
-import com.dopa.randomutilities.filter.FilterProfile;
-import com.dopa.randomutilities.filter.FilterRegistry;
-import com.dopa.randomutilities.filter.item.AdvancedDevNullItem;
-import com.dopa.randomutilities.filter.item.DevNullItem;
-import com.dopa.randomutilities.lasso.LassoItem;
-import com.dopa.randomutilities.lasso.LassoTier;
-import com.dopa.randomutilities.magnet.MagnetContents;
-import com.dopa.randomutilities.magnet.MagnetItem;
-import com.dopa.randomutilities.machine.item.MachineUpgradeItem;
-import com.dopa.randomutilities.transfer.TransferChannel;
-import com.dopa.randomutilities.filter.TransferFilterContents;
-import com.dopa.randomutilities.transfer.TransferFilterItem;
-import com.dopa.randomutilities.transfer.TransferNodeItem;
-import com.dopa.randomutilities.transfer.TransferPipeItem;
-import com.dopa.randomutilities.util.DescribedBlockItem;
+import com.dopa.randomutilities.core.filter.FilterItem;
+import com.dopa.randomutilities.core.filter.FilterProfile;
+import com.dopa.randomutilities.core.filter.FilterRegistry;
+import com.dopa.randomutilities.item.devnull.AdvancedDevNullItem;
+import com.dopa.randomutilities.item.devnull.DevNullItem;
+import com.dopa.randomutilities.item.lasso.LassoItem;
+import com.dopa.randomutilities.item.lasso.LassoTier;
+import com.dopa.randomutilities.item.magnet.MagnetContents;
+import com.dopa.randomutilities.item.magnet.MagnetItem;
+import com.dopa.randomutilities.item.upgrade.MachineUpgradeItem;
+import com.dopa.randomutilities.item.wrench.WrenchItem;
+import com.dopa.randomutilities.logistics.transfer.TransferChannel;
+import com.dopa.randomutilities.core.filter.TransferFilterContents;
+import com.dopa.randomutilities.logistics.transfer.TransferFilterItem;
+import com.dopa.randomutilities.logistics.transfer.TransferNodeItem;
+import com.dopa.randomutilities.logistics.transfer.TransferPipeItem;
+import com.dopa.randomutilities.core.util.DescribedBlockItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -71,6 +72,7 @@ public final class ModItems {
     public static DeferredItem<CardboardBoxItem> CARDBOARD_BOX;
     public static DeferredItem<TransferFilterItem> FILTER;
     public static DeferredItem<MagnetItem> ITEM_MAGNET;
+    public static DeferredItem<WrenchItem> WRENCH;
     public static DeferredItem<Item> WOOD_CHIP;
     public static DeferredItem<Item> UPGRADE_CASING;
     public static DeferredItem<MachineUpgradeItem> PRODUCTIVITY_UPGRADE;
@@ -215,6 +217,13 @@ public final class ModItems {
                     ModContentIds.ITEM_MAGNET,
                     MagnetItem::new,
                     props -> props.stacksTo(1).component(ModDataComponents.MAGNET_CONTENTS.get(), MagnetContents.defaults())
+            );
+        }
+        if (FeatureConfig.isItemEnabled(ModContentIds.WRENCH)) {
+            WRENCH = ITEMS.registerItem(
+                    ModContentIds.WRENCH,
+                    WrenchItem::new,
+                    props -> props.stacksTo(1)
             );
         }
         if (FeatureConfig.isItemEnabled(ModContentIds.WOOD_CHIP)) {

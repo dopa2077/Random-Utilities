@@ -1,11 +1,12 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filter.FilterContents;
-import com.dopa.randomutilities.lasso.LassoCapture;
-import com.dopa.randomutilities.cardboardbox.CardboardBoxContents;
-import com.dopa.randomutilities.magnet.MagnetContents;
-import com.dopa.randomutilities.filter.TransferFilterContents;
+import com.dopa.randomutilities.core.filter.FilterContents;
+import com.dopa.randomutilities.item.lasso.LassoCapture;
+import com.dopa.randomutilities.block.cardboardbox.CardboardBoxContents;
+import com.dopa.randomutilities.item.magnet.MagnetContents;
+import com.dopa.randomutilities.core.filter.TransferFilterContents;
+import com.dopa.randomutilities.logistics.transfer.HeadKind;
 
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -55,6 +56,14 @@ public final class ModDataComponents {
                     builder -> builder
                             .persistent(CardboardBoxContents.CODEC)
                             .networkSynchronized(CardboardBoxContents.STREAM_CODEC)
+            );
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<HeadKind>> TRANSFER_NODE_KIND =
+            DATA_COMPONENTS.registerComponentType(
+                    "transfer_node_kind",
+                    builder -> builder
+                            .persistent(HeadKind.CODEC)
+                            .networkSynchronized(HeadKind.STREAM_CODEC)
             );
 
     private ModDataComponents() {}

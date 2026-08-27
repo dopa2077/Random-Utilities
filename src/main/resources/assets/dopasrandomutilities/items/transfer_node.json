@@ -1,15 +1,54 @@
 {
   "model": {
-    "type": "minecraft:composite",
-    "models": [
+    "type": "minecraft:select",
+    "property": "minecraft:component",
+    "component": "dopasrandomutilities:transfer_node_kind",
+    "cases": [
       {
-        "type": "minecraft:model",
-        "model": "dopasrandomutilities:item/transfer_node"
+        "when": "fluid",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "dopasrandomutilities:item/transfer_node"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "dopasrandomutilities:block/transfer_node_fluid"
+            }
+          ]
+        }
       },
       {
-        "type": "minecraft:model",
-        "model": "dopasrandomutilities:block/transfer_node_item"
+        "when": "energy",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "dopasrandomutilities:item/transfer_node"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "dopasrandomutilities:block/transfer_node_energy"
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "fallback": {
+      "type": "minecraft:composite",
+      "models": [
+        {
+          "type": "minecraft:model",
+          "model": "dopasrandomutilities:item/transfer_node"
+        },
+        {
+          "type": "minecraft:model",
+          "model": "dopasrandomutilities:block/transfer_node_item"
+        }
+      ]
+    }
   }
 }

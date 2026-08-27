@@ -1,32 +1,24 @@
 package com.dopa.randomutilities;
 
-import com.dopa.randomutilities.blockbreaker.AdvancedBlockBreakerNetwork;
-import com.dopa.randomutilities.blockplacer.AdvancedBlockPlacerNetwork;
-import com.dopa.randomutilities.compat.ModCompat;
+import com.dopa.randomutilities.integration.ModCompat;
 import com.dopa.randomutilities.config.ConfigPack;
 import com.dopa.randomutilities.config.ModContentRegistration;
-import com.dopa.randomutilities.filter.FilterNetwork;
-import com.dopa.randomutilities.filter.NestedItemFilterBridge;
-import com.dopa.randomutilities.filter.config.DevNullConfig;
-import com.dopa.randomutilities.itemcollector.ItemCollectorNetwork;
-import com.dopa.randomutilities.transfer.TransferNodeNetwork;
-import com.dopa.randomutilities.transfer.config.TransferNodeConfig;
-import com.dopa.randomutilities.machine.config.PoweredMachinesConfig;
-import com.dopa.randomutilities.machine.config.UpgradeConfig;
-import com.dopa.randomutilities.generator.config.GeneratorRecipeConfig;
-import com.dopa.randomutilities.machine.MachineNetwork;
-import com.dopa.randomutilities.trashcan.TrashCanNetwork;
-import com.dopa.randomutilities.redstoneclock.RedstoneClockNetwork;
-import com.dopa.randomutilities.util.GhostItemFilter;
-import com.dopa.randomutilities.fishnet.FishnetNetwork;
-import com.dopa.randomutilities.fishnet.config.FishnetConfig;
-import com.dopa.randomutilities.fishnet.config.TreasureLootConfig;
-import com.dopa.randomutilities.lasso.config.LassoConfig;
-import com.dopa.randomutilities.magnet.MagnetNetwork;
-import com.dopa.randomutilities.magnet.config.MagnetConfig;
-import com.dopa.randomutilities.combustion.config.CombustionGeneratorConfig;
-import com.dopa.randomutilities.solarpanel.config.SolarPanelConfig;
-import com.dopa.randomutilities.solarfurnace.config.SolarFurnaceConfig;
+import com.dopa.randomutilities.core.filter.FilterItemHandler;
+import com.dopa.randomutilities.core.filter.FilterRegistry;
+import com.dopa.randomutilities.core.filter.NestedItemFilterBridge;
+import com.dopa.randomutilities.core.filter.config.DevNullConfig;
+import com.dopa.randomutilities.logistics.transfer.config.TransferNodeConfig;
+import com.dopa.randomutilities.core.machine.config.PoweredMachinesConfig;
+import com.dopa.randomutilities.core.machine.config.UpgradeConfig;
+import com.dopa.randomutilities.machine.generator.config.GeneratorRecipeConfig;
+import com.dopa.randomutilities.core.util.GhostItemFilter;
+import com.dopa.randomutilities.machine.fishnet.config.FishnetConfig;
+import com.dopa.randomutilities.machine.fishnet.config.TreasureLootConfig;
+import com.dopa.randomutilities.item.lasso.config.LassoConfig;
+import com.dopa.randomutilities.item.magnet.config.MagnetConfig;
+import com.dopa.randomutilities.machine.combustion.config.CombustionGeneratorConfig;
+import com.dopa.randomutilities.machine.solar.panel.config.SolarPanelConfig;
+import com.dopa.randomutilities.machine.solar.furnace.config.SolarFurnaceConfig;
 import com.dopa.randomutilities.registry.ModBlockEntities;
 import com.dopa.randomutilities.registry.ModBlocks;
 import com.dopa.randomutilities.registry.ModCreativeTabs;
@@ -34,6 +26,7 @@ import com.dopa.randomutilities.registry.ModDataComponents;
 import com.dopa.randomutilities.registry.ModEntities;
 import com.dopa.randomutilities.registry.ModItems;
 import com.dopa.randomutilities.registry.ModMenus;
+import com.dopa.randomutilities.registry.ModNetwork;
 import com.dopa.randomutilities.registry.ModSounds;
 import com.dopa.randomutilities.registry.ModTriggers;
 
@@ -113,21 +106,19 @@ public final class ModSetup {
                     MagnetConfig.load();
                     GeneratorRecipeConfig.load();
                 }));
-        modEventBus.addListener(FilterNetwork::registerCapabilities);
         modEventBus.addListener(ModSetup::registerCapabilities);
-        modEventBus.addListener(FilterNetwork::registerPayloads);
-        modEventBus.addListener(MachineNetwork::registerPayloads);
-        modEventBus.addListener(ItemCollectorNetwork::registerPayloads);
-        modEventBus.addListener(MagnetNetwork::registerPayloads);
-        modEventBus.addListener(TransferNodeNetwork::registerPayloads);
-        modEventBus.addListener(TrashCanNetwork::registerPayloads);
-        modEventBus.addListener(RedstoneClockNetwork::registerPayloads);
-        modEventBus.addListener(FishnetNetwork::registerPayloads);
-        modEventBus.addListener(AdvancedBlockBreakerNetwork::registerPayloads);
-        modEventBus.addListener(AdvancedBlockPlacerNetwork::registerPayloads);
+        modEventBus.addListener(ModNetwork::registerPayloads);
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        var filterItems = FilterRegistry.allItems();
+        if (filterItems.length > 0) {
+            event.registerItem(
+                    Capabilities.Item.ITEM,
+                    (stack, access) -> new FilterItemHandler(access),
+                    filterItems
+            );
+        }
         registerIfPresent(ModBlockEntities.MINI_CHEST, type ->
                 event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.itemHandler()));
         registerIfPresent(ModBlockEntities.TRASH_CAN, type ->

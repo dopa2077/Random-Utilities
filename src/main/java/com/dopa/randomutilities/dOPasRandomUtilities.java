@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 import com.dopa.randomutilities.config.FeatureConfig;
-import com.dopa.randomutilities.machine.config.UpgradeBonusesConfig;
+import com.dopa.randomutilities.core.machine.config.UpgradeBonusesConfig;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;

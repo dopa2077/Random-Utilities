@@ -1,7 +1,7 @@
 package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.filter.DevNullNestTrigger;
+import com.dopa.randomutilities.core.filter.DevNullNestTrigger;
 
 import net.minecraft.advancements.triggers.CriterionTrigger;
 import net.minecraft.core.registries.Registries;

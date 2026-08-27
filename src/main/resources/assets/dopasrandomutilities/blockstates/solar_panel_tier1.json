@@ -1,5 +1,10 @@
 {
-  "variants": {
-    "": { "model": "dopasrandomutilities:block/solar_panel_tier1" }
-  }
+  "multipart": [
+    { "when": { "formed": false }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1" } },
+    { "when": { "formed": true }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1_formed" } },
+    { "when": { "formed": true, "north": false }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1_formed_rim" } },
+    { "when": { "formed": true, "east": false }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1_formed_rim", "y": 90 } },
+    { "when": { "formed": true, "south": false }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1_formed_rim", "y": 180 } },
+    { "when": { "formed": true, "west": false }, "apply": { "model": "dopasrandomutilities:block/solar_panel_tier1_formed_rim", "y": 270 } }
+  ]
 }

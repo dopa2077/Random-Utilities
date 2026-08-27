@@ -29,6 +29,12 @@ bin/
 ### VS Code ###
 .vscode/
 
+### Cursor (local AI/editor config; do not commit unless explicitly requested) ###
+.cursor/
+
+### Local Gradle overrides (machine-specific; do not commit unless explicitly requested) ###
+gradle.properties
+
 ### Mac OS ###
 .DS_Store
 

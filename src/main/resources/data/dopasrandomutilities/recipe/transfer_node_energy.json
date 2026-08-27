@@ -13,6 +13,9 @@
   ],
   "result": {
     "count": 4,
-    "id": "dopasrandomutilities:transfer_node_energy"
+    "id": "dopasrandomutilities:transfer_node",
+    "components": {
+      "dopasrandomutilities:transfer_node_kind": "energy"
+    }
   }
 }

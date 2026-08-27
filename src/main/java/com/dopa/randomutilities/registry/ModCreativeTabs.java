@@ -2,10 +2,10 @@ package com.dopa.randomutilities.registry;
 
 import com.dopa.randomutilities.config.FeatureConfig;
 import com.dopa.randomutilities.config.ModContentIds;
-import com.dopa.randomutilities.generator.config.GeneratorType;
+import com.dopa.randomutilities.machine.generator.config.GeneratorType;
 import com.dopa.randomutilities.dOPasRandomUtilities;
-import com.dopa.randomutilities.transfer.HeadKind;
-import com.dopa.randomutilities.transfer.TransferNodeItem;
+import com.dopa.randomutilities.logistics.transfer.HeadKind;
+import com.dopa.randomutilities.logistics.transfer.TransferNodeItem;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -38,6 +38,7 @@ public final class ModCreativeTabs {
                         accept(output, ModItems.BASIC_ITEM_COLLECTOR);
                         accept(output, ModItems.ADVANCED_ITEM_COLLECTOR);
                         accept(output, ModItems.ITEM_MAGNET);
+                        accept(output, ModItems.WRENCH);
                         accept(output, ModItems.SOLAR_FURNACE);
                         accept(output, ModItems.FISHNET);
                         accept(output, ModItems.SIMPLE_BLOCK_BREAKER);
